@@ -120,10 +120,10 @@ function LookupSection() {
         body: JSON.stringify(body)
       })
       const data = await res.json()
-      if (data.success && data.data) {
-        setResult(data.data)
+      if (data.ok && (data.key || data.name)) {
+        setResult(data)
       } else {
-        setError(data.message || 'Không tìm thấy — thử nhập đúng SĐT đăng ký.')
+        setError(data.error || 'Không tìm thấy — thử nhập đúng SĐT đăng ký.')
       }
     } catch {
       setError('Không thể kết nối máy chủ. Vui lòng thử lại sau.')
@@ -156,6 +156,7 @@ function LookupSection() {
             style={{
               padding: '9px 22px', border: 'none', cursor: 'pointer',
               borderRadius: 8, fontWeight: 700, fontSize: 14,
+              fontFamily: 'inherit',
               background: tab === id ? NAVY : 'transparent',
               color: tab === id ? '#fff' : '#6b7280',
               transition: 'all 0.15s'
@@ -200,6 +201,7 @@ function LookupSection() {
             background: loading ? '#9ca3af' : NAVY,
             color: '#fff', border: 'none', borderRadius: 8,
             padding: '12px 28px', fontWeight: 800, fontSize: 15,
+            fontFamily: 'inherit',
             cursor: loading ? 'not-allowed' : 'pointer',
             transition: 'background 0.15s'
           }}
@@ -221,8 +223,8 @@ function LookupSection() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 24px' }}>
             {[
               ['Họ và tên', result.name],
-              ['Gói sử dụng', result.plan || result.package],
-              ['Hạn sử dụng', result.expires_at || result.expiry],
+              ['Gói sử dụng', result.plan],
+              ['Hạn sử dụng', result.expire ? result.expire + (result.daysLeft != null ? ` (còn ${result.daysLeft} ngày)` : '') : '—'],
               ['Trạng thái', null],
               ['Số điện thoại', maskPhone(result.phone)],
               ['Email', maskEmail(result.email)],
@@ -272,12 +274,12 @@ function ResetSection() {
         body: JSON.stringify({ action: 'reset_device', key: key.trim().toUpperCase(), phone: phone.trim() })
       })
       const data = await res.json()
-      if (data.success) {
-        setSuccess('Reset thiết bị thành công! Bạn có thể đăng nhập lại trên máy mới.')
+      if (data.ok) {
+        setSuccess(data.message || 'Reset thiết bị thành công! Đăng nhập lại trên máy mới.')
         setKey('')
         setPhone('')
       } else {
-        setError(data.message || 'Không thể reset. Kiểm tra lại key và SĐT.')
+        setError(data.error || 'Không thể reset. Kiểm tra lại key và SĐT.')
       }
     } catch {
       setError('Không thể kết nối máy chủ. Vui lòng thử lại sau.')
@@ -336,6 +338,7 @@ function ResetSection() {
             background: loading ? '#9ca3af' : ORANGE,
             color: '#fff', border: 'none', borderRadius: 8,
             padding: '12px 28px', fontWeight: 800, fontSize: 15,
+            fontFamily: 'inherit',
             cursor: loading ? 'not-allowed' : 'pointer',
             transition: 'background 0.15s'
           }}

@@ -60,8 +60,13 @@ export default function TaiXuong() {
   }, [])
 
   const version = data?.version || FALLBACK.version
-  const releaseDate = data?.release_date || FALLBACK.release_date
-  const notes = data?.notes || FALLBACK.notes
+  const releaseDate = data?.date || data?.release_date || FALLBACK.release_date
+  const notesRaw = data?.notes
+  const notes = Array.isArray(notesRaw)
+    ? notesRaw
+    : notesRaw
+      ? notesRaw.split(/[.\n]/).map(s => s.trim()).filter(Boolean)
+      : FALLBACK.notes
   const downloadUrl = data?.download_url || FALLBACK.download_url
 
   function formatDate(str) {
