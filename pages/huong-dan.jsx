@@ -193,10 +193,12 @@ export default function HuongDan() {
   }, [])
 
   const scrollTo = (id) => {
-    const navH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 68
     const el = document.getElementById(id)
     if (el) {
-      window.scrollTo({ top: el.offsetTop - navH - 8, behavior: 'smooth' })
+      // Tính tổng offset: nav (68px) + LiveCounter bar (~42px) + padding
+      const totalOffset = 68 + 44 + 16
+      const top = el.getBoundingClientRect().top + window.scrollY - totalOffset
+      window.scrollTo({ top, behavior: 'smooth' })
       setActive(id)
       setMobileOpen(false)
     }

@@ -379,7 +379,7 @@ export default function Home() {
             </div>
           </Reveal>
 
-          <div className="grid-3 stagger">
+          <div className="features-auto-grid stagger">
             {t.features.items.map((f, i) => (
               <div key={i} className="card" style={{ height: '100%', cursor: 'default' }}>
                 <div className="feature-icon" style={{ marginBottom: 18 }}>{f.icon}</div>
@@ -506,31 +506,193 @@ export default function Home() {
       </section>
 
       {/* ══ 6. STATS BAR ═════════════════════════════════════════════════════ */}
-      <section style={{ background: '#000', padding: '72px 0', position: 'relative', overflow: 'hidden' }}>
-        <div className="glow-line-h" style={{ position: 'absolute', top: 0, left: 0, right: 0 }} />
-        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 800, height: 200, background: 'radial-gradient(ellipse, rgba(0,199,222,0.06) 0%, transparent 70%)', pointerEvents: 'none' }} />
+      <section style={{
+        background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #f0fdf4 100%)',
+        padding: '72px 0',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 800, height: 200, background: 'radial-gradient(ellipse, rgba(0,112,243,0.06) 0%, transparent 70%)', pointerEvents: 'none' }} />
         <div className="container" style={{ position: 'relative' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 24 }} className="stats-grid">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 16 }} className="stats-grid">
             {t.stats.map((s, i) => (
               <Reveal key={i} delay={i * 100}>
-                <div style={{ textAlign: 'center', padding: '16px 8px', position: 'relative' }}>
+                <div style={{ textAlign: 'center', padding: '20px 8px', position: 'relative' }}>
                   {i < t.stats.length - 1 && (
-                    <div style={{ position: 'absolute', right: 0, top: '20%', bottom: '20%', width: 1, background: 'var(--border)' }} className="hide-mobile" />
+                    <div style={{ position: 'absolute', right: 0, top: '20%', bottom: '20%', width: 1, background: 'rgba(0,199,222,0.15)' }} className="hide-mobile" />
                   )}
-                  <div className="stat-number">
+                  <div style={{ fontSize: 'clamp(1.8rem,3.5vw,2.6rem)', fontWeight: 900, color: '#0070f3', lineHeight: 1, marginBottom: 8 }}>
                     {s.display
                       ? s.display
                       : <CountUp end={s.num} suffix={s.suffix} />
                     }
                   </div>
-                  <div className="stat-label">{s.label}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>{s.note}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#1a2332', marginBottom: 4, lineHeight: 1.4 }}>{s.label}</div>
+                  <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{s.note}</div>
                 </div>
               </Reveal>
             ))}
           </div>
         </div>
-        <div className="glow-line-h" style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }} />
+      </section>
+
+      {/* ══ 6b. ANALYTICS / CHARTS ══════════════════════════════════════════ */}
+      <section id="analytics" style={{ background: '#000d1a', padding: '100px 0', position: 'relative', overflow: 'hidden' }}>
+        {/* subtle glow */}
+        <div style={{ position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%,-50%)', width: 900, height: 400, background: 'radial-gradient(ellipse, rgba(0,199,222,0.05) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <div className="container" style={{ position: 'relative' }}>
+          <Reveal>
+            <div className="section-header">
+              <span className="badge">📈 Kết quả thực tế</span>
+              <h2 style={{ color: '#fff' }}>Kết quả thực tế sau khi dùng<br /><span className="grad-text">Go Meta Ads Pro</span></h2>
+              <p style={{ color: 'rgba(255,255,255,0.6)' }}>Số liệu tổng hợp từ 3,200+ người dùng hoạt động — đo lường sau 30 ngày sử dụng</p>
+            </div>
+          </Reveal>
+
+          {/* Charts row */}
+          <div className="analytics-charts-grid">
+
+            {/* Chart 1 — CPA Reduction Bar Chart */}
+            <Reveal direction="left" delay={80}>
+              <div className="analytics-card">
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--teal)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>CPA trung bình</div>
+                  <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', lineHeight: 1.2 }}>CPA trung bình giảm 27%</div>
+                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>So sánh trước và sau khi dùng tool</div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: 140, padding: '0 4px' }}>
+                  {[
+                    { label: 'T1', before: 100, after: 88 },
+                    { label: 'T2', before: 100, after: 82 },
+                    { label: 'T3', before: 100, after: 79 },
+                    { label: 'T4', before: 100, after: 76 },
+                    { label: 'T5', before: 100, after: 74 },
+                    { label: 'T6', before: 100, after: 73 },
+                  ].map((bar, i) => (
+                    <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                      <div style={{ width: '100%', display: 'flex', gap: 2, alignItems: 'flex-end', height: 120 }}>
+                        <div className="chart-bar-before" style={{ flex: 1, height: bar.before + '%', animationDelay: i * 0.08 + 's' }} />
+                        <div className="chart-bar-after" style={{ flex: 1, height: bar.after + '%', animationDelay: i * 0.08 + 0.1 + 's' }} />
+                      </div>
+                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>{bar.label}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: 16, marginTop: 16 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>
+                    <span style={{ width: 10, height: 10, borderRadius: 2, background: 'rgba(239,68,68,0.7)', flexShrink: 0 }} />
+                    Trước khi dùng
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>
+                    <span style={{ width: 10, height: 10, borderRadius: 2, background: 'var(--teal)', flexShrink: 0 }} />
+                    Sau khi dùng
+                  </span>
+                </div>
+              </div>
+            </Reveal>
+
+            {/* Chart 2 — ROAS Line Chart */}
+            <Reveal delay={160}>
+              <div className="analytics-card">
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--teal)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>ROAS</div>
+                  <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', lineHeight: 1.2 }}>ROAS tăng 15% sau 30 ngày</div>
+                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>Đường xanh = sau khi dùng Go Meta Ads Pro</div>
+                </div>
+                <svg viewBox="0 0 260 120" style={{ width: '100%', height: 140 }}>
+                  <defs>
+                    <linearGradient id="roasGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="rgba(0,199,222,0.4)" />
+                      <stop offset="100%" stopColor="rgba(0,199,222,0)" />
+                    </linearGradient>
+                  </defs>
+                  {/* Before line (red) */}
+                  <polyline points="0,80 43,82 86,78 130,84 173,80 216,82 260,80" fill="none" stroke="rgba(239,68,68,0.6)" strokeWidth="2" strokeDasharray="4 3" />
+                  {/* After area (teal) */}
+                  <polygon points="0,80 43,70 86,60 130,52 173,44 216,38 260,34 260,120 0,120" fill="url(#roasGrad)" />
+                  <polyline points="0,80 43,70 86,60 130,52 173,44 216,38 260,34" fill="none" stroke="var(--teal)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="chart-line-draw" />
+                  {/* Data points */}
+                  {[[0,80],[43,70],[86,60],[130,52],[173,44],[216,38],[260,34]].map(([x,y],i) => (
+                    <circle key={i} cx={x} cy={y} r="3" fill="var(--teal)" opacity="0.9" />
+                  ))}
+                  {/* Labels */}
+                  {['T1','T2','T3','T4','T5','T6','T7'].map((label, i) => (
+                    <text key={i} x={i * 43} y="115" textAnchor="middle" fontSize="9" fill="rgba(255,255,255,0.35)">{label}</text>
+                  ))}
+                </svg>
+                <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>
+                    <span style={{ width: 14, height: 2, background: 'rgba(239,68,68,0.6)', flexShrink: 0, borderRadius: 1 }} />
+                    Trước
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>
+                    <span style={{ width: 14, height: 2, background: 'var(--teal)', flexShrink: 0, borderRadius: 1 }} />
+                    Sau
+                  </span>
+                </div>
+              </div>
+            </Reveal>
+
+            {/* Chart 3 — Time Saved Donut */}
+            <Reveal direction="right" delay={240}>
+              <div className="analytics-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div style={{ marginBottom: 20, textAlign: 'center' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--teal)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Thời gian báo cáo</div>
+                  <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', lineHeight: 1.2 }}>Tiết kiệm 96% thời gian báo cáo</div>
+                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>Từ 2 giờ/ngày xuống còn 5 phút</div>
+                </div>
+                <div style={{ position: 'relative', width: 130, height: 130, margin: '0 auto' }}>
+                  <svg viewBox="0 0 42 42" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
+                    <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="rgba(239,68,68,0.2)" strokeWidth="4" />
+                    <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="var(--teal)" strokeWidth="4"
+                      strokeDasharray="96 4" strokeLinecap="round" className="donut-fill" />
+                  </svg>
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--teal)', lineHeight: 1 }}>96%</div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginTop: 3 }}>tiết kiệm</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 20, marginTop: 20 }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: 'rgba(239,68,68,0.8)' }}>2h</div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Trước</div>
+                  </div>
+                  <div style={{ fontSize: 20, color: 'rgba(255,255,255,0.2)', alignSelf: 'center' }}>→</div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--teal)' }}>5 phút</div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Sau</div>
+                  </div>
+                </div>
+              </div>
+            </Reveal>
+          </div>
+
+          {/* 4 metric cards */}
+          <div className="analytics-metrics-grid">
+            {[
+              { icon: '📉', label: 'CPA giảm trung bình', value: '27%', sub: 'nhờ phản ứng kịp thời với cảnh báo AI', color: 'var(--teal)' },
+              { icon: '📈', label: 'ROAS cải thiện', value: '+15%', sub: 'sau 30 ngày sử dụng liên tục', color: 'var(--lime)' },
+              { icon: '⏱', label: 'Thời gian báo cáo', value: '-96%', sub: 'từ 2 tiếng xuống còn 5 phút mỗi ngày', color: '#60a5fa' },
+              { icon: '⚡', label: 'Phản ứng camp lỗ', value: '<5 phút', sub: 'nhận cảnh báo và xử lý trước khi mất thêm', color: '#f59e0b' },
+            ].map((m, i) => (
+              <Reveal key={i} delay={i * 80}>
+                <div style={{
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 16,
+                  padding: '24px 20px',
+                  textAlign: 'center',
+                  backdropFilter: 'blur(12px)',
+                }}>
+                  <div style={{ fontSize: 28, marginBottom: 10 }}>{m.icon}</div>
+                  <div style={{ fontSize: 28, fontWeight: 900, color: m.color, lineHeight: 1, marginBottom: 8 }}>{m.value}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 6 }}>{m.label}</div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>{m.sub}</div>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* ══ 7. TESTIMONIALS ══════════════════════════════════════════════════ */}
@@ -935,13 +1097,96 @@ export default function Home() {
         .problem-grid {
           grid-template-columns: 3fr 2fr;
         }
+
+        /* ── Features auto-fit grid ── */
+        .features-auto-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          gap: 20px;
+        }
+
+        /* ── Stats grid: 5 cols → 3+2 → 2+3 → 1 ── */
+        .stats-grid { grid-template-columns: repeat(5, 1fr) !important; }
+
+        /* ── Analytics charts grid ── */
+        .analytics-charts-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 24px;
+          margin-bottom: 32px;
+        }
+        .analytics-card {
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 20px;
+          padding: 28px 24px;
+          backdrop-filter: blur(12px);
+        }
+
+        /* ── Analytics metrics grid ── */
+        .analytics-metrics-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 16px;
+          margin-top: 16px;
+        }
+
+        /* ── Bar chart animations ── */
+        .chart-bar-before {
+          background: rgba(239,68,68,0.55);
+          border-radius: 4px 4px 0 0;
+          width: 100%;
+          transform-origin: bottom;
+          animation: growBar 0.8s ease-out both;
+        }
+        .chart-bar-after {
+          background: var(--teal);
+          border-radius: 4px 4px 0 0;
+          width: 100%;
+          transform-origin: bottom;
+          animation: growBar 0.8s ease-out both;
+        }
+        @keyframes growBar {
+          from { transform: scaleY(0); opacity: 0; }
+          to   { transform: scaleY(1); opacity: 1; }
+        }
+
+        /* ── Line chart draw animation ── */
+        .chart-line-draw {
+          stroke-dasharray: 400;
+          stroke-dashoffset: 400;
+          animation: drawLine 1.5s ease-out both 0.3s;
+        }
+        @keyframes drawLine {
+          to { stroke-dashoffset: 0; }
+        }
+
+        /* ── Donut fill animation ── */
+        .donut-fill {
+          stroke-dasharray: 0 100;
+          animation: fillDonut 1.2s ease-out both 0.5s;
+        }
+        @keyframes fillDonut {
+          to { stroke-dasharray: 96 4; }
+        }
+
+        @media (max-width: 1024px) {
+          .stats-grid   { grid-template-columns: repeat(3, 1fr) !important; }
+          .analytics-charts-grid { grid-template-columns: 1fr 1fr !important; }
+          .analytics-metrics-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        }
         @media (max-width: 768px) {
           .problem-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
           .steps-grid   { grid-template-columns: 1fr 1fr !important; }
-          .stats-grid   { grid-template-columns: 1fr 1fr !important; }
+          .stats-grid   { grid-template-columns: repeat(2, 1fr) !important; }
+          .features-auto-grid { grid-template-columns: 1fr !important; }
+          .analytics-charts-grid { grid-template-columns: 1fr !important; }
+          .analytics-metrics-grid { grid-template-columns: repeat(2, 1fr) !important; }
         }
         @media (max-width: 480px) {
           .steps-grid { grid-template-columns: 1fr !important; }
+          .stats-grid { grid-template-columns: 1fr !important; }
+          .analytics-metrics-grid { grid-template-columns: 1fr !important; }
         }
 
         /* ── Plan card hover ── */
