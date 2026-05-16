@@ -362,7 +362,7 @@ export default function MuaGoi() {
       <main style={{
         background: 'linear-gradient(180deg, var(--navy) 0%, var(--navy2) 200px, var(--gray) 200px)',
         minHeight: '100vh',
-        paddingTop: 'calc(var(--nav-h) + 16px)',
+        paddingTop: 'calc(var(--header-h) + 4px)',
       }}>
 
         {/* Hero strip */}

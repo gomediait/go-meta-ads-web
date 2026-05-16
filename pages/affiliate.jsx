@@ -420,7 +420,7 @@ export default function Affiliate() {
       {/* ─── HERO ─── */}
       <section style={{
         background: 'linear-gradient(135deg, var(--navy) 0%, #0e1e50 55%, #1a0a00 100%)',
-        paddingTop: 'calc(var(--nav-h) + 60px)',
+        paddingTop: 'calc(var(--header-h) + 20px)',
         paddingBottom: 80,
         color: '#fff', textAlign: 'center',
         position: 'relative', overflow: 'hidden',

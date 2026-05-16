@@ -109,7 +109,7 @@ export default function Home() {
           overflow: 'hidden',
           minHeight: '100vh',
           background: 'var(--bg)',
-          paddingTop: 'calc(var(--nav-h) + 80px)',
+          paddingTop: 'calc(var(--header-h) + 60px)',
           paddingBottom: 80,
           display: 'flex',
           flexDirection: 'column',

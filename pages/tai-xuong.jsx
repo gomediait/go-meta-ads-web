@@ -105,7 +105,7 @@ export default function TaiXuong() {
       {/* ─── HERO ─── */}
       <section style={{
         background: 'linear-gradient(135deg, var(--navy) 0%, var(--navy2) 60%, #0e1e50 100%)',
-        paddingTop: 'calc(var(--nav-h) + 60px)',
+        paddingTop: 'calc(var(--header-h) + 20px)',
         paddingBottom: 80,
         textAlign: 'center',
         position: 'relative',

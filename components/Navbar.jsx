@@ -23,10 +23,10 @@ export default function Navbar() {
   return (
     <>
       <nav style={{
-        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000,
+        position: 'fixed', top: 'var(--counter-h, 40px)', left: 0, right: 0, zIndex: 1001,
         height: 'var(--nav-h)',
         display: 'flex', alignItems: 'center', padding: '0 24px',
-        background: scrolled ? 'rgba(0,13,26,0.95)' : 'transparent',
+        background: scrolled ? 'rgba(0,13,26,0.97)' : 'transparent',
         backdropFilter: scrolled ? 'blur(20px)' : 'none',
         borderBottom: scrolled ? '1px solid rgba(0,199,222,0.08)' : 'none',
         transition: 'background 0.35s ease, border-color 0.35s ease',

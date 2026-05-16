@@ -237,7 +237,7 @@ export default function HuongDan() {
       {/* ── Hero ─────────────────────────────────────────────────────── */}
       <div style={{
         background: 'linear-gradient(135deg, var(--navy) 0%, var(--navy2) 100%)',
-        paddingTop: 'calc(var(--nav-h) + 56px)',
+        paddingTop: 'calc(var(--header-h) + 16px)',
         paddingBottom: 60,
         textAlign: 'center',
         color: '#fff',
@@ -334,7 +334,7 @@ export default function HuongDan() {
           <aside className="hd-sidebar" style={{
             width: 240, flexShrink: 0,
             position: 'sticky',
-            top: 'calc(var(--nav-h) + 16px)',
+            top: 'calc(var(--header-h) + 4px)',
             background: '#fff',
             borderRadius: 'var(--radius)',
             padding: '20px 0',

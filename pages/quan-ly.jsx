@@ -516,7 +516,7 @@ export default function QuanLy() {
       {/* Hero */}
       <section style={{
         background: 'linear-gradient(135deg, var(--navy) 0%, var(--navy2) 100%)',
-        paddingTop: 'calc(var(--nav-h) + 56px)',
+        paddingTop: 'calc(var(--header-h) + 16px)',
         paddingBottom: 64,
         textAlign: 'center',
         color: '#fff',
