@@ -2,87 +2,109 @@ import { useEffect, useState } from 'react'
 
 export default function LoadingScreen() {
   const [progress, setProgress] = useState(0)
-  const [visible, setVisible] = useState(true)
+  const [hidden, setHidden] = useState(false)
 
   useEffect(() => {
-    // Animate progress bar
-    const start = Date.now()
-    const duration = 1800
+    // Don't show on subsequent navigations
+    if (sessionStorage.getItem('loaded')) { setHidden(true); return }
 
-    const tick = () => {
-      const elapsed = Date.now() - start
-      const pct = Math.min((elapsed / duration) * 100, 95)
-      setProgress(pct)
-      if (elapsed < duration) {
-        requestAnimationFrame(tick)
-      }
+    const start = Date.now()
+    const dur   = 1600
+    const tick  = () => {
+      const p = Math.min(((Date.now() - start) / dur) * 100, 95)
+      setProgress(p)
+      if (Date.now() - start < dur) requestAnimationFrame(tick)
     }
     requestAnimationFrame(tick)
 
-    // Hide after page loads
-    const hide = () => {
+    const done = () => {
       setProgress(100)
-      setTimeout(() => setVisible(false), 400)
+      setTimeout(() => {
+        setHidden(true)
+        sessionStorage.setItem('loaded', '1')
+      }, 350)
     }
 
-    if (document.readyState === 'complete') {
-      setTimeout(hide, 600)
-    } else {
-      window.addEventListener('load', () => setTimeout(hide, 400))
-    }
+    if (document.readyState === 'complete') setTimeout(done, 500)
+    else window.addEventListener('load', () => setTimeout(done, 300))
   }, [])
 
-  if (!visible) return null
+  if (hidden) return null
 
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 99999,
-      background: 'linear-gradient(135deg, #060e24 0%, #0c2a72 50%, #071a4a 100%)',
+      background: 'linear-gradient(135deg, #000d1a 0%, #000f20 50%, #001428 100%)',
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
-      transition: 'opacity 0.4s ease',
       opacity: progress >= 100 ? 0 : 1,
+      transition: 'opacity 0.35s ease',
+      pointerEvents: progress >= 100 ? 'none' : 'all',
     }}>
-      {/* Animated orbs */}
-      <div style={{ position: 'absolute', top: '20%', left: '15%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(254,95,1,0.12) 0%, transparent 70%)', animation: 'orbFloat 4s ease-in-out infinite' }} />
-      <div style={{ position: 'absolute', bottom: '20%', right: '15%', width: 250, height: 250, borderRadius: '50%', background: 'radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%)', animation: 'orbFloat 5s ease-in-out infinite reverse' }} />
+      {/* Stars */}
+      {Array.from({ length: 40 }).map((_, i) => (
+        <div key={i} style={{
+          position: 'absolute',
+          left: `${Math.random() * 100}%`,
+          top: `${Math.random() * 100}%`,
+          width: Math.random() * 2 + 0.5,
+          height: Math.random() * 2 + 0.5,
+          borderRadius: '50%',
+          background: '#fff',
+          opacity: Math.random() * 0.6 + 0.1,
+          animation: `starTwinkle ${Math.random() * 3 + 2}s ease-in-out infinite`,
+          animationDelay: `${Math.random() * 2}s`,
+        }} />
+      ))}
+
+      {/* Teal glow orb */}
+      <div style={{
+        position: 'absolute',
+        top: '30%', left: '50%', transform: 'translate(-50%, -50%)',
+        width: 400, height: 400, borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(0,199,222,0.08) 0%, transparent 70%)',
+        pointerEvents: 'none',
+      }} />
 
       {/* Logo */}
-      <div style={{ position: 'relative', textAlign: 'center', marginBottom: 48 }}>
-        <img
-          src="/logo.png"
-          alt="Go Meta Ads Pro"
-          style={{ width: 72, height: 72, borderRadius: 18, objectFit: 'cover', marginBottom: 16, boxShadow: '0 8px 32px rgba(254,95,1,0.4)', animation: 'logoPulse 2s ease-in-out infinite' }}
-        />
-        <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', fontFamily: 'Be Vietnam Pro, sans-serif' }}>
+      <div style={{ position: 'relative', textAlign: 'center', marginBottom: 48, zIndex: 1 }}>
+        <div style={{
+          width: 80, height: 80, borderRadius: 20, overflow: 'hidden',
+          margin: '0 auto 16px',
+          boxShadow: '0 0 40px rgba(0,199,222,0.5), 0 0 80px rgba(0,199,222,0.2)',
+          animation: 'glowPulse 2s ease-in-out infinite',
+          border: '1px solid rgba(0,199,222,0.3)',
+        }}>
+          <img src="/logo.png" alt="Go Meta Ads Pro" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        </div>
+        <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', fontFamily: 'Be Vietnam Pro, sans-serif', letterSpacing: '-0.3px' }}>
           Go Meta Ads Pro
         </div>
-        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 4, fontFamily: 'Be Vietnam Pro, sans-serif' }}>
+        <div style={{ fontSize: 12, color: 'rgba(0,199,222,0.7)', marginTop: 4, fontFamily: 'Be Vietnam Pro, sans-serif', fontWeight: 500 }}>
           by Go Media Vietnam
         </div>
       </div>
 
       {/* Progress bar */}
-      <div style={{ width: 240, height: 4, background: 'rgba(255,255,255,0.1)', borderRadius: 4, overflow: 'hidden' }}>
+      <div style={{ width: 220, height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden', zIndex: 1 }}>
         <div style={{
-          height: '100%',
-          width: `${progress}%`,
-          background: 'linear-gradient(90deg, #fe5f01 0%, #ff9a3c 50%, #fe5f01 100%)',
+          height: '100%', width: `${progress}%`,
+          background: 'linear-gradient(90deg, #00c7de 0%, #35e7e9 50%, #ccf456 100%)',
           backgroundSize: '200% 100%',
-          borderRadius: 4,
-          transition: 'width 0.1s linear',
-          animation: 'shimmerBar 1.5s linear infinite',
+          borderRadius: 3,
+          transition: 'width 0.12s linear',
+          animation: 'shimmer 1.5s linear infinite',
         }} />
       </div>
 
-      <div style={{ marginTop: 16, fontSize: 12, color: 'rgba(255,255,255,0.35)', fontFamily: 'Be Vietnam Pro, sans-serif' }}>
+      <div style={{ marginTop: 14, fontSize: 12, color: 'rgba(255,255,255,0.3)', fontFamily: 'Be Vietnam Pro, sans-serif', zIndex: 1 }}>
         Đang tải...
       </div>
 
       <style>{`
-        @keyframes orbFloat { 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-20px) scale(1.05)} }
-        @keyframes logoPulse { 0%,100%{box-shadow:0 8px 32px rgba(254,95,1,0.4)} 50%{box-shadow:0 8px 48px rgba(254,95,1,0.7)} }
-        @keyframes shimmerBar { 0%{background-position:0% 0} 100%{background-position:200% 0} }
+        @keyframes starTwinkle { 0%,100%{opacity:0.2} 50%{opacity:0.8} }
+        @keyframes glowPulse   { 0%,100%{box-shadow:0 0 40px rgba(0,199,222,0.4),0 0 80px rgba(0,199,222,0.1)} 50%{box-shadow:0 0 60px rgba(0,199,222,0.7),0 0 100px rgba(0,199,222,0.25)} }
+        @keyframes shimmer     { 0%{background-position:0% 0} 100%{background-position:200% 0} }
       `}</style>
     </div>
   )

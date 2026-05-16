@@ -3,217 +3,89 @@ import Head from 'next/head'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import Reveal from '../components/Reveal'
-import ParticleCanvas from '../components/ParticleCanvas'
+import StarField from '../components/StarField'
 import CountUp from '../components/CountUp'
 import { useLang } from '../lib/LangContext'
 
-// ─── DATA ───────────────────────────────────────────────────────────────────
-
-const STATS = [
-  { num: 2800, display: '2,800+', label: 'Tài khoản ads đang đồng bộ', icon: '📊' },
-  { num: 1,    display: '1 phút', label: 'Tự động cập nhật dữ liệu',   icon: '⚡' },
-  { num: 22,   display: '22%',    label: 'Giảm chi phí ads trung bình', icon: '📉' },
-  { num: 4.9,  display: '4.9⭐',  label: 'Đánh giá từ 127+ người dùng', icon: '🏆' },
-]
-
-const PROBLEMS = [
-  { icon: '📉', title: 'CPA vượt ngưỡng không biết', desc: 'Đến cuối ngày mới thấy camp đang lỗ. Trong khi đó hàng triệu đồng đã chảy đi mà không hay.' },
-  { icon: '📊', title: 'Không biết sản phẩm nào lãi', desc: 'Spend nhiều nhưng không biết sản phẩm nào thực sự có lãi sau khi trừ hết hoàn hàng, ship, VAT.' },
-  { icon: '👥', title: 'NV hiểu CPA mỗi người một kiểu', desc: 'Admin nói CPA 50K, nhân viên hiểu 50K gross — không ai tính hoàn hàng, ship, phí Marketplace.' },
-  { icon: '🕐', title: 'Báo cáo mất 2 tiếng mỗi sáng', desc: 'Copy số từ Ads Manager, paste vào Excel, tính toán thủ công — lặp đi lặp lại mỗi ngày.' },
-  { icon: '😴', title: 'Camp chạy lãng phí ban đêm', desc: 'Không có người theo dõi, adset tiêu tiền qua đêm với CPA cao mà không ai biết cho đến sáng.' },
-  { icon: '🔁', title: 'Set ads thủ công mệt mỏi', desc: 'Mỗi bài viết mới phải tạo camp tay — cấu hình, audience, creative, budget từng bước một.' },
-]
-
-const FEATURES = [
-  { icon: '🎯', title: 'Đồng bộ CPA mục tiêu', desc: 'Thiết lập CPA tối đa theo kế hoạch kinh doanh. Cả team nhìn vào cùng 1 con số — không còn mỗi người hiểu mỗi kiểu.', tags: ['CPA mục tiêu', 'Đồng bộ team', 'Tự cập nhật'] },
-  { icon: '📊', title: 'Theo dõi theo sản phẩm', desc: 'Mỗi camp gắn với sản phẩm cụ thể. Xem ngay CPA thực tế vs mục tiêu, ROAS, lãi/lỗ từng dòng sản phẩm — không cần mở Excel.', tags: ['Realtime', 'Theo sản phẩm', 'CPA so sánh'] },
-  { icon: '🔔', title: 'Cảnh báo thông minh 7 ngày', desc: 'Phân tích xu hướng 7 ngày qua. Phát hiện sớm adset CPA tăng >50%, 3 ngày 0 đơn, ROAS giảm — có đề xuất hành động cụ thể.', tags: ['7 loại cảnh báo', 'Đề xuất hành động', 'Cảnh báo sớm'] },
-  { icon: '💚', title: 'Auto Care & Action nhanh', desc: 'Toggle bật/tắt, sửa ngân sách, bulk action hàng loạt ngay trong tool. Off-hours tự pause adset ban đêm, tự resume sáng hôm sau.', tags: ['Bulk action', 'Off-hours pause', 'Auto resume'] },
-  { icon: '⚙️', title: 'Tự động set quảng cáo', desc: 'Quét bài viết Facebook → tự tạo Campaign + Adset + Creative theo hashtag sản phẩm. Tiết kiệm 90% thời gian set ads thủ công.', tags: ['Web Conv', 'Messenger', 'Bulk creation'] },
-  { icon: '📱', title: 'Báo cáo Telegram & Lark', desc: 'Gửi báo cáo chi tiêu, đơn hàng, ROAS, lãi/lỗ vào Telegram/Lark theo lịch. Cả team xem cùng lúc — không cần mở Ads Manager.', tags: ['Realtime', 'Lịch tùy chỉnh', 'Cả team nhận'] },
-]
-
-const BEFORE_AFTER = [
-  ['Mỗi sáng phải mở Excel ghi tay số liệu', 'Tự động cập nhật sau 1 phút, không cần tay'],
-  ['Không biết camp nào lãi, camp nào lỗ', 'Thấy ngay lãi/lỗ từng sản phẩm theo realtime'],
-  ['NV mỗi người hiểu CPA mục tiêu một kiểu', 'Đồng bộ CPA cho cả team chỉ 1 click duy nhất'],
-  ['CPA vượt ngưỡng — cuối ngày mới thấy', 'Cảnh báo ngay khi CPA vượt — trước khi mất thêm'],
-  ['Set ads mỗi bài viết mất 30 phút thủ công', 'Quét bài → tự tạo camp hoàn chỉnh trong 3 phút'],
-  ['Không biết lãi lỗ — chỉ thấy spend và click', 'Báo cáo lãi/lỗ tự động gửi Telegram mỗi ngày'],
-]
-
-const STEPS = [
-  { num: '01', icon: '📥', title: 'Cài tiện ích Chrome', desc: 'Tải file ZIP → giải nén → cài vào Chrome trong 1 phút. Không cần tài khoản, không cần cấu hình phức tạp.' },
-  { num: '02', icon: '🎯', title: 'Nhập CPA mục tiêu', desc: 'Thiết lập CPA tối đa cho từng sản phẩm theo kế hoạch kinh doanh. Tool tự tính từ giá vốn, hoàn hàng, chi phí.' },
-  { num: '03', icon: '👥', title: 'Đồng bộ cho team', desc: 'Nhập key NV cho nhân viên — cả team nhận CPA mục tiêu, theo dõi cùng chiến dịch trên máy riêng.' },
-  { num: '04', icon: '📈', title: 'Tối ưu lập tức', desc: 'Nhận cảnh báo ngay khi CPA vượt ngưỡng. Quyết định scale hay dừng — chính xác, kịp thời, không bỏ lỡ.' },
-]
-
-const TESTIMONIALS = [
-  {
-    name: 'Trung Nguyễn', role: 'Chủ shop thời trang HCM · 9 TK ads', avatar: '👨‍💼',
-    content: 'Từ khi dùng Go Meta Ads Pro, tôi không cần ngồi tổng hợp Excel mỗi sáng nữa. CPA được đồng bộ cho cả team, ai cũng biết camp nào đang tốt, camp nào cần điều chỉnh. Tiết kiệm cả tiếng mỗi ngày.',
-    result: 'Giảm 24% chi phí ads lãng phí',
-  },
-  {
-    name: 'Minh Phạm', role: 'Giám đốc điều hành · Agency Hà Nội · 5 nhân viên', avatar: '👩‍💼',
-    content: 'Tính năng lãi lỗ tự động là thứ tôi cần nhất. Nhập giá vốn, giá bán, tỉ lệ hoàn hàng một lần — hệ thống tự tính CPA tối đa. Cả team biết ngưỡng cần giữ, không ai tối ưu sai hướng nữa.',
-    result: 'ROAS tăng từ 2.5x lên 3.8x sau 3 tuần',
-  },
-  {
-    name: 'Lan Anh', role: 'Marketing Manager · Công ty FMCG · 10 sản phẩm', avatar: '🧑‍💻',
-    content: 'Tính năng cảnh báo thông minh giúp tôi tiết kiệm rất nhiều. Trước đây đến cuối ngày mới biết có camp nào vượt CPA, giờ nhận alert ngay — xử lý kịp trước khi tốn thêm tiền vô ích.',
-    result: 'Tiết kiệm ~180K tiền ads lãng phí/tháng',
-  },
-]
-
-const PLANS = [
-  {
-    key: 'personal', name: 'Cá nhân', icon: '🟦', color: '#3b82f6',
-    priceMonth: 200, priceYear: 160,
-    desc: 'Phù hợp shop nhỏ, quản lý 1 người',
-    features: ['1 Admin + 1 Nhân viên', 'Không giới hạn tài khoản ads', 'Đồng bộ CPA cho team', 'Cập nhật 1 phút/lần', 'Cảnh báo thông minh 7 ngày', 'Bật/tắt & sửa ngân sách nhanh'],
-    notIncluded: ['Bulk action hàng loạt', 'Auto Care quảng cáo', 'Báo cáo lãi lỗ chi tiết'],
-    cta: 'Mua Personal',
-  },
-  {
-    key: 'business', name: 'Doanh nghiệp', icon: '🟧', color: '#fe5f01',
-    priceMonth: 500, priceYear: 400,
-    desc: 'Dành cho team 2–5 người, shop đang scale',
-    features: ['2 Admin + 5 Nhân viên', 'Không giới hạn tài khoản ads', 'Đồng bộ CPA cho team', 'Cập nhật 1 phút/lần', 'Cảnh báo thông minh 7 ngày', 'Bật/tắt & sửa ngân sách nhanh', 'Bulk action hàng loạt', 'Auto Care quảng cáo', 'Báo cáo lãi lỗ chi tiết theo SP', 'Hỗ trợ qua Zalo'],
-    notIncluded: [],
-    cta: 'Mua Business — Tiết kiệm nhất',
-    popular: true,
-  },
-  {
-    key: 'agency', name: 'Agency', icon: '🟩', color: '#10b981',
-    priceMonth: 1200, priceYear: 960,
-    desc: 'Agency, multi-shop, không giới hạn quy mô',
-    features: ['6 Admin + Không giới hạn NV', 'Không giới hạn tài khoản ads', 'Đồng bộ CPA cho team', 'Cập nhật 1 phút/lần', 'Cảnh báo thông minh 7 ngày', 'Bulk action hàng loạt', 'Auto Care quảng cáo', 'Báo cáo lãi lỗ chi tiết theo SP', 'Hỗ trợ 1-1 Zalo/Call'],
-    notIncluded: [],
-    cta: 'Mua Agency',
-  },
-]
-
-const FAQS = [
-  { q: 'Dữ liệu tài khoản ads của tôi có an toàn không?', a: 'Hoàn toàn an toàn. Go Meta Ads Pro chạy 100% local trên Chrome của bạn — dữ liệu không gửi về server nào. Token Facebook chỉ lưu trên máy bạn và chỉ bạn thấy.' },
-  { q: 'Tôi có thể dùng thử trước khi mua không?', a: 'Có. Gói dùng thử 7 ngày miễn phí cho trải nghiệm đầy đủ tính năng gói Agency. Sau 7 ngày bạn chọn gói phù hợp hoặc không cần tiếp tục — không tự động trừ tiền.' },
-  { q: 'Cài Go Meta Ads Pro có làm Facebook khoá tài khoản ads không?', a: 'Không. Tool đọc dữ liệu qua API chính thức của Facebook, không can thiệp vào giao diện hay thao tác tự động trên Ads Manager. Hàng nghìn shop đang dùng mà không có vấn đề gì.' },
-  { q: 'Tôi có 5 nhân viên, mỗi người 1 máy — có dùng được không?', a: 'Được. Gói Business hỗ trợ 5 nhân viên, mỗi người nhận key NV riêng. Admin set CPA mục tiêu, NV đồng bộ về máy và xem theo dõi chiến dịch của mình.' },
-  { q: 'Tính năng tự động pause/tăng ngân sách hoạt động thế nào?', a: 'Bạn thiết lập điều kiện (CPA > ngưỡng, 0 đơn 3 ngày...) → tool tự kiểm tra mỗi phút khi Chrome mở → tự pause hoặc tăng ngân sách theo rule. Bạn nhận thông báo Telegram khi có action.' },
-  { q: 'CPA mục tiêu được tính như thế nào?', a: 'Bạn nhập: giá bán, giá vốn, % ads, % hoàn hàng, phí ship... → tool tính lãi/đơn và ngược suy ra CPA tối đa để vẫn có lãi. Con số này đồng bộ cho cả team chỉ 1 click.' },
-  { q: 'Tôi đổi máy hoặc cài lại Chrome thì sao?', a: 'Mỗi key được khóa với 1 thiết bị. Nếu cần đổi máy, vào trang Tra cứu → nhập SĐT đăng ký → reset thiết bị (tối đa 1 lần/tháng, hoàn toàn tự động).' },
-  { q: 'Có hợp đồng hay tự động gia hạn không?', a: 'Không có hợp đồng, không tự gia hạn. Bạn thanh toán từng tháng hoặc từng năm — hệ thống cập nhật hạn sử dụng ngay sau khi nhận được thanh toán.' },
-]
-
-const WIZARD_STEPS = [
-  {
-    question: 'Bạn đang gặp vấn đề gì?',
-    subtitle: 'Chọn một hoặc nhiều vấn đề bạn đang gặp (multi-select)',
-    multi: true,
-    choices: [
-      { icon: '📉', title: 'CPA không kiểm soát', desc: 'Vượt ngưỡng không biết kịp' },
-      { icon: '📋', title: 'Báo cáo thủ công', desc: 'Excel mỗi sáng tốn 1-2 tiếng' },
-      { icon: '👥', title: 'NV làm sai CPA', desc: 'Mỗi người hiểu một kiểu' },
-      { icon: '💸', title: 'Không biết lãi lỗ', desc: 'Không rõ camp nào đang lãi' },
-      { icon: '🤖', title: 'Muốn tự động hóa', desc: 'Giảm thao tác thủ công' },
-      { icon: '😴', title: 'Camp chạy ban đêm', desc: 'Tiêu tiền không ai kiểm soát' },
-    ],
-  },
-  {
-    question: 'Team của bạn có bao nhiêu người?',
-    subtitle: 'Chọn quy mô team hiện tại',
-    multi: false,
-    choices: [
-      { icon: '🧑', title: 'Chỉ mình tôi', desc: 'Tự quản lý toàn bộ' },
-      { icon: '👫', title: '2–3 người', desc: 'Team nhỏ mới hình thành' },
-      { icon: '👨‍👩‍👧‍👦', title: '4–10 người', desc: 'Team trung bình' },
-      { icon: '🏢', title: '10+ người', desc: 'Agency hoặc công ty lớn' },
-    ],
-  },
-  {
-    question: 'Ngân sách ads trung bình mỗi tháng?',
-    subtitle: 'Giúp chúng tôi gợi ý gói phù hợp nhất',
-    multi: false,
-    choices: [
-      { icon: '💵', title: 'Dưới 10 triệu', desc: 'Shop nhỏ mới chạy ads' },
-      { icon: '💴', title: '10–50 triệu', desc: 'Shop đang tăng trưởng' },
-      { icon: '💶', title: '50–200 triệu', desc: 'Shop đang scale mạnh' },
-      { icon: '💷', title: 'Trên 200 triệu', desc: 'Agency hoặc doanh nghiệp lớn' },
-    ],
-  },
-  {
-    question: 'Bạn đang quản lý bao nhiêu tài khoản ads?',
-    subtitle: 'Số tài khoản Facebook Ads Manager',
-    multi: false,
-    choices: [
-      { icon: '1️⃣', title: '1–3 tài khoản', desc: 'Tập trung 1 shop' },
-      { icon: '4️⃣', title: '4–10 tài khoản', desc: 'Nhiều shop hoặc nhiều TK' },
-      { icon: '🔟', title: '11–50 tài khoản', desc: 'Multi-shop hoặc agency nhỏ' },
-      { icon: '♾️', title: '50+ tài khoản', desc: 'Agency lớn, nhiều khách hàng' },
-    ],
-  },
-]
-
-function getRecommendedPlan(answers) {
-  const teamSize = answers[1]
+// ─── WIZARD RECOMMEND ────────────────────────────────────────────────────────
+function recommend(answers) {
+  const team   = answers[1]
   const budget = answers[2]
-  const accounts = answers[3]
-  if (teamSize === '10+ người' || budget === 'Trên 200 triệu' || accounts === '50+ tài khoản') return 'agency'
-  if (teamSize === '4–10 người' || budget === '50–200 triệu' || accounts === '11–50 tài khoản') return 'business'
+  const acc    = answers[3]
+  if (['10+ người', '10+ people'].includes(team) ||
+      ['Trên 200 triệu', '$8,000+'].includes(budget) ||
+      ['50+ TK', '50+ accounts'].includes(acc)) return 'agency'
+  if (['4-10 người', '4–10 people'].includes(team) ||
+      ['50–200 triệu', '$2,000–$8,000'].includes(budget) ||
+      ['11–50 TK', '11–50 accounts'].includes(acc)) return 'business'
   return 'personal'
 }
 
-// ─── MAIN COMPONENT ──────────────────────────────────────────────────────────
-
+// ─── MAIN ────────────────────────────────────────────────────────────────────
 export default function Home() {
-  const { lang, t } = useLang()
+  const { t } = useLang()
 
-  // Wizard state
-  const [wizardStep, setWizardStep] = useState(0)
-  const [answers, setAnswers] = useState({})
-  const [showPlans, setShowPlans] = useState(false)
+  // Mouse spotlight
+  const heroRef    = useRef(null)
+  const spotRef    = useRef(null)
+  useEffect(() => {
+    const el = heroRef.current
+    if (!el) return
+    const handler = (e) => {
+      const rect = el.getBoundingClientRect()
+      const x    = e.clientX - rect.left
+      const y    = e.clientY - rect.top
+      if (spotRef.current) {
+        spotRef.current.style.left    = x + 'px'
+        spotRef.current.style.top     = y + 'px'
+        spotRef.current.style.opacity = '1'
+      }
+    }
+    el.addEventListener('mousemove', handler)
+    return () => el.removeEventListener('mousemove', handler)
+  }, [])
+
+  // Wizard
+  const [wizardStep, setWizardStep]   = useState(0)
+  const [answers, setAnswers]         = useState({})
+  const [showPlans, setShowPlans]     = useState(false)
   const [billingYear, setBillingYear] = useState(false)
-  const recommendedPlan = showPlans ? getRecommendedPlan(answers) : null
+  const recommendedPlan = showPlans ? recommend(answers) : null
 
-  // FAQ
-  const [openFaq, setOpenFaq] = useState(null)
-
-  // Handlers
   function handleChoice(stepIdx, value) {
-    const step = WIZARD_STEPS[stepIdx]
+    const step = t.pricing.questions[stepIdx]
     if (step.multi) {
-      const prev = answers[stepIdx] || []
+      const prev   = answers[stepIdx] || []
       const exists = prev.includes(value)
       setAnswers(a => ({ ...a, [stepIdx]: exists ? prev.filter(x => x !== value) : [...prev, value] }))
     } else {
       setAnswers(a => ({ ...a, [stepIdx]: value }))
     }
   }
-
-  function canProceed(stepIdx) {
-    const step = WIZARD_STEPS[stepIdx]
-    if (step.multi) return (answers[stepIdx] || []).length > 0
-    return !!answers[stepIdx]
-  }
-
-  function isChoiceSelected(stepIdx, value) {
-    const step = WIZARD_STEPS[stepIdx]
+  function isSelected(stepIdx, value) {
+    const step = t.pricing.questions[stepIdx]
     if (step.multi) return (answers[stepIdx] || []).includes(value)
     return answers[stepIdx] === value
   }
-
+  function canProceed(stepIdx) {
+    const step = t.pricing.questions[stepIdx]
+    if (step.multi) return (answers[stepIdx] || []).length > 0
+    return !!answers[stepIdx]
+  }
   function nextStep() {
-    if (wizardStep < WIZARD_STEPS.length - 1) setWizardStep(s => s + 1)
+    if (wizardStep < t.pricing.questions.length - 1) setWizardStep(s => s + 1)
     else setShowPlans(true)
   }
-
   function resetWizard() {
     setWizardStep(0)
     setAnswers({})
     setShowPlans(false)
   }
+
+  // FAQ
+  const [openFaq, setOpenFaq] = useState(null)
+
+  const plans = t.pricing.plans
 
   return (
     <>
@@ -222,234 +94,300 @@ export default function Home() {
         <meta name="description" content="Theo dõi CPA từng sản phẩm, đồng bộ target cho cả team, cảnh báo thông minh 7 ngày. Hơn 2,800+ tài khoản ads đang dùng mỗi ngày." />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta property="og:title" content="Go Meta Ads Pro — Đồng bộ CPA, Biết ngay Lãi hay Lỗ" />
-        <meta property="og:description" content="Công cụ Chrome Extension quản lý Facebook Ads thông minh — CPA realtime, cảnh báo tự động, báo cáo lãi/lỗ." />
+        <meta property="og:description" content="Chrome Extension quản lý Facebook Ads thông minh — CPA realtime, cảnh báo tự động, báo cáo lãi/lỗ." />
         <link rel="icon" href="/logo.png" />
       </Head>
 
       <Navbar />
 
       {/* ══ 1. HERO ══════════════════════════════════════════════════════════ */}
-      <section id="hero-section" className="mesh-gradient" style={{
-        paddingTop: 'calc(var(--nav-h) + 70px)',
-        paddingBottom: 110,
-        position: 'relative',
-        overflow: 'hidden',
-        minHeight: '100vh',
-        display: 'flex', flexDirection: 'column', justifyContent: 'center',
-      }}>
-        {/* Particles */}
-        <ParticleCanvas />
+      <section
+        ref={heroRef}
+        style={{
+          position: 'relative',
+          overflow: 'hidden',
+          minHeight: '100vh',
+          background: 'var(--bg)',
+          paddingTop: 'calc(var(--nav-h) + 80px)',
+          paddingBottom: 80,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+        }}
+      >
+        {/* Stars */}
+        <StarField count={180} speed={0.25} />
 
-        {/* Spotlight follow mouse */}
-        <div id="hero-spotlight" className="spotlight" style={{ opacity: 0 }} />
+        {/* Grid bg */}
+        <div className="grid-bg" style={{ position: 'absolute', inset: 0, opacity: 0.4, pointerEvents: 'none' }} />
 
-        {/* Glow blobs */}
-        <div style={{ position: 'absolute', top: -80, right: -80, width: 560, height: 560, background: 'radial-gradient(circle, rgba(254,95,1,0.2) 0%, transparent 70%)', borderRadius: '50%', zIndex: 0, animation: 'orbFloat 7s ease-in-out infinite' }} />
-        <div style={{ position: 'absolute', bottom: -120, left: -80, width: 460, height: 460, background: 'radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)', borderRadius: '50%', zIndex: 0, animation: 'orbFloat 9s ease-in-out infinite reverse' }} />
-        <div style={{ position: 'absolute', top: '35%', left: '25%', width: 300, height: 300, background: 'radial-gradient(circle, rgba(16,185,129,0.08) 0%, transparent 70%)', borderRadius: '50%', zIndex: 0, animation: 'orbFloat 11s ease-in-out infinite' }} />
+        {/* Mouse spotlight */}
+        <div
+          ref={spotRef}
+          style={{
+            position: 'absolute',
+            width: 500,
+            height: 500,
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(0,199,222,0.06) 0%, transparent 70%)',
+            transform: 'translate(-50%,-50%)',
+            pointerEvents: 'none',
+            transition: 'opacity 0.3s',
+            opacity: 0,
+            zIndex: 0,
+          }}
+        />
 
+        {/* ARC element */}
+        <div className="arc-wrap">
+          <div className="arc-circle" />
+          <div className="arc-circle" />
+          <div className="arc-circle" />
+          <div className="arc-glow" />
+        </div>
+
+        {/* Vertical glow stems */}
+        <div style={{ position: 'absolute', left: '8%', top: '20%', width: 1, height: 160, background: 'linear-gradient(180deg, transparent, var(--teal), transparent)', opacity: 0.4, pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', left: '8%', top: 'calc(20% + 160px)', width: 6, height: 6, borderRadius: '50%', background: 'var(--teal)', boxShadow: '0 0 12px 4px rgba(0,199,222,0.5)', transform: 'translateX(-2px)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', right: '8%', top: '30%', width: 1, height: 120, background: 'linear-gradient(180deg, transparent, var(--cyan), transparent)', opacity: 0.35, pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', right: '8%', top: 'calc(30% + 120px)', width: 6, height: 6, borderRadius: '50%', background: 'var(--cyan)', boxShadow: '0 0 12px 4px rgba(53,231,233,0.5)', transform: 'translateX(-2px)', pointerEvents: 'none' }} />
+
+        {/* Floating data cards */}
+        <div className="float-card hide-mobile" style={{
+          position: 'absolute',
+          left: '3%',
+          top: '42%',
+          zIndex: 2,
+          minWidth: 180,
+          animation: 'cardFloat 6s ease-in-out infinite',
+        }}>
+          <div style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>CPA hôm nay</div>
+          <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--teal)', lineHeight: 1 }}>32,400đ</div>
+          <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 12, color: 'var(--lime)', fontWeight: 700 }}>▼ -15%</span>
+            <span style={{ fontSize: 11, color: 'var(--text3)' }}>vs ngưỡng</span>
+          </div>
+        </div>
+
+        <div className="float-card hide-mobile" style={{
+          position: 'absolute',
+          right: '3%',
+          top: '38%',
+          zIndex: 2,
+          minWidth: 160,
+          animation: 'cardFloat 7s ease-in-out infinite reverse',
+        }}>
+          <div style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>ROAS</div>
+          <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--lime)', lineHeight: 1 }}>3.2x</div>
+          <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 700 }}>↑ Scale được</span>
+          </div>
+        </div>
+
+        {/* Center content */}
         <div className="container" style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ textAlign: 'center', maxWidth: 860, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', maxWidth: 820, margin: '0 auto' }}>
 
-            {/* Badge */}
             <Reveal>
-              <span className="badge badge-white" style={{ marginBottom: 28 }}>
-                <span style={{ display: 'inline-block', width: 8, height: 8, background: '#fe5f01', borderRadius: '50%', animation: 'blink 1.5s infinite' }} />
-                Hơn 500+ shop &amp; agency tin dùng mỗi ngày
+              <span className="badge">
+                <span style={{ display: 'inline-block', width: 7, height: 7, background: 'var(--lime)', borderRadius: '50%', animation: 'pulseDot 2s ease-in-out infinite' }} />
+                {t.hero.badge}
               </span>
             </Reveal>
 
-            {/* H1 */}
             <Reveal delay={80}>
-              <h1 style={{ color: '#fff', marginBottom: 22 }}>
-                Đồng bộ CPA từng sản phẩm<br />
-                <span className="text-gradient">Biết ngay lãi hay lỗ</span>
+              <h1 style={{ marginBottom: 16, marginTop: 8 }}>
+                {t.hero.title1}<br />
+                <span className="grad-text">{t.hero.title2}</span>
               </h1>
             </Reveal>
 
-            {/* Description */}
             <Reveal delay={160}>
-              <p style={{ fontSize: 18, color: 'rgba(255,255,255,0.75)', lineHeight: 1.75, marginBottom: 36, maxWidth: 680, marginLeft: 'auto', marginRight: 'auto' }}>
-                Thiết lập CPA tối đa theo kế hoạch kinh doanh, đồng bộ ngay cho cả team. Tool tự động so sánh với chi tiêu thực tế và cảnh báo khi chiến dịch bắt đầu lỗ — để bạn không còn đốt tiền ads mà không hay biết.
+              <p style={{ fontSize: 18, color: 'var(--text2)', lineHeight: 1.8, marginBottom: 36, maxWidth: 640, margin: '0 auto 36px' }}>
+                {t.hero.desc}
               </p>
             </Reveal>
 
-            {/* CTAs */}
             <Reveal delay={240}>
-              <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 28 }}>
-                <a href="/tai-xuong" className="btn btn-primary btn-lg">
-                  🚀 Dùng thử 7 ngày miễn phí
+              <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 32 }}>
+                <a href="/tai-xuong" className="btn btn-teal btn-lg btn-ripple">
+                  {t.hero.cta1}
                 </a>
                 <a href="#pricing" className="btn btn-glass btn-lg">
-                  Xem bảng giá →
+                  {t.hero.cta2}
                 </a>
               </div>
             </Reveal>
 
-            {/* Trust badges */}
             <Reveal delay={320}>
-              <div style={{ display: 'flex', gap: 20, justifyContent: 'center', flexWrap: 'wrap' }}>
-                {['✅ Cài đặt 3 phút', '🔒 Dữ liệu local, bảo mật tuyệt đối', '📵 Không cấp phép phức tạp', '💬 Hỗ trợ Zalo trực tiếp'].map(item => (
-                  <span key={item} style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', fontWeight: 500 }}>{item}</span>
+              <div style={{ display: 'flex', gap: 24, justifyContent: 'center', flexWrap: 'wrap' }}>
+                {t.hero.trust.map((item, i) => (
+                  <span key={i} style={{ fontSize: 13, color: 'var(--text3)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <span style={{ color: 'var(--teal)' }}>✓</span> {item}
+                  </span>
                 ))}
+              </div>
+            </Reveal>
+
+            {/* Dashboard mockup */}
+            <Reveal delay={420}>
+              <div style={{ marginTop: 60, position: 'relative' }}>
+                <div style={{
+                  background: 'rgba(0,15,32,0.9)',
+                  backdropFilter: 'blur(20px)',
+                  WebkitBackdropFilter: 'blur(20px)',
+                  border: '1px solid var(--border2)',
+                  borderRadius: 'var(--radius-lg)',
+                  overflow: 'hidden',
+                  boxShadow: '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,199,222,0.08)',
+                  animation: 'float 7s ease-in-out infinite',
+                }}>
+                  {/* Window chrome */}
+                  <div style={{ background: 'rgba(255,255,255,0.04)', padding: '10px 18px', display: 'flex', alignItems: 'center', gap: 6, borderBottom: '1px solid var(--border)' }}>
+                    <div style={{ width: 11, height: 11, borderRadius: '50%', background: '#ef4444' }} />
+                    <div style={{ width: 11, height: 11, borderRadius: '50%', background: '#f59e0b' }} />
+                    <div style={{ width: 11, height: 11, borderRadius: '50%', background: '#10b981' }} />
+                    <span style={{ marginLeft: 10, fontSize: 11, color: 'var(--text3)', fontWeight: 500 }}>Go Meta Ads Pro — Dashboard</span>
+                    <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--teal)', fontWeight: 600 }}>● Live</span>
+                  </div>
+                  {/* Stat row */}
+                  <div style={{ padding: '16px 20px', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, borderBottom: '1px solid var(--border)' }}>
+                    {[
+                      { label: 'Chiến dịch', val: '18', color: '#60a5fa' },
+                      { label: 'Chi tiêu hôm nay', val: '36.4M', color: 'var(--text)' },
+                      { label: 'Tổng đơn hàng', val: '924', color: 'var(--teal)' },
+                      { label: 'CPA cao ⚠', val: '3', color: '#ef4444' },
+                    ].map(s => (
+                      <div key={s.label} style={{ background: 'var(--surface)', borderRadius: 10, padding: '10px 14px', border: '1px solid var(--border)' }}>
+                        <div style={{ fontSize: 18, fontWeight: 900, color: s.color, lineHeight: 1 }}>{s.val}</div>
+                        <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 3 }}>{s.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Table */}
+                  <div style={{ padding: '0 20px 16px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 0.7fr 1fr 0.8fr 1.6fr 0.6fr 1fr', gap: 8, padding: '10px 0 6px', borderBottom: '1px solid var(--border)' }}>
+                      {['Chiến dịch', 'SP', 'Trạng thái', 'Chi tiêu', 'CPA thực / mục tiêu', 'ROAS', 'Lãi/Lỗ'].map(h => (
+                        <div key={h} style={{ fontSize: 9, color: 'var(--text3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px' }}>{h}</div>
+                      ))}
+                    </div>
+                    {[
+                      { name: 'Camp lượt mua web 1', sp: 'SP-A', status: '● Chạy tốt', statusOk: true, chi: '5.2M', cpa: '30,100 / 45,000đ', roas: '2.6×', laiLo: '+2,400,000đ', ok: true },
+                      { name: 'Camp lượt mua web 2', sp: 'SP-B', status: '● Chạy tốt', statusOk: true, chi: '5.4M', cpa: '42,000 / 80,000đ', roas: '2.9×', laiLo: '+1,500,000đ', ok: true },
+                      { name: 'Camp lượt mua 3',     sp: 'SP-A', status: '⚠ Hãy xem',  statusOk: false, chi: '4.1M', cpa: '63,800 / 45,000đ', roas: '2.1×', laiLo: '-880,000đ',  ok: false },
+                    ].map((r, i) => (
+                      <div key={i} style={{
+                        display: 'grid', gridTemplateColumns: '2fr 0.7fr 1fr 0.8fr 1.6fr 0.6fr 1fr',
+                        gap: 8, alignItems: 'center', padding: '9px 0',
+                        borderBottom: i < 2 ? '1px solid var(--border)' : 'none', fontSize: 11,
+                      }}>
+                        <div>
+                          <div style={{ color: 'var(--text)', fontWeight: 600, fontSize: 11 }}>{r.name}</div>
+                          <div style={{ color: 'var(--text3)', fontSize: 10, marginTop: 2 }}>Sản phẩm {r.sp}</div>
+                        </div>
+                        <div style={{ color: '#60a5fa', fontWeight: 700 }}>{r.sp}</div>
+                        <div style={{ color: r.statusOk ? 'var(--teal)' : '#f59e0b', fontWeight: 600, fontSize: 10 }}>{r.status}</div>
+                        <div style={{ color: 'var(--text2)' }}>{r.chi}</div>
+                        <div style={{ color: r.ok ? 'var(--teal)' : '#ef4444', fontWeight: 700 }}>{r.cpa}</div>
+                        <div style={{ color: '#f59e0b', fontWeight: 600 }}>{r.roas}</div>
+                        <div style={{ color: r.ok ? 'var(--teal)' : '#ef4444', fontWeight: 800 }}>{r.laiLo}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {/* Glow under mockup */}
+                <div style={{ position: 'absolute', bottom: -30, left: '20%', right: '20%', height: 60, background: 'radial-gradient(ellipse, rgba(0,199,222,0.2) 0%, transparent 70%)', pointerEvents: 'none', filter: 'blur(20px)' }} />
               </div>
             </Reveal>
           </div>
 
-          {/* Dashboard Mockup */}
-          <Reveal delay={400}>
-            <div style={{ marginTop: 64, maxWidth: 920, marginLeft: 'auto', marginRight: 'auto' }}>
-              <div style={{
-                background: 'rgba(255,255,255,0.05)',
-                backdropFilter: 'blur(20px)',
-                WebkitBackdropFilter: 'blur(20px)',
-                border: '1px solid rgba(255,255,255,0.12)',
-                borderRadius: 20,
-                overflow: 'hidden',
-                boxShadow: '0 32px 80px rgba(0,0,0,0.45)',
-                animation: 'float 6s ease-in-out infinite',
-              }}>
-                {/* Window chrome */}
-                <div style={{ background: 'rgba(255,255,255,0.06)', padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 7, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                  <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#ef4444' }} />
-                  <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#f59e0b' }} />
-                  <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#10b981' }} />
-                  <span style={{ marginLeft: 12, fontSize: 12, color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>Go Meta Ads Pro — Dashboard</span>
-                  <span style={{ marginLeft: 'auto', fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Cập nhật: vừa xong</span>
-                </div>
+          {/* Scroll indicator */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, marginTop: 60, position: 'relative', zIndex: 1 }}>
+            <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' }}>Cuộn xuống để khám phá</span>
+            <div className="scroll-indicator">
+              <div className="scroll-arrow" />
+            </div>
+          </div>
+        </div>
+      </section>
 
-                {/* Dashboard body */}
-                <div style={{ padding: 24 }}>
-                  {/* Stats row */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 24 }}>
-                    {[
-                      { label: 'Chiến dịch', val: '18', color: '#60a5fa' },
-                      { label: 'Chi tiêu hôm nay', val: '36.4M', color: '#e2e8f0' },
-                      { label: 'Tổng đơn hàng', val: '924', color: '#10b981' },
-                      { label: 'CPA cao ⚠️', val: '3', color: '#ef4444' },
-                    ].map(s => (
-                      <div key={s.label} style={{ background: 'rgba(255,255,255,0.06)', borderRadius: 12, padding: '12px 16px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                        <div style={{ fontSize: 20, fontWeight: 900, color: s.color, lineHeight: 1 }}>{s.val}</div>
-                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 4 }}>{s.label}</div>
-                      </div>
-                    ))}
-                  </div>
+      {/* Glow divider */}
+      <div className="glow-line-h" />
 
-                  {/* Table header */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 0.6fr 0.9fr 0.8fr 1.5fr 0.6fr 1fr', gap: 8, padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: 4 }}>
-                    {['Chiến dịch', 'SP', 'Trạng thái', 'Chi tiêu', 'CPA thực / mục tiêu', 'ROAS', 'Lãi/Lỗ'].map(h => (
-                      <div key={h} style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{h}</div>
-                    ))}
-                  </div>
+      {/* ══ 2. PROBLEM SECTION ═══════════════════════════════════════════════ */}
+      <section style={{
+        minHeight: '80vh',
+        display: 'flex',
+        alignItems: 'center',
+        background: 'linear-gradient(135deg, #000000 0%, #000d1a 60%, #00101f 100%)',
+        position: 'relative',
+        overflow: 'hidden',
+        padding: '100px 0',
+      }}>
+        {/* Teal glow left */}
+        <div style={{ position: 'absolute', left: -100, top: '50%', transform: 'translateY(-50%)', width: 500, height: 500, background: 'radial-gradient(circle, rgba(0,199,222,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
-                  {/* Table rows */}
-                  {[
-                    { name: 'Chiến dịch lượt mua web 1', sp: 'SP-A', status: '● Đang chạy', chi: '5.2M', cpa: '30,100đ / 45,000đ', roas: '2.6×', laiLo: '+2,400,000đ', ok: true },
-                    { name: 'Chiến dịch lượt mua web 2', sp: 'SP-B', status: '● Đang chạy', chi: '5.4M', cpa: '42,000đ / 80,000đ', roas: '2.9×', laiLo: '+1,500,000đ', ok: true },
-                    { name: 'Chiến dịch lượt mua 3', sp: 'SP-A', status: '⚠ Hãy xem', chi: '4.1M', cpa: '63,800đ / 45,000đ', roas: '2.1×', laiLo: '-880,000đ', ok: false },
-                  ].map((r, i) => (
-                    <div key={i} style={{
-                      display: 'grid', gridTemplateColumns: '2fr 0.6fr 0.9fr 0.8fr 1.5fr 0.6fr 1fr',
-                      gap: 8, alignItems: 'center', padding: '10px 0',
-                      borderBottom: i < 2 ? '1px solid rgba(255,255,255,0.05)' : 'none',
-                      fontSize: 12,
-                    }}>
+        <div className="container">
+          <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: 64, alignItems: 'center' }} className="problem-grid">
+            {/* Left: big statement */}
+            <Reveal direction="left">
+              <div>
+                <span className="badge" style={{ marginBottom: 24 }}>😤 {t.problems.badge}</span>
+                <h2 style={{ fontSize: 'clamp(2rem,4.5vw,3.5rem)', lineHeight: 1.15, marginBottom: 32 }}>
+                  Bạn có thể tiếp tục<br />
+                  quản lý thủ công.<br />
+                  <span className="text-teal">Nhưng tại sao phải</span><br />
+                  <span className="grad-text">vất vả như vậy?</span>
+                </h2>
+                <a href="/tai-xuong" className="btn btn-teal btn-lg">
+                  Thử ngay — Miễn phí 7 ngày →
+                </a>
+              </div>
+            </Reveal>
+
+            {/* Right: description */}
+            <Reveal direction="right" delay={120}>
+              <div>
+                <p style={{ fontSize: 16, color: 'var(--text2)', lineHeight: 1.85, marginBottom: 28 }}>
+                  {t.problems.subtitle}
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {t.problems.items.slice(0, 4).map((p, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                      <span style={{ fontSize: 20, flexShrink: 0, marginTop: 1 }}>{p.icon}</span>
                       <div>
-                        <div style={{ color: '#e2e8f0', fontWeight: 600, fontSize: 12 }}>{r.name}</div>
-                        <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, marginTop: 2 }}>Sản phẩm {r.sp}</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 2 }}>{p.title}</div>
+                        <div style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.55 }}>{p.desc}</div>
                       </div>
-                      <div style={{ color: '#60a5fa', fontWeight: 700 }}>{r.sp}</div>
-                      <div style={{ color: r.ok ? '#10b981' : '#f59e0b', fontWeight: 600, fontSize: 11 }}>{r.status}</div>
-                      <div style={{ color: '#e2e8f0' }}>{r.chi}</div>
-                      <div style={{ color: r.ok ? '#10b981' : '#ef4444', fontWeight: 700 }}>{r.cpa}</div>
-                      <div style={{ color: '#f59e0b', fontWeight: 600 }}>{r.roas}</div>
-                      <div style={{ color: r.ok ? '#10b981' : '#ef4444', fontWeight: 800 }}>{r.laiLo}</div>
                     </div>
                   ))}
                 </div>
               </div>
-            </div>
-          </Reveal>
-        </div>
-      </section>
-
-      {/* ══ 2. STATS BAR ═════════════════════════════════════════════════════ */}
-      <section style={{ background: 'linear-gradient(135deg, #0a1535 0%, #0c2a72 50%, #071a4a 100%)', padding: '56px 0', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, transparent, rgba(254,95,1,0.5), transparent)' }} />
-        <div className="container">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 24, textAlign: 'center' }} className="stats-grid">
-            {[
-              { end: 2800, suffix: '+', label: 'Tài khoản ads đang đồng bộ', icon: '📊', note: 'và tăng mỗi ngày' },
-              { display: '1 phút', label: 'Tự động cập nhật dữ liệu', icon: '⚡', note: 'không cần F5' },
-              { end: 22, suffix: '%', label: 'Giảm chi phí ads trung bình', icon: '📉', note: 'sau 30 ngày dùng' },
-              { end: 4.9, suffix: '⭐', label: 'Từ 127+ người dùng thực tế', icon: '🏆', note: 'đánh giá trung bình' },
-            ].map((s, i) => (
-              <Reveal key={i} delay={i * 100}>
-                <div style={{ position: 'relative' }}>
-                  <div style={{ fontSize: 32, marginBottom: 10 }}>{s.icon}</div>
-                  <div className="stat-number" style={{ fontSize: 'clamp(2rem,4vw,3rem)' }}>
-                    {s.display ? s.display : (
-                      s.end ? <CountUp end={s.end} suffix={s.suffix} /> : s.suffix
-                    )}
-                  </div>
-                  <div className="stat-label" style={{ fontSize: 14, marginTop: 6 }}>{s.label}</div>
-                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 4 }}>{s.note}</div>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)' }} />
-        <style>{`.stats-grid { @media (max-width:768px) { grid-template-columns: repeat(2,1fr) !important; } }`}</style>
-      </section>
-
-      {/* ══ 3. PROBLEM SECTION ═══════════════════════════════════════════════ */}
-      <section className="section" style={{ background: '#f8faff' }}>
-        <div className="container">
-          <Reveal>
-            <div className="section-header">
-              <span className="badge">😤 Bạn đang gặp vấn đề này?</span>
-              <h2>Bạn đang lãng phí tiền ads<br /><span className="text-gradient">mà không hay biết?</span></h2>
-              <p>Những vấn đề này đang xảy ra hàng ngày với hàng nghìn shop & agency tại Việt Nam — và đều có thể giải quyết tự động.</p>
-            </div>
-          </Reveal>
-
-          <div className="grid-3">
-            {PROBLEMS.map((p, i) => (
-              <Reveal key={i} delay={i * 80}>
-                <div className="card" style={{ borderLeft: '4px solid #ef4444', height: '100%' }}>
-                  <div style={{ fontSize: 32, marginBottom: 14 }}>{p.icon}</div>
-                  <h3 style={{ fontSize: 15, marginBottom: 8, color: 'var(--navy)' }}>{p.title}</h3>
-                  <p style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.65 }}>{p.desc}</p>
-                </div>
-              </Reveal>
-            ))}
+            </Reveal>
           </div>
         </div>
       </section>
 
-      {/* ══ 4. FEATURES SECTION ══════════════════════════════════════════════ */}
-      <section className="section" id="features" style={{ background: '#fff' }}>
+      {/* ══ 3. FEATURES GRID ═════════════════════════════════════════════════ */}
+      <section className="section grid-bg" id="features" style={{ background: 'var(--bg)' }}>
         <div className="container">
           <Reveal>
             <div className="section-header">
-              <span className="badge">⚡ 6 tính năng cốt lõi</span>
-              <h2>Sáu trụ cột giúp bạn<br /><span className="text-gradient">kinh doanh chủ động hơn</span></h2>
-              <p>Mỗi tính năng giải quyết đúng 1 vấn đề thực tế mà shop & agency gặp phải mỗi ngày.</p>
+              <span className="badge">⚡ {t.features.badge}</span>
+              <h2>{t.features.title}</h2>
+              <p>{t.features.subtitle}</p>
             </div>
           </Reveal>
 
           <div className="grid-3 stagger">
-            {FEATURES.map((f, i) => (
-              <div key={i} className="card tilt-card" style={{ height: '100%', position: 'relative', overflow: 'hidden', cursor: 'default' }}>
-                <div style={{ position: 'absolute', top: 0, right: 0, width: 100, height: 100, background: 'radial-gradient(circle, rgba(254,95,1,0.08) 0%, transparent 70%)', borderRadius: '0 0 0 100px' }} />
-                <div style={{ position: 'absolute', bottom: 0, left: 0, width: 60, height: 60, background: 'radial-gradient(circle, rgba(12,42,114,0.06) 0%, transparent 70%)' }} />
-                <div className="feature-icon" style={{ fontSize: 28 }}>{f.icon}</div>
-                <h3 style={{ marginBottom: 10, color: 'var(--navy)', fontSize: 17 }}>{f.title}</h3>
+            {t.features.items.map((f, i) => (
+              <div key={i} className="card" style={{ height: '100%', cursor: 'default' }}>
+                <div className="feature-icon" style={{ marginBottom: 18 }}>{f.icon}</div>
+                <h3 style={{ marginBottom: 10, fontSize: 17 }}>{f.title}</h3>
                 <p style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.75, marginBottom: 18 }}>{f.desc}</p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {f.tags.map(tag => (
-                    <span key={tag} className="tag tag-navy">{tag}</span>
+                    <span key={tag} className="tag tag-teal">{tag}</span>
                   ))}
                 </div>
               </div>
@@ -458,28 +396,36 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ══ 5. BEFORE / AFTER ════════════════════════════════════════════════ */}
-      <section className="section" style={{ background: 'linear-gradient(135deg, #071a4a 0%, #0c2a72 50%, #1a3a8f 100%)' }}>
-        <div className="container">
+      {/* ══ 4. BEFORE / AFTER ════════════════════════════════════════════════ */}
+      <section className="section" style={{ background: 'linear-gradient(135deg, #000f20 0%, #001428 100%)', position: 'relative', overflow: 'hidden' }}>
+        {/* subtle center glow */}
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 600, height: 300, background: 'radial-gradient(ellipse, rgba(0,199,222,0.05) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <div className="container" style={{ position: 'relative' }}>
           <Reveal>
             <div className="section-header">
-              <span className="badge badge-white">✨ So sánh trước và sau</span>
-              <h2 style={{ color: '#fff' }}>Khác biệt rõ ràng<br />chỉ sau vài ngày sử dụng</h2>
+              <span className="badge">✨ {t.beforeAfter.badge}</span>
+              <h2>{t.beforeAfter.title}</h2>
             </div>
           </Reveal>
 
-          <div className="grid-2" style={{ alignItems: 'start', gap: 32 }}>
+          <div className="grid-2" style={{ alignItems: 'start', gap: 28 }}>
             {/* Before */}
             <Reveal direction="left">
-              <div style={{ background: 'rgba(239,68,68,0.08)', border: '1.5px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius-lg)', padding: 32, backdropFilter: 'blur(8px)' }}>
-                <h3 style={{ color: '#fca5a5', fontSize: 17, marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{
+                background: 'rgba(239,68,68,0.06)',
+                border: '1.5px solid rgba(239,68,68,0.18)',
+                borderRadius: 'var(--radius-lg)',
+                padding: 32,
+                backdropFilter: 'blur(12px)',
+              }}>
+                <h3 style={{ color: '#fca5a5', fontSize: 16, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
                   <span>😰</span> Trước — Quản lý thủ công
                 </h3>
                 <ul className="check-list">
-                  {BEFORE_AFTER.map(([before], i) => (
-                    <li key={i} style={{ color: 'rgba(255,255,255,0.65)', borderBottomColor: 'rgba(255,255,255,0.07)' }}>
+                  {t.beforeAfter.before.map((item, i) => (
+                    <li key={i} style={{ color: 'var(--text2)', borderBottomColor: 'rgba(255,255,255,0.06)' }}>
                       <span className="cross" style={{ color: '#ef4444' }}>✗</span>
-                      {before}
+                      {item}
                     </li>
                   ))}
                 </ul>
@@ -488,15 +434,21 @@ export default function Home() {
 
             {/* After */}
             <Reveal direction="right" delay={150}>
-              <div style={{ background: 'rgba(16,185,129,0.08)', border: '1.5px solid rgba(16,185,129,0.2)', borderRadius: 'var(--radius-lg)', padding: 32, backdropFilter: 'blur(8px)' }}>
-                <h3 style={{ color: '#6ee7b7', fontSize: 17, marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{
+                background: 'rgba(0,199,222,0.06)',
+                border: '1.5px solid rgba(0,199,222,0.2)',
+                borderRadius: 'var(--radius-lg)',
+                padding: 32,
+                backdropFilter: 'blur(12px)',
+              }}>
+                <h3 style={{ color: 'var(--teal)', fontSize: 16, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
                   <span>🚀</span> Sau — Tự động &amp; đồng bộ
                 </h3>
                 <ul className="check-list">
-                  {BEFORE_AFTER.map(([, after], i) => (
-                    <li key={i} style={{ color: '#fff', borderBottomColor: 'rgba(255,255,255,0.07)', fontWeight: 500 }}>
+                  {t.beforeAfter.after.map((item, i) => (
+                    <li key={i} style={{ color: 'var(--text)', borderBottomColor: 'rgba(255,255,255,0.06)', fontWeight: 500 }}>
                       <span className="check">✓</span>
-                      {after}
+                      {item}
                     </li>
                   ))}
                 </ul>
@@ -506,42 +458,37 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ══ 6. HOW IT WORKS ══════════════════════════════════════════════════ */}
-      <section className="section" style={{ background: '#f8faff' }}>
+      {/* ══ 5. HOW IT WORKS ══════════════════════════════════════════════════ */}
+      <section className="section grid-bg" style={{ background: 'var(--bg2)' }}>
         <div className="container">
           <Reveal>
             <div className="section-header">
-              <span className="badge">⏱ Bắt đầu trong 3 phút</span>
-              <h2>Cách hoạt động<br />cực kỳ đơn giản</h2>
-              <p>Bốn bước từ cài đặt đến tối ưu chiến dịch đầu tiên — không cần kỹ thuật, không cần cấu hình phức tạp.</p>
+              <span className="badge">⏱ {t.howItWorks.badge}</span>
+              <h2>{t.howItWorks.title}</h2>
+              <p>{t.howItWorks.subtitle}</p>
             </div>
           </Reveal>
 
-          <div className="grid-4" style={{ position: 'relative' }}>
-            {STEPS.map((s, i) => (
-              <Reveal key={i} delay={i * 110}>
-                <div style={{ textAlign: 'center', padding: '24px 16px', position: 'relative' }}>
-                  {/* Connector arrow (not on last item) */}
-                  {i < STEPS.length - 1 && (
-                    <div className="hide-mobile" style={{
-                      position: 'absolute', top: 44, right: -16, width: 32, zIndex: 2,
-                      color: 'var(--orange)', fontSize: 20, fontWeight: 900,
-                    }}>→</div>
-                  )}
-                  {/* Number circle */}
+          {/* Step bar */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8, position: 'relative', marginBottom: 48 }} className="steps-grid">
+            {/* Connector line behind */}
+            <div className="hide-mobile" style={{ position: 'absolute', top: 27, left: '12.5%', right: '12.5%', height: 2, background: 'linear-gradient(90deg, var(--teal), var(--cyan))', opacity: 0.3, zIndex: 0 }} />
+            {t.howItWorks.steps.map((s, i) => (
+              <Reveal key={i} delay={i * 120}>
+                <div style={{ textAlign: 'center', padding: '0 8px', position: 'relative', zIndex: 1 }}>
                   <div style={{
-                    width: 60, height: 60, borderRadius: '50%',
-                    background: 'linear-gradient(135deg, var(--navy), var(--navy2))',
+                    width: 54, height: 54, borderRadius: '50%',
+                    background: 'linear-gradient(135deg, var(--teal), var(--cyan))',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    margin: '0 auto 18px', fontSize: 26,
-                    boxShadow: '0 6px 20px rgba(12,42,114,0.28)',
+                    margin: '0 auto 16px', fontSize: 22,
+                    boxShadow: '0 0 24px rgba(0,199,222,0.35)',
                   }}>
                     {s.icon}
                   </div>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--orange)', letterSpacing: '1.2px', marginBottom: 10, textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--teal)', letterSpacing: '1.2px', marginBottom: 8, textTransform: 'uppercase' }}>
                     Bước {s.num}
                   </div>
-                  <h3 style={{ fontSize: 15, color: 'var(--navy)', marginBottom: 8 }}>{s.title}</h3>
+                  <h3 style={{ fontSize: 15, marginBottom: 8, color: 'var(--text)' }}>{s.title}</h3>
                   <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.65 }}>{s.desc}</p>
                 </div>
               </Reveal>
@@ -549,8 +496,8 @@ export default function Home() {
           </div>
 
           <Reveal delay={500}>
-            <div style={{ textAlign: 'center', marginTop: 48 }}>
-              <a href="/tai-xuong" className="btn btn-primary btn-lg">
+            <div style={{ textAlign: 'center' }}>
+              <a href="/tai-xuong" className="btn btn-teal btn-lg btn-ripple">
                 📥 Cài tiện ích ngay — Miễn phí 7 ngày
               </a>
             </div>
@@ -558,49 +505,82 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ══ 6. STATS BAR ═════════════════════════════════════════════════════ */}
+      <section style={{ background: '#000', padding: '72px 0', position: 'relative', overflow: 'hidden' }}>
+        <div className="glow-line-h" style={{ position: 'absolute', top: 0, left: 0, right: 0 }} />
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 800, height: 200, background: 'radial-gradient(ellipse, rgba(0,199,222,0.06) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <div className="container" style={{ position: 'relative' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 24 }} className="stats-grid">
+            {t.stats.map((s, i) => (
+              <Reveal key={i} delay={i * 100}>
+                <div style={{ textAlign: 'center', padding: '16px 8px', position: 'relative' }}>
+                  {i < t.stats.length - 1 && (
+                    <div style={{ position: 'absolute', right: 0, top: '20%', bottom: '20%', width: 1, background: 'var(--border)' }} className="hide-mobile" />
+                  )}
+                  <div className="stat-number">
+                    {s.display
+                      ? s.display
+                      : <CountUp end={s.num} suffix={s.suffix} />
+                    }
+                  </div>
+                  <div className="stat-label">{s.label}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>{s.note}</div>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+        <div className="glow-line-h" style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }} />
+      </section>
+
       {/* ══ 7. TESTIMONIALS ══════════════════════════════════════════════════ */}
-      <section className="section" style={{ background: '#fff' }}>
+      <section className="section" style={{ background: 'var(--bg)' }}>
         <div className="container">
           <Reveal>
             <div className="section-header">
-              <span className="badge">⭐ Đánh giá thực tế</span>
-              <h2>Chủ shop &amp; Agency<br />nói gì về Go Meta Ads Pro?</h2>
-              <p>4.9/5 sao từ 127+ đánh giá thực tế — không có review ảo, không có fake testimonial.</p>
+              <span className="badge">⭐ {t.testimonials.badge}</span>
+              <h2>{t.testimonials.title}</h2>
+              <p>{t.testimonials.subtitle}</p>
             </div>
           </Reveal>
 
           <div className="grid-3">
-            {TESTIMONIALS.map((tm, i) => (
+            {t.testimonials.items.map((tm, i) => (
               <Reveal key={i} delay={i * 120}>
-                <div className="card" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <div className="card testimonial-card" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                   {/* Stars */}
                   <div style={{ display: 'flex', gap: 3, marginBottom: 16 }}>
-                    {[...Array(5)].map((_, j) => <span key={j} style={{ color: '#f59e0b', fontSize: 17 }}>★</span>)}
+                    {[...Array(5)].map((_, j) => (
+                      <span key={j} style={{ color: 'var(--teal)', fontSize: 16 }}>★</span>
+                    ))}
                   </div>
                   {/* Quote */}
-                  <p style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.75, flex: 1, fontStyle: 'italic' }}>
-                    "{tm.content}"
+                  <p style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.8, flex: 1, fontStyle: 'italic' }}>
+                    &ldquo;{tm.content}&rdquo;
                   </p>
                   {/* Footer */}
-                  <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--gray)' }}>
+                  <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
                       <div style={{
                         width: 42, height: 42, borderRadius: '50%',
-                        background: 'linear-gradient(135deg, var(--navy), var(--navy2))',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
-                      }}>{tm.avatar}</div>
+                        background: 'linear-gradient(135deg, var(--teal), var(--cyan))',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 18, flexShrink: 0,
+                      }}>
+                        {tm.name.charAt(0)}
+                      </div>
                       <div>
                         <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>{tm.name}</div>
                         <div style={{ fontSize: 12, color: 'var(--text3)' }}>{tm.role}</div>
                       </div>
                     </div>
-                    {/* Result badge */}
                     <div style={{
-                      background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)',
-                      borderRadius: 8, padding: '8px 12px',
-                      fontSize: 13, fontWeight: 700, color: '#059669',
+                      background: 'rgba(204,244,86,0.08)',
+                      border: '1px solid rgba(204,244,86,0.2)',
+                      borderRadius: 10, padding: '8px 12px',
+                      fontSize: 13, fontWeight: 700, color: 'var(--lime)',
                     }}>
-                      KẾT QUẢ: {tm.result}
+                      {tm.result}
                     </div>
                   </div>
                 </div>
@@ -611,33 +591,33 @@ export default function Home() {
       </section>
 
       {/* ══ 8. PRICING WIZARD ════════════════════════════════════════════════ */}
-      <section className="section" id="pricing" style={{ background: 'linear-gradient(135deg, #f0f4ff, #fff)' }}>
+      <section className="section" id="pricing" style={{ background: 'var(--bg2)' }}>
         <div className="container">
           <Reveal>
             <div className="section-header">
-              <span className="badge">💰 Bảng giá thông minh</span>
-              <h2>Tìm gói phù hợp với<br /><span className="text-gradient">nhu cầu của bạn</span></h2>
-              <p>Trả lời 4 câu hỏi nhanh — chúng tôi gợi ý gói tốt nhất cho bạn.</p>
+              <span className="badge">💰 {t.pricing.badge}</span>
+              <h2>{t.pricing.title}</h2>
+              <p>{t.pricing.subtitle}</p>
             </div>
           </Reveal>
 
           {!showPlans ? (
-            <Reveal delay={100}>
-              <div style={{ maxWidth: 720, margin: '0 auto' }}>
-                {/* Step progress bar */}
-                <div className="step-bar" style={{ marginBottom: 40 }}>
-                  {WIZARD_STEPS.map((_, i) => (
+            <Reveal delay={80}>
+              <div style={{ maxWidth: 740, margin: '0 auto' }}>
+                {/* Step bar */}
+                <div className="step-bar">
+                  {t.pricing.questions.map((_, i) => (
                     <div key={i} className="step-item">
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                        <div className={`step-circle ${i < wizardStep ? 'done' : i === wizardStep ? 'active' : ''}`}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                        <div className={`step-circle${i < wizardStep ? ' done' : i === wizardStep ? ' active' : ''}`}>
                           {i < wizardStep ? '✓' : i + 1}
                         </div>
-                        <div className="step-label" style={{ color: i <= wizardStep ? 'var(--navy)' : 'var(--text3)' }}>
-                          {['Vấn đề', 'Team', 'Ngân sách', 'Tài khoản'][i]}
+                        <div style={{ fontSize: 11, color: i <= wizardStep ? 'var(--teal)' : 'var(--text3)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                          {t.pricing.stepLabels[i]}
                         </div>
                       </div>
-                      {i < WIZARD_STEPS.length - 1 && (
-                        <div className={`step-line ${i < wizardStep ? 'done' : ''}`} style={{ marginBottom: 18 }} />
+                      {i < t.pricing.questions.length - 1 && (
+                        <div className={`step-line${i < wizardStep ? ' done' : ''}`} style={{ marginBottom: 18 }} />
                       )}
                     </div>
                   ))}
@@ -645,16 +625,16 @@ export default function Home() {
 
                 {/* Question card */}
                 <div className="card" style={{ padding: 36 }}>
-                  <h3 style={{ fontSize: 20, color: 'var(--navy)', marginBottom: 6 }}>
-                    {WIZARD_STEPS[wizardStep].question}
+                  <h3 style={{ fontSize: 20, marginBottom: 6 }}>
+                    {t.pricing.questions[wizardStep].question}
                   </h3>
-                  <p style={{ fontSize: 14, color: 'var(--text2)', marginBottom: 28 }}>
-                    {WIZARD_STEPS[wizardStep].subtitle}
+                  <p style={{ fontSize: 14, color: 'var(--text2)', marginBottom: 24 }}>
+                    {t.pricing.questions[wizardStep].subtitle}
                   </p>
 
                   <div className="choice-grid">
-                    {WIZARD_STEPS[wizardStep].choices.map((c, ci) => {
-                      const selected = isChoiceSelected(wizardStep, c.title)
+                    {t.pricing.questions[wizardStep].choices.map((c, ci) => {
+                      const selected = isSelected(wizardStep, c.title)
                       return (
                         <button
                           key={ci}
@@ -669,115 +649,124 @@ export default function Home() {
                     })}
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 32 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 28 }}>
                     <button
-                      onClick={() => wizardStep > 0 ? setWizardStep(s => s - 1) : null}
+                      onClick={() => wizardStep > 0 && setWizardStep(s => s - 1)}
                       disabled={wizardStep === 0}
-                      className="btn btn-outline-navy btn-sm"
+                      className="btn btn-glass btn-sm"
                       style={{ opacity: wizardStep === 0 ? 0 : 1, pointerEvents: wizardStep === 0 ? 'none' : 'auto' }}
                     >
-                      ← Quay lại
+                      {t.pricing.prev}
                     </button>
-                    <span style={{ fontSize: 13, color: 'var(--text3)' }}>{wizardStep + 1} / {WIZARD_STEPS.length}</span>
+                    <span style={{ fontSize: 13, color: 'var(--text3)' }}>{wizardStep + 1} / {t.pricing.questions.length}</span>
                     <button
                       onClick={nextStep}
                       disabled={!canProceed(wizardStep)}
-                      className="btn btn-primary btn-sm"
+                      className="btn btn-teal btn-sm"
                     >
-                      {wizardStep < WIZARD_STEPS.length - 1 ? 'Tiếp theo →' : 'Xem gói phù hợp 🎯'}
+                      {wizardStep < t.pricing.questions.length - 1 ? t.pricing.next : t.pricing.seeResult}
                     </button>
                   </div>
+                </div>
+
+                <div style={{ textAlign: 'center', marginTop: 16 }}>
+                  <a href="#pricing-all" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'underline' }}
+                    onClick={(e) => { e.preventDefault(); setShowPlans(true) }}>
+                    {t.pricing.skipWizard}
+                  </a>
                 </div>
               </div>
             </Reveal>
           ) : (
-            <Reveal delay={100}>
+            <Reveal delay={80}>
               <div>
-                {/* Recommendation header */}
-                <div style={{ textAlign: 'center', marginBottom: 36 }}>
-                  <div className="highlight-box" style={{ display: 'inline-block', padding: '16px 32px', marginBottom: 24 }}>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)' }}>
-                      🎯 Dựa trên câu trả lời của bạn, chúng tôi gợi ý:
-                      <span style={{ color: 'var(--orange)', marginLeft: 8, textTransform: 'capitalize' }}>
-                        Gói {PLANS.find(p => p.key === recommendedPlan)?.name}
-                      </span>
-                    </div>
+                {/* Recommendation tag */}
+                <div style={{ textAlign: 'center', marginBottom: 32 }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: 'rgba(0,199,222,0.08)', border: '1px solid rgba(0,199,222,0.2)', borderRadius: 'var(--radius-full)', padding: '10px 22px', marginBottom: 24 }}>
+                    <span style={{ fontSize: 14, color: 'var(--text2)' }}>Dựa trên câu trả lời của bạn, chúng tôi gợi ý:</span>
+                    <span style={{ color: 'var(--teal)', fontWeight: 800, fontSize: 15 }}>
+                      Gói {plans.find(p => p.key === recommendedPlan)?.name}
+                    </span>
                   </div>
 
                   {/* Billing toggle */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14 }}>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: billingYear ? 'var(--text3)' : 'var(--navy)' }}>Theo tháng</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: billingYear ? 'var(--text3)' : 'var(--text)' }}>{t.pricing.billingMonth}</span>
                     <button
                       onClick={() => setBillingYear(b => !b)}
                       style={{
                         width: 52, height: 28, borderRadius: 14, border: 'none', cursor: 'pointer',
-                        background: billingYear ? 'var(--orange)' : 'var(--gray2)',
-                        position: 'relative', transition: 'background 0.2s',
+                        background: billingYear ? 'var(--teal)' : 'var(--surface2)',
+                        position: 'relative', transition: 'background 0.25s', flexShrink: 0,
                       }}
+                      aria-label="Toggle billing period"
                     >
                       <div style={{
                         width: 20, height: 20, borderRadius: '50%', background: '#fff',
                         position: 'absolute', top: 4, left: billingYear ? 28 : 4,
-                        transition: 'left 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,0.25)',
+                        transition: 'left 0.25s', boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
                       }} />
                     </button>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: billingYear ? 'var(--navy)' : 'var(--text3)' }}>
-                      Theo năm{' '}
-                      <span style={{ background: 'var(--orange)', color: '#fff', padding: '2px 8px', borderRadius: 50, fontSize: 12, fontWeight: 700 }}>-20%</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: billingYear ? 'var(--text)' : 'var(--text3)' }}>
+                      {t.pricing.billingYear}{' '}
+                      <span className="badge-lime" style={{ display: 'inline-flex', padding: '2px 8px', borderRadius: 'var(--radius-full)', fontSize: 11, fontWeight: 700, background: 'rgba(204,244,86,0.12)', color: 'var(--lime)', border: '1px solid rgba(204,244,86,0.25)' }}>
+                        {t.pricing.yearSave}
+                      </span>
                     </span>
                   </div>
                 </div>
 
                 {/* Plan cards */}
-                <div className="grid-3" style={{ alignItems: 'start' }}>
-                  {PLANS.map((plan, i) => {
-                    const isRec = plan.key === recommendedPlan
-                    const price = billingYear ? plan.priceYear : plan.priceMonth
+                <div className="grid-3" style={{ alignItems: 'start', gap: 20 }}>
+                  {plans.map((plan, i) => {
+                    const isRec  = plan.key === recommendedPlan
+                    const price  = billingYear ? plan.priceYear : plan.priceMonth
+                    const yearSaved = ((plan.priceMonth - plan.priceYear) * 12).toLocaleString()
                     return (
-                      <div key={i} style={{
-                        background: '#fff', borderRadius: 'var(--radius-xl)', padding: 32,
-                        border: isRec ? `2px solid ${plan.color}` : '1.5px solid var(--gray2)',
-                        position: 'relative', overflow: 'hidden',
-                        boxShadow: isRec ? `0 20px 60px rgba(254,95,1,0.18)` : 'var(--shadow-sm)',
-                        transform: isRec ? 'scale(1.03)' : 'scale(1)',
-                        transition: 'var(--transition)',
+                      <div key={i} className="card-solid plan-card" style={{
+                        borderColor: isRec ? 'var(--teal)' : plan.popular ? 'rgba(254,95,1,0.3)' : 'var(--border2)',
+                        boxShadow: isRec ? '0 0 40px rgba(0,199,222,0.15)' : 'none',
+                        transform: isRec ? 'translateY(-6px)' : 'none',
+                        position: 'relative',
+                        overflow: 'hidden',
                       }}>
-                        {/* Recommended ribbon */}
+                        {/* Ribbon */}
                         {isRec && (
                           <div style={{
                             position: 'absolute', top: 0, left: 0, right: 0,
-                            background: `linear-gradient(135deg, ${plan.color}, #ff9a3c)`,
-                            color: '#fff', textAlign: 'center', padding: '7px 12px',
-                            fontSize: 12, fontWeight: 800, letterSpacing: '0.5px',
+                            background: 'linear-gradient(90deg, var(--teal), var(--cyan))',
+                            color: '#000', textAlign: 'center', padding: '7px 12px',
+                            fontSize: 11, fontWeight: 800, letterSpacing: '0.8px',
                           }}>
-                            ⭐ PHÙ HỢP VỚI BẠN NHẤT
+                            ⭐ {t.pricing.recommend.toUpperCase()}
                           </div>
                         )}
                         {plan.popular && !isRec && (
                           <div style={{
                             position: 'absolute', top: 0, left: 0, right: 0,
-                            background: 'linear-gradient(135deg, var(--navy), var(--navy2))',
+                            background: 'linear-gradient(90deg, var(--orange), #ff9a3c)',
                             color: '#fff', textAlign: 'center', padding: '7px 12px',
-                            fontSize: 12, fontWeight: 800,
+                            fontSize: 11, fontWeight: 800,
                           }}>
-                            PHỔ BIẾN NHẤT
+                            {t.pricing.popularLabel.toUpperCase()}
                           </div>
                         )}
 
-                        <div style={{ marginTop: (isRec || plan.popular) ? 28 : 0 }}>
-                          <div style={{ fontSize: 30, marginBottom: 8 }}>{plan.icon}</div>
-                          <h3 style={{ fontSize: 21, fontWeight: 800, color: plan.color, marginBottom: 4 }}>{plan.name}</h3>
+                        <div style={{ paddingTop: (isRec || plan.popular) ? 28 : 0 }}>
+                          <h3 style={{ fontSize: 22, fontWeight: 800, marginBottom: 4, color: isRec ? 'var(--teal)' : plan.popular ? 'var(--orange)' : 'var(--text)' }}>
+                            {plan.name}
+                          </h3>
                           <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 22 }}>{plan.desc}</p>
 
                           {/* Price */}
-                          <div style={{ marginBottom: 24 }}>
-                            <span style={{ fontSize: 42, fontWeight: 900, color: 'var(--navy)', lineHeight: 1 }}>
+                          <div style={{ marginBottom: 20 }}>
+                            <span style={{ fontSize: 42, fontWeight: 900, color: 'var(--text)', lineHeight: 1 }}>
                               {price.toLocaleString('vi-VN')}K
                             </span>
-                            <span style={{ fontSize: 14, color: 'var(--text3)' }}>/tháng</span>
+                            <span style={{ fontSize: 14, color: 'var(--text3)' }}>{t.pricing.perMonth}</span>
                             {billingYear && (
-                              <div style={{ fontSize: 12, color: '#059669', fontWeight: 600, marginTop: 4 }}>
-                                Tiết kiệm {((plan.priceMonth - plan.priceYear) * 12).toLocaleString()}K/năm
+                              <div style={{ fontSize: 12, color: 'var(--lime)', fontWeight: 600, marginTop: 4 }}>
+                                Tiết kiệm {yearSaved}K/năm
                               </div>
                             )}
                           </div>
@@ -785,8 +774,8 @@ export default function Home() {
                           {/* CTA */}
                           <a
                             href={`/mua-goi?plan=${plan.key}&billing=${billingYear ? 'year' : 'month'}`}
-                            className="btn btn-primary btn-block"
-                            style={{ marginBottom: 24, background: plan.color, justifyContent: 'center', boxShadow: `0 4px 16px ${plan.color}40` }}
+                            className={`btn btn-block ${isRec ? 'btn-teal' : 'btn-glass'}`}
+                            style={{ marginBottom: 22, justifyContent: 'center' }}
                           >
                             {plan.cta}
                           </a>
@@ -800,9 +789,9 @@ export default function Home() {
                               </li>
                             ))}
                             {plan.notIncluded.map(f => (
-                              <li key={f} style={{ opacity: 0.4 }}>
-                                <span style={{ color: 'var(--text3)', flexShrink: 0, marginTop: 2, fontWeight: 700 }}>✗</span>
-                                <span style={{ textDecoration: 'line-through', color: 'var(--text3)' }}>{f}</span>
+                              <li key={f} style={{ opacity: 0.35 }}>
+                                <span className="cross">✗</span>
+                                <span style={{ textDecoration: 'line-through' }}>{f}</span>
                               </li>
                             ))}
                           </ul>
@@ -812,15 +801,20 @@ export default function Home() {
                   })}
                 </div>
 
-                {/* Reset + guarantees */}
-                <div style={{ textAlign: 'center', marginTop: 44 }}>
-                  <div style={{ display: 'flex', gap: 28, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 20 }}>
-                    {['✅ Thanh toán an toàn', '🔒 Bảo mật dữ liệu local', '💬 Hỗ trợ Zalo trong 5 phút', '⚡ Không tự động gia hạn'].map(item => (
-                      <span key={item} style={{ fontSize: 14, color: 'var(--text2)', fontWeight: 500 }}>{item}</span>
+                {/* Guarantees + retake */}
+                <div style={{ textAlign: 'center', marginTop: 40 }}>
+                  <div style={{ display: 'flex', gap: 20, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 18 }}>
+                    {t.pricing.guarantees.map((item, i) => (
+                      <span key={i} style={{ fontSize: 13, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <span style={{ color: 'var(--teal)' }}>✓</span> {item}
+                      </span>
                     ))}
                   </div>
-                  <button onClick={resetWizard} style={{ background: 'none', border: 'none', color: 'var(--orange)', cursor: 'pointer', fontSize: 14, fontWeight: 600, textDecoration: 'underline', fontFamily: 'inherit' }}>
-                    ← Làm lại khảo sát
+                  <button
+                    onClick={resetWizard}
+                    style={{ background: 'none', border: 'none', color: 'var(--teal)', cursor: 'pointer', fontSize: 14, fontWeight: 600, fontFamily: 'inherit', textDecoration: 'underline' }}
+                  >
+                    {t.pricing.retake}
                   </button>
                 </div>
               </div>
@@ -830,17 +824,17 @@ export default function Home() {
       </section>
 
       {/* ══ 9. FAQ ═══════════════════════════════════════════════════════════ */}
-      <section className="section" style={{ background: '#fff' }}>
+      <section className="section" style={{ background: 'var(--bg)' }}>
         <div className="container" style={{ maxWidth: 800 }}>
           <Reveal>
             <div className="section-header">
-              <span className="badge">❓ FAQ</span>
-              <h2>Mọi thắc mắc<br />được giải đáp tại đây</h2>
+              <span className="badge">❓ {t.faq.badge}</span>
+              <h2>{t.faq.title}</h2>
             </div>
           </Reveal>
 
           <div>
-            {FAQS.map((faq, i) => (
+            {t.faq.items.map((faq, i) => (
               <Reveal key={i} delay={i * 40}>
                 <div className="accordion">
                   <button
@@ -863,72 +857,69 @@ export default function Home() {
 
       {/* ══ 10. FINAL CTA ════════════════════════════════════════════════════ */}
       <section style={{
-        background: 'linear-gradient(135deg, #0a1535 0%, #0c2a72 50%, #1a3a8f 100%)',
-        padding: '96px 0',
-        position: 'relative', overflow: 'hidden',
+        background: 'linear-gradient(135deg, #000d1a 0%, #001428 50%, #000f20 100%)',
+        padding: '100px 0',
+        position: 'relative',
+        overflow: 'hidden',
       }}>
-        {/* Glow */}
-        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 700, height: 400, background: 'radial-gradient(ellipse, rgba(254,95,1,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', top: -80, right: -80, width: 400, height: 400, background: 'radial-gradient(circle, rgba(16,185,129,0.06) 0%, transparent 70%)', borderRadius: '50%' }} />
+        {/* Stars */}
+        <StarField count={80} speed={0.15} />
+        {/* Center glow */}
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 700, height: 350, background: 'radial-gradient(ellipse, rgba(0,199,222,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <div className="glow-line-h" style={{ position: 'absolute', top: 0, left: 0, right: 0 }} />
 
         <div className="container" style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
           <Reveal>
-            <div style={{ fontSize: 52, marginBottom: 20 }}>🚀</div>
-            <h2 style={{ color: '#fff', marginBottom: 16, fontSize: 'clamp(1.8rem, 4vw, 2.75rem)' }}>
-              Bắt đầu tối ưu ads ngay hôm nay
+            <span className="badge" style={{ marginBottom: 24 }}>{t.cta.badge}</span>
+            <h2 style={{ marginBottom: 16, fontSize: 'clamp(1.8rem,4vw,2.8rem)' }}>
+              {t.cta.title}
             </h2>
-            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 17, lineHeight: 1.75, marginBottom: 40, maxWidth: 540, marginLeft: 'auto', marginRight: 'auto' }}>
-              Dùng thử 7 ngày miễn phí — không cần thẻ tín dụng, không cần cài đặt phức tạp, hỗ trợ Zalo trực tiếp trong 5 phút.
+            <p style={{ color: 'var(--text2)', fontSize: 17, lineHeight: 1.8, marginBottom: 40, maxWidth: 540, marginLeft: 'auto', marginRight: 'auto' }}>
+              {t.cta.subtitle}
             </p>
             <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 32 }}>
-              <a href="/tai-xuong" className="btn btn-primary btn-xl">
-                🎁 Dùng miễn phí 7 ngày
+              <a href="/tai-xuong" className="btn btn-teal btn-xl btn-ripple">
+                🎁 {t.cta.cta1}
               </a>
               <a href="#pricing" className="btn btn-glass btn-xl">
-                Xem bảng giá →
+                {t.cta.cta2}
               </a>
             </div>
-            <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>
-              Liên hệ hỗ trợ:{' '}
-              <a href="https://zalo.me" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(255,255,255,0.65)', textDecoration: 'none', fontWeight: 600 }}>Zalo</a>
+            <div style={{ color: 'var(--text3)', fontSize: 14 }}>
+              {t.cta.contact}{' '}
+              <a href="https://zalo.me" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text2)', fontWeight: 600 }}>Zalo</a>
               {' · '}
-              <a href="https://t.me/Go_Meta_Ads_Pro_V1_bot" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(255,255,255,0.65)', textDecoration: 'none', fontWeight: 600 }}>Telegram Bot</a>
+              <a href="https://t.me/Go_Meta_Ads_Pro_V1_bot" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text2)', fontWeight: 600 }}>Telegram Bot</a>
               {' · '}
-              <a href="mailto:admin@gonetwork.vn" style={{ color: 'rgba(255,255,255,0.65)', textDecoration: 'none', fontWeight: 600 }}>admin@gonetwork.vn</a>
+              <a href="mailto:admin@gonetwork.vn" style={{ color: 'var(--text2)', fontWeight: 600 }}>admin@gonetwork.vn</a>
             </div>
           </Reveal>
         </div>
+        <div className="glow-line-h" style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }} />
       </section>
 
-      {/* ══ 11. SECURITY SECTION ═════════════════════════════════════════════ */}
-      <section style={{ background: '#071a4a', padding: '72px 0' }}>
+      {/* ══ 11. SECURITY ═════════════════════════════════════════════════════ */}
+      <section style={{ background: '#000f20', padding: '80px 0' }}>
         <div className="container">
           <Reveal>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 48, flexWrap: 'wrap' }}>
-              {/* Left text */}
-              <div style={{ flex: 1, minWidth: 280 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 56, flexWrap: 'wrap' }}>
+              {/* Left */}
+              <div style={{ flex: '1 1 300px' }}>
                 <div style={{ fontSize: 40, marginBottom: 14 }}>🔐</div>
-                <h3 style={{ color: '#fff', fontSize: 22, fontWeight: 800, marginBottom: 14 }}>
-                  Dữ liệu của bạn — chỉ bạn thấy
+                <h3 style={{ fontSize: 24, fontWeight: 800, marginBottom: 14 }}>
+                  {t.security.title}
                 </h3>
-                <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 15, lineHeight: 1.8 }}>
-                  Go Meta Ads Pro là tiện ích Chrome chạy{' '}
-                  <strong style={{ color: '#fff' }}>hoàn toàn local</strong> trên trình duyệt của bạn. Toàn bộ dữ liệu chiến dịch, chi tiêu, doanh thu chỉ hiển thị trên máy bạn — không gửi về server Go Meta Ads, không chia sẻ cho bên thứ ba. Hơn 500+ shop &amp; agency đã dùng từ 2024 mà chưa có sự cố bảo mật nào.
+                <p style={{ color: 'var(--text2)', fontSize: 15, lineHeight: 1.85 }}>
+                  {t.security.desc}
                 </p>
               </div>
-
-              {/* Right: 4 mini glass cards */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, flex: 1, minWidth: 260 }}>
-                {[
-                  { icon: '🏠', title: 'Dữ liệu local', desc: 'Lưu trên Chrome của bạn, không đâu khác' },
-                  { icon: '🚫', title: 'Không gửi server', desc: 'Không log bất kỳ dữ liệu nào về phía chúng tôi' },
-                  { icon: '⚡', title: 'Chạy ổn định', desc: 'Hoạt động liên tục từ 2024, không có downtime' },
-                  { icon: '🔑', title: 'Key riêng biệt', desc: 'Mỗi thiết bị 1 key độc lập, không chia sẻ' },
-                ].map((s, i) => (
-                  <div key={i} className="card-glass" style={{ padding: 18 }}>
-                    <div style={{ fontSize: 26, marginBottom: 8 }}>{s.icon}</div>
-                    <div style={{ color: '#fff', fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{s.title}</div>
-                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, lineHeight: 1.55 }}>{s.desc}</div>
+              {/* Right: 4 glass cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, flex: '1 1 260px' }}>
+                {t.security.items.map((s, i) => (
+                  <div key={i} className="card" style={{ padding: 20 }}>
+                    <div style={{ fontSize: 26, marginBottom: 10 }}>{s.icon}</div>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{s.title}</div>
+                    <div style={{ color: 'var(--text3)', fontSize: 12, lineHeight: 1.55 }}>{s.desc}</div>
                   </div>
                 ))}
               </div>
@@ -940,101 +931,67 @@ export default function Home() {
       <Footer />
 
       <style>{`
-        /* ─── Responsive ─── */
+        /* ── Problem grid responsive ── */
+        .problem-grid {
+          grid-template-columns: 3fr 2fr;
+        }
         @media (max-width: 768px) {
-          .grid-4 { grid-template-columns: 1fr 1fr !important; }
+          .problem-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
+          .steps-grid   { grid-template-columns: 1fr 1fr !important; }
+          .stats-grid   { grid-template-columns: 1fr 1fr !important; }
         }
         @media (max-width: 480px) {
-          .grid-4 { grid-template-columns: 1fr !important; }
+          .steps-grid { grid-template-columns: 1fr !important; }
         }
 
-        /* ─── Hero animations ─── */
-        @keyframes orbFloat {
-          0%,100% { transform: translateY(0) scale(1) }
-          50% { transform: translateY(-24px) scale(1.05) }
-        }
-        @keyframes float {
-          0%,100% { transform: translateY(0) }
-          50% { transform: translateY(-14px) }
-        }
-        @keyframes blink {
-          0%,100% { opacity: 1 }
-          50% { opacity: 0 }
-        }
-        @keyframes gradient-move {
-          0% { background-position: 0% 50% }
-          50% { background-position: 100% 50% }
-          100% { background-position: 0% 50% }
-        }
-        @keyframes meshMove {
-          0% { background-position: 0% 0%, 100% 100%, 50% 50%, 0% 50% }
-          33% { background-position: 50% 100%, 0% 0%, 100% 50%, 100% 50% }
-          66% { background-position: 100% 50%, 50% 0%, 0% 100%, 50% 50% }
-          100% { background-position: 0% 0%, 100% 100%, 50% 50%, 0% 50% }
+        /* ── Plan card hover ── */
+        .plan-card:hover {
+          transform: translateY(-4px) !important;
+          border-color: rgba(0,199,222,0.3) !important;
         }
 
-        /* ─── Button ripple ─── */
-        .btn-primary, .btn-navy { position: relative; overflow: hidden; }
+        /* ── Testimonial hover ── */
+        .testimonial-card:hover {
+          transform: translateY(-6px);
+          border-color: rgba(0,199,222,0.3);
+          box-shadow: 0 24px 60px rgba(0,0,0,0.3);
+        }
 
-        /* ─── Card shine on hover ─── */
+        /* ── Card shine on hover ── */
         .card::before {
           content: '';
           position: absolute;
           top: 0; left: -100%;
           width: 60%; height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
           transition: left 0.5s ease;
           z-index: 0;
           pointer-events: none;
         }
         .card:hover::before { left: 150%; }
-        .card { position: relative; }
 
-        /* ─── Feature icon glow ─── */
-        .feature-icon {
-          transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
+        /* ── Feature icon on card hover ── */
         .card:hover .feature-icon {
-          transform: scale(1.1) rotate(-3deg);
-          box-shadow: 0 8px 24px rgba(254,95,1,0.2);
+          background: rgba(0,199,222,0.15);
+          transform: scale(1.08) rotate(-3deg);
+          box-shadow: 0 0 20px rgba(0,199,222,0.25);
         }
 
-        /* ─── Stats responsive ─── */
-        @media (max-width: 768px) {
-          .stats-grid { grid-template-columns: repeat(2,1fr) !important; }
-        }
-        @media (max-width: 480px) {
-          .stats-grid { grid-template-columns: repeat(2,1fr) !important; }
+        /* ── Float card ── */
+        @keyframes cardFloat {
+          0%,100% { transform: translateY(0) rotate(-1deg); }
+          50%      { transform: translateY(-12px) rotate(1deg); }
         }
 
-        /* ─── Testimonial hover ─── */
-        .testimonial-card {
-          transition: all 0.3s cubic-bezier(0.23,1,0.32,1);
-        }
-        .testimonial-card:hover {
-          transform: translateY(-8px);
-          box-shadow: 0 24px 64px rgba(12,42,114,0.18);
-        }
-
-        /* ─── Accordion smooth ─── */
-        .accordion-body {
-          animation: fadeIn 0.25s ease;
-        }
+        /* ── Accordion body ── */
+        .accordion-body { animation: fadeIn 0.25s ease; }
         @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
 
-        /* ─── Plan card hover ─── */
-        .plan-card-hover {
-          transition: all 0.3s cubic-bezier(0.23,1,0.32,1);
-        }
-        .plan-card-hover:hover {
-          transform: translateY(-6px) scale(1.01);
-          box-shadow: 0 24px 56px rgba(254,95,1,0.25);
-        }
-
-        /* ─── Scroll reveal for stagger on mobile ─── */
+        /* ── Reduced motion ── */
         @media (prefers-reduced-motion: reduce) {
           .reveal, .reveal-left, .reveal-right { opacity: 1 !important; transform: none !important; }
           .stagger > * { opacity: 1 !important; transform: none !important; }
+          *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
         }
       `}</style>
     </>
