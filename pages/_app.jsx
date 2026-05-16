@@ -1,25 +1,32 @@
 import '../styles/globals.css'
 import { LangProvider } from '../lib/LangContext'
-import LoadingScreen from '../components/LoadingScreen'
-import FomoPopup from '../components/FomoPopup'
-import FloatingSupport from '../components/FloatingSupport'
-import LiveCounter from '../components/LiveCounter'
 import { useEffect } from 'react'
+import dynamic from 'next/dynamic'
+
+// Các component dùng browser API (canvas, sessionStorage, IntersectionObserver)
+// PHẢI dùng dynamic import với ssr: false để tránh crash khi SSR
+const LoadingScreen  = dynamic(() => import('../components/LoadingScreen'),  { ssr: false })
+const FomoPopup      = dynamic(() => import('../components/FomoPopup'),      { ssr: false })
+const FloatingSupport = dynamic(() => import('../components/FloatingSupport'), { ssr: false })
+const LiveCounter    = dynamic(() => import('../components/LiveCounter'),    { ssr: false })
 
 function GlobalEffects() {
   useEffect(() => {
-    // Reveal on scroll
-    const observeAll = (selector, opts) => {
-      const obs = new IntersectionObserver((entries) => {
-        entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target) } })
-      }, opts)
-      document.querySelectorAll(selector).forEach(el => obs.observe(el))
-      return obs
-    }
-    const r1 = observeAll('.reveal, .reveal-left, .reveal-right', { threshold: 0.08, rootMargin: '0px 0px -40px 0px' })
-    const r2 = observeAll('.stagger', { threshold: 0.1 })
+    // Reveal scroll animation
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target) }
+      })
+    }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' })
+    document.querySelectorAll('.reveal, .reveal-left, .reveal-right').forEach(el => obs.observe(el))
 
-    // 3D tilt on cards
+    // Stagger animation
+    const staggerObs = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); staggerObs.unobserve(e.target) } })
+    }, { threshold: 0.1 })
+    document.querySelectorAll('.stagger').forEach(el => staggerObs.observe(el))
+
+    // 3D tilt cards
     const cards = document.querySelectorAll('.tilt-card')
     const handlers = new Map()
     cards.forEach(card => {
@@ -35,17 +42,15 @@ function GlobalEffects() {
       handlers.set(card, { onMove, onLeave })
     })
 
-    // Ripple on teal/orange buttons
+    // Button ripple
     const rippleClick = (e) => {
-      const btn  = e.currentTarget
+      const btn = e.currentTarget
       const rect = btn.getBoundingClientRect()
       const size = Math.max(rect.width, rect.height) * 2
-      const x    = e.clientX - rect.left - size / 2
-      const y    = e.clientY - rect.top  - size / 2
-      const rpl  = document.createElement('span')
+      const x = e.clientX - rect.left - size / 2
+      const y = e.clientY - rect.top  - size / 2
+      const rpl = document.createElement('span')
       rpl.style.cssText = `position:absolute;width:${size}px;height:${size}px;left:${x}px;top:${y}px;border-radius:50%;background:rgba(255,255,255,0.2);transform:scale(0);animation:rippleAnim 0.6s linear forwards;pointer-events:none;z-index:0;`
-      btn.style.position = 'relative'
-      btn.style.overflow = 'hidden'
       btn.appendChild(rpl)
       setTimeout(() => rpl.remove(), 700)
     }
@@ -53,7 +58,7 @@ function GlobalEffects() {
     btns.forEach(b => b.addEventListener('click', rippleClick))
 
     return () => {
-      r1.disconnect(); r2.disconnect()
+      obs.disconnect(); staggerObs.disconnect()
       handlers.forEach(({ onMove, onLeave }, card) => {
         card.removeEventListener('mousemove', onMove)
         card.removeEventListener('mouseleave', onLeave)

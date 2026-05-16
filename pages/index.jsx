@@ -3,8 +3,9 @@ import Head from 'next/head'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import Reveal from '../components/Reveal'
-import StarField from '../components/StarField'
-import CountUp from '../components/CountUp'
+import dynamic from 'next/dynamic'
+const StarField = dynamic(() => import('../components/StarField'), { ssr: false })
+const CountUp   = dynamic(() => import('../components/CountUp'),   { ssr: false })
 import { useLang } from '../lib/LangContext'
 
 // ─── WIZARD RECOMMEND ────────────────────────────────────────────────────────
