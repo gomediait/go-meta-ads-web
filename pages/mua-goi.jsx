@@ -391,7 +391,7 @@ export default function MuaGoi() {
                 <h2 style={{ color: 'var(--navy)', fontWeight: 800, fontSize: 22, margin: '0 0 6px' }}>
                   {isEN ? 'Registration Info' : 'Thông tin đăng ký'}
                 </h2>
-                <p style={{ color: 'var(--text2)', fontSize: 14, margin: '0 0 32px' }}>
+                <p style={{ color: '#64748b', fontSize: 14, margin: '0 0 32px' }}>
                   {isEN
                     ? 'Fill in all details so we can set up your account.'
                     : 'Điền đầy đủ thông tin để chúng tôi tạo tài khoản cho bạn.'}
@@ -481,7 +481,7 @@ export default function MuaGoi() {
                           cursor: 'pointer', fontWeight: 700, fontSize: 13,
                           fontFamily: 'inherit',
                           background: billingTab === t.key ? 'var(--navy)' : 'transparent',
-                          color: billingTab === t.key ? '#fff' : 'var(--text2)',
+                          color: billingTab === t.key ? '#fff' : '#64748b',
                           transition: 'all 0.2s', whiteSpace: 'nowrap',
                           position: 'relative',
                         }}
@@ -546,12 +546,12 @@ export default function MuaGoi() {
                             fontSize: 'clamp(15px,2.5vw,20px)', fontWeight: 800,
                             color: plan.price === 0 ? '#22c55e' : 'var(--orange)',
                           }}>{plan.priceLabel}</span>
-                          <span style={{ color: 'var(--text2)', fontSize: 12 }}> {plan.period}</span>
+                          <span style={{ color: '#64748b', fontSize: 12 }}> {plan.period}</span>
                         </div>
-                        <p style={{ color: 'var(--text2)', fontSize: 12, margin: '0 0 12px' }}>{plan.desc}</p>
+                        <p style={{ color: '#64748b', fontSize: 12, margin: '0 0 12px' }}>{plan.desc}</p>
                         <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                           {plan.features.map(f => (
-                            <li key={f} style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 5, display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+                            <li key={f} style={{ fontSize: 12, color: '#64748b', marginBottom: 5, display: 'flex', gap: 6, alignItems: 'flex-start' }}>
                               <span style={{ color: '#22c55e', fontWeight: 800, marginTop: 1 }}>✓</span>{f}
                             </li>
                           ))}
@@ -577,7 +577,7 @@ export default function MuaGoi() {
                 <button
                   onClick={() => setStep(1)}
                   style={{
-                    background: 'none', border: 'none', color: 'var(--text2)',
+                    background: 'none', border: 'none', color: '#64748b',
                     cursor: 'pointer', fontSize: 14, padding: '0 0 20px',
                     display: 'flex', alignItems: 'center', gap: 6,
                     fontFamily: 'inherit',
@@ -587,7 +587,7 @@ export default function MuaGoi() {
                 <h2 style={{ color: 'var(--navy)', fontWeight: 800, fontSize: 22, margin: '0 0 6px' }}>
                   {isEN ? 'Payment' : 'Thanh toán'}
                 </h2>
-                <p style={{ color: 'var(--text2)', fontSize: 14, margin: '0 0 28px' }}>
+                <p style={{ color: '#64748b', fontSize: 14, margin: '0 0 28px' }}>
                   {isEN
                     ? 'Transfer payment and upload a confirmation screenshot for quick approval.'
                     : 'Chuyển khoản và upload ảnh xác nhận để chúng tôi duyệt nhanh.'}
@@ -633,7 +633,7 @@ export default function MuaGoi() {
                       <div style={{ fontWeight: 800, color: 'var(--navy)', fontSize: 16 }}>
                         {isEN ? 'Bank Transfer Details' : 'Thông tin chuyển khoản'}
                       </div>
-                      <div style={{ fontSize: 12, color: 'var(--text2)' }}>
+                      <div style={{ fontSize: 12, color: '#64748b' }}>
                         {isEN
                           ? 'Use the exact transfer content for automatic confirmation'
                           : 'Chuyển đúng nội dung để hệ thống tự động xác nhận'}
@@ -650,7 +650,7 @@ export default function MuaGoi() {
                         borderRadius: 10, gap: 12, flexWrap: 'wrap',
                       }}>
                         <div>
-                          <div style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: 2 }}>
+                          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: 2 }}>
                             {row.label}
                           </div>
                           <div style={{ fontSize: 15, fontWeight: 800, color: row.highlight ? 'var(--orange)' : 'var(--navy)' }}>
@@ -735,7 +735,7 @@ export default function MuaGoi() {
                 <h2 style={{ color: 'var(--navy)', fontWeight: 800, fontSize: 28, margin: '0 0 14px' }}>
                   {isEN ? 'Order received successfully!' : 'Đã nhận đơn thành công!'}
                 </h2>
-                <p style={{ color: 'var(--text2)', fontSize: 16, maxWidth: 480, margin: '0 auto 28px', lineHeight: 1.7 }}>
+                <p style={{ color: '#64748b', fontSize: 16, maxWidth: 480, margin: '0 auto 28px', lineHeight: 1.7 }}>
                   {isEN ? (
                     <>Thank you for subscribing! Your activation key will be sent via <strong>Zalo</strong> or <strong>Email</strong> within <strong>15–30 minutes</strong> after payment is confirmed.</>
                   ) : (

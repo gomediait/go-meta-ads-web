@@ -235,19 +235,19 @@ function RegisterForm({ isEN }) {
                   <div style={{ fontWeight: 900, color: '#059669', fontSize: 18, marginBottom: 8 }}>
                     {isEN ? 'Registration successful!' : 'Đăng ký thành công!'}
                   </div>
-                  <div style={{ color: 'var(--text2)', fontSize: 14, marginBottom: 16 }}>
+                  <div style={{ color: '#64748b', fontSize: 14, marginBottom: 16 }}>
                     {isEN ? 'Your affiliate code:' : 'Mã affiliate của bạn:'}
                   </div>
                   <div style={{
                     fontFamily: 'monospace', fontWeight: 900, fontSize: 26,
-                    color: 'var(--navy)', background: 'var(--navy-light)',
+                    color: 'var(--navy)', background: 'rgba(12,42,114,0.08)',
                     padding: '12px 28px', borderRadius: 10,
                     display: 'inline-block', letterSpacing: '3px',
                     border: '1px solid rgba(12,42,114,0.15)',
                   }}>
                     {success.referral_code || 'N/A'}
                   </div>
-                  <div style={{ color: 'var(--text2)', fontSize: 13, marginTop: 14 }}>
+                  <div style={{ color: '#64748b', fontSize: 13, marginTop: 14 }}>
                     {isEN ? 'Your link:' : 'Link của bạn:'}{' '}
                     <strong style={{ color: 'var(--navy)' }}>
                       adsmeta.gonetwork.vn?ref={success.referral_code}
@@ -341,7 +341,7 @@ function LookupCommission({ isEN }) {
                 <div style={{ marginTop: 24 }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }} className="lookup-grid">
                     <div style={{
-                      background: 'var(--navy-light)', borderRadius: 10, padding: '18px 20px',
+                      background: 'rgba(12,42,114,0.08)', borderRadius: 10, padding: '18px 20px',
                       border: '1px solid rgba(12,42,114,0.12)',
                     }}>
                       <div style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
@@ -371,7 +371,7 @@ function LookupCommission({ isEN }) {
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                     border: '1px solid var(--gray2)',
                   }}>
-                    <span style={{ color: 'var(--text2)', fontSize: 14 }}>
+                    <span style={{ color: '#64748b', fontSize: 14 }}>
                       {isEN ? 'Account status' : 'Trạng thái tài khoản'}
                     </span>
                     <span style={{
@@ -512,8 +512,8 @@ export default function Affiliate() {
                     fontSize: 48, fontWeight: 900, color: c.color,
                     lineHeight: 1, marginBottom: 14,
                   }}>{c.pct}</div>
-                  <div style={{ fontWeight: 800, color: 'var(--text)', fontSize: 15, marginBottom: 4 }}>{c.label}</div>
-                  <div style={{ fontSize: 13, color: 'var(--text2)' }}>{c.sub}</div>
+                  <div style={{ fontWeight: 800, color: '#1a2332', fontSize: 15, marginBottom: 4 }}>{c.label}</div>
+                  <div style={{ fontSize: 13, color: '#64748b' }}>{c.sub}</div>
                 </div>
               </Reveal>
             ))}
@@ -552,7 +552,7 @@ export default function Affiliate() {
                     {isEN ? `STEP ${s.num}` : `BƯỚC ${s.num}`}
                   </div>
                   <div style={{ fontWeight: 800, color: 'var(--navy)', fontSize: 15, marginBottom: 10 }}>{s.title}</div>
-                  <div style={{ color: 'var(--text2)', fontSize: 14, lineHeight: 1.7 }}>{s.desc}</div>
+                  <div style={{ color: '#64748b', fontSize: 14, lineHeight: 1.7 }}>{s.desc}</div>
                 </div>
               </Reveal>
             ))}

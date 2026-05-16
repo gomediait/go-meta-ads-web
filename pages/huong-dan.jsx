@@ -70,7 +70,7 @@ function Step({ num, text }) {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontWeight: 800, fontSize: 13,
       }}>{num}</div>
-      <p style={{ margin: 0, lineHeight: 1.75, color: 'var(--text2)', paddingTop: 4, fontSize: 15 }}>{text}</p>
+      <p style={{ margin: 0, lineHeight: 1.75, color: '#64748b', paddingTop: 4, fontSize: 15 }}>{text}</p>
     </div>
   )
 }
@@ -104,7 +104,7 @@ function BulletList({ items }) {
   return (
     <ul style={{ margin: '10px 0 0', paddingLeft: 20 }}>
       {items.map((item, i) => (
-        <li key={i} style={{ marginBottom: 9, color: 'var(--text2)', lineHeight: 1.75, fontSize: 15 }}>
+        <li key={i} style={{ marginBottom: 9, color: '#64748b', lineHeight: 1.75, fontSize: 15 }}>
           {item}
         </li>
       ))}
@@ -133,7 +133,7 @@ function Tag({ children, color }) {
   return (
     <span style={{
       display: 'inline-block',
-      background: color ? `${color}18` : 'var(--navy-light)',
+      background: color ? `${color}18` : 'rgba(12,42,114,0.08)',
       color: c,
       border: `1px solid ${c}30`,
       fontSize: 12, fontWeight: 600,
@@ -146,7 +146,7 @@ function Tag({ children, color }) {
 function InfoBox({ icon, title, sub, accent }) {
   return (
     <div style={{
-      background: accent ? 'var(--orange-light)' : 'var(--navy-light)',
+      background: accent ? 'rgba(254,95,1,0.1)' : 'rgba(12,42,114,0.08)',
       borderRadius: 'var(--radius-sm)',
       padding: '14px 18px',
       border: `1px solid ${accent ? 'rgba(254,95,1,0.2)' : 'rgba(12,42,114,0.15)'}`,
@@ -157,7 +157,7 @@ function InfoBox({ icon, title, sub, accent }) {
         color: accent ? 'var(--orange)' : 'var(--navy)',
         marginBottom: 4,
       }}>{icon} {title}</div>
-      <div style={{ fontSize: 13, color: 'var(--text2)' }}>{sub}</div>
+      <div style={{ fontSize: 13, color: '#64748b' }}>{sub}</div>
     </div>
   )
 }
@@ -174,7 +174,7 @@ function FaqItem({ q, a }) {
       <div style={{ fontWeight: 700, color: 'var(--navy)', marginBottom: 8, fontSize: 15 }}>
         ❓ {q}
       </div>
-      <div style={{ color: 'var(--text2)', lineHeight: 1.75, fontSize: 14 }}>
+      <div style={{ color: '#64748b', lineHeight: 1.75, fontSize: 14 }}>
         → {a}
       </div>
     </div>
@@ -301,10 +301,10 @@ export default function HuongDan() {
                   style={{
                     display: 'flex', alignItems: 'center', gap: 10,
                     width: '100%', padding: '12px 20px',
-                    border: 'none', background: active === s.id ? 'var(--navy-light)' : 'transparent',
+                    border: 'none', background: active === s.id ? 'rgba(12,42,114,0.08)' : 'transparent',
                     fontFamily: 'inherit', fontSize: 14,
                     fontWeight: active === s.id ? 700 : 500,
-                    color: active === s.id ? 'var(--navy)' : 'var(--text2)',
+                    color: active === s.id ? 'var(--navy)' : '#64748b',
                     cursor: 'pointer', textAlign: 'left',
                     borderLeft: active === s.id ? '3px solid var(--orange)' : '3px solid transparent',
                   }}
@@ -357,8 +357,8 @@ export default function HuongDan() {
                   width: '100%', padding: '10px 20px',
                   border: 'none', cursor: 'pointer',
                   fontSize: 13.5, fontWeight: active === s.id ? 700 : 500,
-                  color: active === s.id ? 'var(--navy)' : 'var(--text2)',
-                  background: active === s.id ? 'var(--navy-light)' : 'transparent',
+                  color: active === s.id ? 'var(--navy)' : '#64748b',
+                  background: active === s.id ? 'rgba(12,42,114,0.08)' : 'transparent',
                   borderLeft: active === s.id ? '3px solid var(--orange)' : '3px solid transparent',
                   transition: 'all 0.15s', lineHeight: 1.45,
                   textAlign: 'left', fontFamily: 'inherit',
@@ -383,7 +383,7 @@ export default function HuongDan() {
             {/* 1 — Cài đặt & Đăng nhập */}
             <Reveal>
               <SectionCard id="cai-dat" title={isEN ? '1. Setup & Sign In' : '1. Cài đặt & Đăng nhập'}>
-                <p style={{ color: 'var(--text2)', lineHeight: 1.75, marginTop: 0, marginBottom: 18, fontSize: 15 }}>
+                <p style={{ color: '#64748b', lineHeight: 1.75, marginTop: 0, marginBottom: 18, fontSize: 15 }}>
                   {isEN
                     ? 'Installing Go Meta Ads Pro takes about 2 minutes — no Google account needed, no complex configuration.'
                     : 'Cài đặt Go Meta Ads Pro chỉ mất khoảng 2 phút — không cần tài khoản Google, không cần cấu hình phức tạp.'}
@@ -417,7 +417,7 @@ export default function HuongDan() {
             {/* 2 — Tab Chiến dịch */}
             <Reveal delay={40}>
               <SectionCard id="chien-dich" title={isEN ? '2. Campaigns Tab' : '2. Tab Chiến dịch'}>
-                <p style={{ color: 'var(--text2)', lineHeight: 1.75, marginTop: 0, marginBottom: 0, fontSize: 15 }}>
+                <p style={{ color: '#64748b', lineHeight: 1.75, marginTop: 0, marginBottom: 0, fontSize: 15 }}>
                   {isEN
                     ? 'The default tab displayed immediately after signing in. Real-time overview of all campaigns and adsets.'
                     : 'Tab mặc định hiển thị ngay khi đăng nhập. Tổng quan toàn bộ chiến dịch và adset theo thời gian thực.'}
@@ -444,14 +444,14 @@ export default function HuongDan() {
                   <Tag color="#ca8a04">{isEN ? 'Yellow — CPA near threshold' : 'Vàng — CPA gần ngưỡng'}</Tag>
                   <Tag color="#dc2626">{isEN ? 'Red — CPA exceeded' : 'Đỏ — CPA vượt ngưỡng'}</Tag>
                 </div>
-                <p style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.7, margin: 0 }}>
+                <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.7, margin: 0 }}>
                   {isEN
                     ? 'Target CPA is set in the P&L Calculator tab and automatically synced for the whole team.'
                     : 'CPA mục tiêu được thiết lập trong tab Tính Lãi Lỗ và tự động đồng bộ cho toàn team.'}
                 </p>
 
                 <SubHeading>{isEN ? 'Alert settings' : 'Cài đặt cảnh báo'}</SubHeading>
-                <p style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.7, margin: 0 }}>
+                <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.7, margin: 0 }}>
                   {isEN
                     ? 'Click the 🔔 icon on each campaign → set CPM, CPC or Spend alert thresholds. The system sends instant notifications.'
                     : 'Click icon 🔔 trên từng campaign → thiết lập ngưỡng cảnh báo CPM, CPC hoặc Spend vượt mức. Hệ thống gửi thông báo tức thì.'}
@@ -475,7 +475,7 @@ export default function HuongDan() {
             {/* 3 — Tab Tính Lãi Lỗ */}
             <Reveal delay={40}>
               <SectionCard id="lai-lo" title={isEN ? '3. P&L Calculator Tab' : '3. Tab Tính Lãi Lỗ'}>
-                <p style={{ color: 'var(--text2)', lineHeight: 1.75, marginTop: 0, marginBottom: 0, fontSize: 15 }}>
+                <p style={{ color: '#64748b', lineHeight: 1.75, marginTop: 0, marginBottom: 0, fontSize: 15 }}>
                   {isEN
                     ? 'Accurately calculate break-even point and maximum CPA based on actual product cost structure.'
                     : 'Tính toán chính xác điểm hòa vốn và CPA tối đa dựa trên cấu trúc chi phí thực tế của sản phẩm.'}
@@ -512,7 +512,7 @@ export default function HuongDan() {
                 ]} />
 
                 <SubHeading>{isEN ? 'Managing multiple products' : 'Quản lý nhiều sản phẩm'}</SubHeading>
-                <p style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.7, margin: 0 }}>
+                <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.7, margin: 0 }}>
                   {isEN
                     ? <>Click the <strong>"+Add Product"</strong> tab to add a new product. Limit: 3 products (Personal plan), 10 products (Business plan and above).</>
                     : <>Nhấn tab <strong>"+Thêm SP"</strong> để thêm sản phẩm mới. Giới hạn: 3 SP (gói Personal), 10 SP (gói Business trở lên).</>}
@@ -529,7 +529,7 @@ export default function HuongDan() {
             {/* 4 — Tab Báo cáo */}
             <Reveal delay={40}>
               <SectionCard id="bao-cao" title={isEN ? '4. Reports Tab' : '4. Tab Báo cáo'} badge="Business+">
-                <p style={{ color: 'var(--text2)', lineHeight: 1.75, marginTop: 0, marginBottom: 0, fontSize: 15 }}>
+                <p style={{ color: '#64748b', lineHeight: 1.75, marginTop: 0, marginBottom: 0, fontSize: 15 }}>
                   {isEN
                     ? 'View consolidated reports, analyze trends, and send automated reports to your team.'
                     : 'Xem báo cáo tổng hợp, phân tích xu hướng và gửi báo cáo tự động cho team.'}
@@ -562,7 +562,7 @@ export default function HuongDan() {
             {/* 5 — Tab Auto Care */}
             <Reveal delay={40}>
               <SectionCard id="auto-care" title="5. Tab Auto Care">
-                <p style={{ color: 'var(--text2)', lineHeight: 1.75, marginTop: 0, marginBottom: 0, fontSize: 15 }}>
+                <p style={{ color: '#64748b', lineHeight: 1.75, marginTop: 0, marginBottom: 0, fontSize: 15 }}>
                   {isEN
                     ? 'Automate enabling/disabling adsets by schedule and by performance conditions — no need to monitor all day.'
                     : 'Tự động hóa việc bật/tắt adset theo giờ và theo điều kiện hiệu quả — không cần trực máy suốt ngày.'}
@@ -580,7 +580,7 @@ export default function HuongDan() {
                 ]} />
 
                 <SubHeading>{isEN ? 'Product filter' : 'Bộ lọc sản phẩm'}</SubHeading>
-                <p style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.7, margin: 0 }}>
+                <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.7, margin: 0 }}>
                   {isEN
                     ? 'Only pause adsets with names containing specific product codes — useful when you want to stop only one product group without affecting other campaigns.'
                     : 'Chỉ pause các adset có tên chứa mã sản phẩm cụ thể — hữu ích khi chỉ muốn dừng 1 nhóm sản phẩm nhất định mà không ảnh hưởng các camp khác.'}
@@ -602,7 +602,7 @@ export default function HuongDan() {
             {/* 6 — Tab Tự động Set QC */}
             <Reveal delay={40}>
               <SectionCard id="tu-dong-qc" title={isEN ? '6. Auto Set Ads Tab' : '6. Tab Tự động Set QC'}>
-                <p style={{ color: 'var(--text2)', lineHeight: 1.75, marginTop: 0, marginBottom: 18, fontSize: 15 }}>
+                <p style={{ color: '#64748b', lineHeight: 1.75, marginTop: 0, marginBottom: 18, fontSize: 15 }}>
                   {isEN
                     ? 'Automatically create ads from Facebook posts — save up to 90% of manual ad setup time.'
                     : 'Tự động tạo quảng cáo từ bài viết Facebook — tiết kiệm đến 90% thời gian set ads thủ công.'}
@@ -630,7 +630,7 @@ export default function HuongDan() {
             {/* 7 — Tab Thông báo */}
             <Reveal delay={40}>
               <SectionCard id="thong-bao" title={isEN ? '7. Notifications Tab' : '7. Tab Thông báo'}>
-                <p style={{ color: 'var(--text2)', lineHeight: 1.75, marginTop: 0, marginBottom: 0, fontSize: 15 }}>
+                <p style={{ color: '#64748b', lineHeight: 1.75, marginTop: 0, marginBottom: 0, fontSize: 15 }}>
                   {isEN
                     ? 'Receive instant notifications via Telegram or Lark when important events occur.'
                     : 'Nhận thông báo tức thì qua Telegram hoặc Lark khi có sự kiện quan trọng xảy ra.'}
@@ -648,7 +648,7 @@ export default function HuongDan() {
                   : 'Nhấn "Test kết nối" để kiểm tra thông báo thử nghiệm thành công.'} />
 
                 <SubHeading>{isEN ? 'Connect Lark' : 'Kết nối Lark'}</SubHeading>
-                <p style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.7, margin: 0 }}>
+                <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.7, margin: 0 }}>
                   {isEN
                     ? 'Create a Lark Bot in your workspace → get the webhook URL → paste it in the Lark Webhook field in the extension → click Test.'
                     : 'Tạo Lark Bot trong workspace → lấy webhook URL → dán vào ô Lark Webhook trong extension → nhấn Test.'}
@@ -668,7 +668,7 @@ export default function HuongDan() {
             {/* 8 — Tab Nhân viên */}
             <Reveal delay={40}>
               <SectionCard id="nhan-vien" title={isEN ? '8. Staff Tab' : '8. Tab Nhân viên'} badge={isEN ? 'Admin Only' : 'Chỉ Admin'}>
-                <p style={{ color: 'var(--text2)', lineHeight: 1.75, marginTop: 0, marginBottom: 0, fontSize: 15 }}>
+                <p style={{ color: '#64748b', lineHeight: 1.75, marginTop: 0, marginBottom: 0, fontSize: 15 }}>
                   {isEN
                     ? 'Manage staff keys, set access permissions and monitor activity. Only Admin accounts can see this tab.'
                     : 'Quản lý key nhân viên, phân quyền truy cập và theo dõi hoạt động. Chỉ tài khoản Admin mới thấy tab này.'}
@@ -690,7 +690,7 @@ export default function HuongDan() {
                   <Tag>{isEN ? 'Reports' : 'Báo cáo'}</Tag>
                   <Tag>{isEN ? 'Auto Ads' : 'Auto QC'}</Tag>
                 </div>
-                <p style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.7, margin: 0 }}>
+                <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.7, margin: 0 }}>
                   {isEN
                     ? 'Check / uncheck each tab to control which staff member can view which feature.'
                     : 'Tick / bỏ tick từng tab để kiểm soát nhân viên nào được phép xem tính năng nào.'}
