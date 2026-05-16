@@ -3,8 +3,9 @@ import Head from 'next/head'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import Reveal from '../components/Reveal'
+import { useLang } from '../lib/LangContext'
 
-const FALLBACK_NOTES = [
+const FALLBACK_NOTES_VI = [
   'Theo dõi CPA realtime theo từng sản phẩm',
   'Đồng bộ mục tiêu CPA cho cả team',
   'Cảnh báo camp vượt CPA qua Telegram',
@@ -12,44 +13,32 @@ const FALLBACK_NOTES = [
   'Hỗ trợ nhiều tài khoản quảng cáo',
 ]
 
+const FALLBACK_NOTES_EN = [
+  'Real-time CPA tracking per product',
+  'Sync CPA targets across the entire team',
+  'Campaign CPA alert via Telegram',
+  'Revenue / profit & loss summary reports',
+  'Multiple ad account support',
+]
+
 const FALLBACK = {
   version: 'v1.0.0',
   release_date: '2026-05-15',
-  notes: FALLBACK_NOTES,
+  notes: FALLBACK_NOTES_VI,
   download_url: '#',
 }
 
-const STEPS = [
-  {
-    n: 1,
-    icon: '📦',
-    title: 'Giải nén file ZIP',
-    desc: 'Nhấp chuột phải vào file ZIP → Giải nén ra. Chọn thư mục Desktop hoặc Documents để lưu lâu dài.',
-    warn: 'KHÔNG xóa thư mục này sau khi cài — tiện ích sẽ ngừng hoạt động.',
-  },
-  {
-    n: 2,
-    icon: '⚙️',
-    title: 'Bật chế độ nhà phát triển',
-    desc: 'Mở Chrome và truy cập chrome://extensions. Bật công tắc "Chế độ dành cho nhà phát triển" ở góc trên bên phải.',
-    code: 'chrome://extensions',
-  },
-  {
-    n: 3,
-    icon: '🔑',
-    title: 'Tải tiện ích & đăng nhập',
-    desc: 'Nhấn "Tải tiện ích đã giải nén" → chọn thư mục camp_monitor. Icon xuất hiện trên thanh Chrome → nhập key kích hoạt.',
-  },
-]
-
-function formatDate(str) {
+function formatDate(str, isEN) {
   try {
     const d = new Date(str)
-    return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    return d.toLocaleDateString(isEN ? 'en-US' : 'vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
   } catch { return str }
 }
 
 export default function TaiXuong() {
+  const { lang } = useLang()
+  const isEN = lang === 'en'
+
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
@@ -68,14 +57,48 @@ export default function TaiXuong() {
     ? notesRaw
     : (typeof notesRaw === 'string'
       ? notesRaw.split(/[.\n]/).map(s => s.trim()).filter(Boolean)
-      : FALLBACK_NOTES)
+      : (isEN ? FALLBACK_NOTES_EN : FALLBACK_NOTES_VI))
   const downloadUrl = data?.download_url || FALLBACK.download_url
+
+  const STEPS = [
+    {
+      n: 1,
+      icon: '📦',
+      title: isEN ? 'Extract ZIP file' : 'Giải nén file ZIP',
+      desc: isEN
+        ? 'Right-click the ZIP file → Extract. Choose Desktop or Documents as a permanent location.'
+        : 'Nhấp chuột phải vào file ZIP → Giải nén ra. Chọn thư mục Desktop hoặc Documents để lưu lâu dài.',
+      warn: isEN
+        ? 'Do NOT delete this folder after installing — the extension will stop working.'
+        : 'KHÔNG xóa thư mục này sau khi cài — tiện ích sẽ ngừng hoạt động.',
+    },
+    {
+      n: 2,
+      icon: '⚙️',
+      title: isEN ? 'Enable Developer mode' : 'Bật chế độ nhà phát triển',
+      desc: isEN
+        ? 'Open Chrome and go to chrome://extensions. Toggle "Developer mode" in the top-right corner.'
+        : 'Mở Chrome và truy cập chrome://extensions. Bật công tắc "Chế độ dành cho nhà phát triển" ở góc trên bên phải.',
+      code: 'chrome://extensions',
+    },
+    {
+      n: 3,
+      icon: '🔑',
+      title: isEN ? 'Load extension & sign in' : 'Tải tiện ích & đăng nhập',
+      desc: isEN
+        ? 'Click "Load unpacked" → select the camp_monitor folder. The icon appears in Chrome toolbar → enter your activation key.'
+        : 'Nhấn "Tải tiện ích đã giải nén" → chọn thư mục camp_monitor. Icon xuất hiện trên thanh Chrome → nhập key kích hoạt.',
+    },
+  ]
 
   return (
     <>
       <Head>
-        <title>Tải xuống Go Meta Ads Pro</title>
-        <meta name="description" content="Tải xuống tiện ích Chrome Go Meta Ads Pro — quản lý Facebook Ads thông minh cho team." />
+        <title>{isEN ? 'Download Go Meta Ads Pro' : 'Tải xuống Go Meta Ads Pro'}</title>
+        <meta name="description" content={isEN
+          ? 'Download Go Meta Ads Pro Chrome Extension — smart Facebook Ads management for your team.'
+          : 'Tải xuống tiện ích Chrome Go Meta Ads Pro — quản lý Facebook Ads thông minh cho team.'
+        } />
       </Head>
       <Navbar />
 
@@ -101,19 +124,21 @@ export default function TaiXuong() {
           }}>
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', display: 'inline-block', animation: 'liveDot 2s infinite' }} />
             <span style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>
-              {loading ? 'Đang tải...' : version}
+              {loading ? (isEN ? 'Loading...' : 'Đang tải...') : version}
             </span>
             <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>·</span>
             <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>
-              {loading ? '...' : formatDate(releaseDate)}
+              {loading ? '...' : formatDate(releaseDate, isEN)}
             </span>
           </div>
 
           <h1 style={{ color: '#fff', margin: '0 0 18px', fontSize: 'clamp(28px,5vw,48px)' }}>
-            Tải xuống Go Meta Ads Pro
+            {isEN ? 'Download Go Meta Ads Pro' : 'Tải xuống Go Meta Ads Pro'}
           </h1>
           <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 'clamp(15px,2.5vw,18px)', margin: '0 0 44px', lineHeight: 1.7 }}>
-            Chrome Extension quản lý Facebook Ads — theo dõi CPA, đồng bộ team, cảnh báo tự động realtime.
+            {isEN
+              ? 'Chrome Extension for Facebook Ads management — real-time CPA tracking, team sync, automated alerts.'
+              : 'Chrome Extension quản lý Facebook Ads — theo dõi CPA, đồng bộ team, cảnh báo tự động realtime.'}
           </p>
 
           {/* Big download button with pulse */}
@@ -133,11 +158,13 @@ export default function TaiXuong() {
             }}
           >
             <span style={{ fontSize: 'clamp(22px,3vw,28px)' }}>⬇</span>
-            {loading ? 'Tải xuống' : `Tải xuống ${version}`}
+            {loading
+              ? (isEN ? 'Download' : 'Tải xuống')
+              : (isEN ? `Download ${version}` : `Tải xuống ${version}`)}
           </a>
 
           <div style={{ marginTop: 16, color: 'rgba(255,255,255,0.45)', fontSize: 13 }}>
-            Chrome Extension · Miễn phí dùng thử 7 ngày
+            {isEN ? 'Chrome Extension · 7-day free trial' : 'Chrome Extension · Miễn phí dùng thử 7 ngày'}
           </div>
         </div>
       </section>
@@ -161,12 +188,14 @@ export default function TaiXuong() {
                   {loading ? '...' : version}
                 </span>
                 <span style={{ color: 'var(--text3)', fontSize: 13 }}>
-                  {loading ? '' : formatDate(releaseDate)}
+                  {loading ? '' : formatDate(releaseDate, isEN)}
                 </span>
               </div>
 
               {loading ? (
-                <div style={{ color: 'var(--text3)', fontSize: 15 }}>Đang tải changelog...</div>
+                <div style={{ color: 'var(--text3)', fontSize: 15 }}>
+                  {isEN ? 'Loading changelog...' : 'Đang tải changelog...'}
+                </div>
               ) : (
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                   {notes.map((note, i) => (
@@ -194,7 +223,7 @@ export default function TaiXuong() {
           <Reveal delay={80}>
             <div className="card" style={{ marginBottom: 28, padding: 'clamp(24px,4vw,40px)' }}>
               <h2 style={{ color: 'var(--navy)', fontWeight: 800, fontSize: 20, margin: '0 0 32px' }}>
-                Hướng dẫn cài đặt
+                {isEN ? 'Installation Guide' : 'Hướng dẫn cài đặt'}
               </h2>
 
               {STEPS.map((s, i) => (
@@ -262,13 +291,24 @@ export default function TaiXuong() {
               <span style={{ fontSize: 28, flexShrink: 0 }}>🔄</span>
               <div>
                 <div style={{ fontWeight: 800, color: 'var(--orange)', fontSize: 16, marginBottom: 8 }}>
-                  Mỗi lần có bản cập nhật mới
+                  {isEN ? 'Each time a new update is available' : 'Mỗi lần có bản cập nhật mới'}
                 </div>
                 <ol style={{ margin: 0, paddingLeft: 20, color: 'var(--text)', fontSize: 15, lineHeight: 1.9 }}>
-                  <li>Tải file ZIP bản mới về</li>
-                  <li>Giải nén và <strong>đè lên thư mục cũ</strong> (chọn "Yes to all" khi được hỏi)</li>
-                  <li>Mở <code style={{ background: 'rgba(254,95,1,0.1)', padding: '1px 6px', borderRadius: 4, fontFamily: 'monospace', fontSize: 13 }}>chrome://extensions</code></li>
-                  <li>Nhấn nút <strong>Reload</strong> (biểu tượng mũi tên xoay) trên thẻ tiện ích</li>
+                  {isEN ? (
+                    <>
+                      <li>Download the new ZIP file</li>
+                      <li>Extract and <strong>overwrite the old folder</strong> (choose "Yes to all" when prompted)</li>
+                      <li>Open <code style={{ background: 'rgba(254,95,1,0.1)', padding: '1px 6px', borderRadius: 4, fontFamily: 'monospace', fontSize: 13 }}>chrome://extensions</code></li>
+                      <li>Click the <strong>Reload</strong> button (circular arrow icon) on the extension card</li>
+                    </>
+                  ) : (
+                    <>
+                      <li>Tải file ZIP bản mới về</li>
+                      <li>Giải nén và <strong>đè lên thư mục cũ</strong> (chọn "Yes to all" khi được hỏi)</li>
+                      <li>Mở <code style={{ background: 'rgba(254,95,1,0.1)', padding: '1px 6px', borderRadius: 4, fontFamily: 'monospace', fontSize: 13 }}>chrome://extensions</code></li>
+                      <li>Nhấn nút <strong>Reload</strong> (biểu tượng mũi tên xoay) trên thẻ tiện ích</li>
+                    </>
+                  )}
                 </ol>
               </div>
             </div>
@@ -278,7 +318,7 @@ export default function TaiXuong() {
           <Reveal delay={160}>
             <div style={{ textAlign: 'center' }}>
               <p style={{ color: 'var(--text2)', fontSize: 15, marginBottom: 20, fontWeight: 600 }}>
-                Cần hỗ trợ cài đặt? Liên hệ ngay:
+                {isEN ? 'Need installation support? Contact us:' : 'Cần hỗ trợ cài đặt? Liên hệ ngay:'}
               </p>
               <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
                 <a
@@ -293,14 +333,14 @@ export default function TaiXuong() {
                     fontFamily: 'inherit',
                   }}
                 >
-                  <span style={{ fontSize: 20 }}>💬</span> Zalo hỗ trợ
+                  <span style={{ fontSize: 20 }}>💬</span> {isEN ? 'Zalo Support' : 'Zalo hỗ trợ'}
                 </a>
                 <a
                   href="mailto:admin@gonetwork.vn"
                   className="btn btn-outline-navy"
                   style={{ fontFamily: 'inherit' }}
                 >
-                  <span style={{ fontSize: 20 }}>✉️</span> Email admin
+                  <span style={{ fontSize: 20 }}>✉️</span> {isEN ? 'Email Admin' : 'Email admin'}
                 </a>
               </div>
             </div>
@@ -316,13 +356,15 @@ export default function TaiXuong() {
             }}>
               <div style={{ fontSize: 40, marginBottom: 14 }}>🚀</div>
               <h3 style={{ fontWeight: 800, fontSize: 22, margin: '0 0 10px' }}>
-                Chưa có key kích hoạt?
+                {isEN ? "Don't have an activation key?" : 'Chưa có key kích hoạt?'}
               </h3>
               <p style={{ color: 'rgba(255,255,255,0.72)', fontSize: 16, margin: '0 0 28px', lineHeight: 1.6 }}>
-                Bắt đầu dùng thử miễn phí 7 ngày hoặc chọn gói phù hợp với team của bạn.
+                {isEN
+                  ? 'Start your free 7-day trial or choose the plan that fits your team.'
+                  : 'Bắt đầu dùng thử miễn phí 7 ngày hoặc chọn gói phù hợp với team của bạn.'}
               </p>
               <a href="/mua-goi" className="btn btn-primary btn-lg" style={{ fontFamily: 'inherit' }}>
-                Mua gói ngay →
+                {isEN ? 'Get a plan now →' : 'Mua gói ngay →'}
               </a>
             </div>
           </Reveal>

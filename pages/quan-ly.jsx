@@ -3,6 +3,7 @@ import Head from 'next/head'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import Reveal from '../components/Reveal'
+import { useLang } from '../lib/LangContext'
 
 const API = 'https://go-meta-ads-backend.vercel.app/api/license'
 
@@ -18,7 +19,7 @@ function maskEmail(email) {
   return local.slice(0, 2) + '***' + local.slice(-1) + '@' + domain
 }
 
-function StatusBadge({ status }) {
+function StatusBadge({ status, isEN }) {
   const active = status === 'active' || status === 'Active'
   return (
     <span style={{
@@ -28,12 +29,16 @@ function StatusBadge({ status }) {
       fontWeight: 700, fontSize: 13,
       padding: '4px 14px', borderRadius: 'var(--radius-full)',
       border: active ? '1px solid rgba(16,185,129,0.25)' : '1px solid rgba(239,68,68,0.25)',
-    }}>{active ? '✓ Còn hiệu lực' : '✕ Hết hạn / Bị khóa'}</span>
+    }}>
+      {active
+        ? (isEN ? '✓ Active' : '✓ Còn hiệu lực')
+        : (isEN ? '✕ Expired / Locked' : '✕ Hết hạn / Bị khóa')}
+    </span>
   )
 }
 
 // ─── SECTION 1: TÌM TÀI KHOẢN ────────────────────────────────────────────────
-function LookupSection() {
+function LookupSection({ isEN }) {
   const [tab, setTab] = useState('key')
   const [keyVal, setKeyVal] = useState('')
   const [phone, setPhone] = useState('')
@@ -60,14 +65,24 @@ function LookupSection() {
       if (data.ok) {
         setResult(data)
       } else {
-        setError(data.error || 'Không tìm thấy — thử nhập đúng SĐT đăng ký.')
+        setError(data.error || (isEN
+          ? 'Not found — please make sure you entered the registered phone number correctly.'
+          : 'Không tìm thấy — thử nhập đúng SĐT đăng ký.'))
       }
     } catch {
-      setError('Không thể kết nối máy chủ. Vui lòng thử lại sau.')
+      setError(isEN
+        ? 'Cannot connect to server. Please try again later.'
+        : 'Không thể kết nối máy chủ. Vui lòng thử lại sau.')
     } finally {
       setLoading(false)
     }
   }
+
+  const resultLabels = isEN
+    ? ['Full Name', 'Plan', 'Expiry', 'Status', 'Phone', 'Email']
+    : ['Họ và tên', 'Gói sử dụng', 'Hạn sử dụng', 'Trạng thái', 'Số điện thoại', 'Email']
+
+  const daysLeftText = (days) => isEN ? `(${days} days left)` : `(còn ${days} ngày)`
 
   return (
     <Reveal>
@@ -81,11 +96,13 @@ function LookupSection() {
             fontWeight: 900, fontSize: 17, flexShrink: 0,
           }}>1</div>
           <h2 style={{ fontSize: 22, fontWeight: 900, color: 'var(--navy)', margin: 0 }}>
-            Tìm tài khoản
+            {isEN ? 'Account Lookup' : 'Tìm tài khoản'}
           </h2>
         </div>
         <p style={{ color: 'var(--text2)', fontSize: 15, margin: '0 0 28px 56px', lineHeight: 1.6 }}>
-          Tra cứu thông tin gói, hạn sử dụng và trạng thái key của bạn.
+          {isEN
+            ? 'Look up your plan info, expiry date and key status.'
+            : 'Tra cứu thông tin gói, hạn sử dụng và trạng thái key của bạn.'}
         </p>
 
         {/* Tab switcher */}
@@ -94,7 +111,10 @@ function LookupSection() {
           borderRadius: 12, padding: 4, gap: 4,
           marginBottom: 28, width: 'fit-content',
         }}>
-          {[['key', '🔑 Nhập Key'], ['contact', '📞 SĐT + Email']].map(([id, label]) => (
+          {[
+            ['key', isEN ? '🔑 Enter Key' : '🔑 Nhập Key'],
+            ['contact', isEN ? '📞 Phone + Email' : '📞 SĐT + Email'],
+          ].map(([id, label]) => (
             <button
               key={id}
               onClick={() => { setTab(id); setResult(null); setError('') }}
@@ -113,7 +133,9 @@ function LookupSection() {
         <form onSubmit={handleSubmit}>
           {tab === 'key' ? (
             <div className="form-group">
-              <label className="form-label">Key của bạn <span style={{ color: 'var(--orange)' }}>*</span></label>
+              <label className="form-label">
+                {isEN ? 'Your Key' : 'Key của bạn'} <span style={{ color: 'var(--orange)' }}>*</span>
+              </label>
               <input
                 className="form-input"
                 type="text"
@@ -126,22 +148,26 @@ function LookupSection() {
           ) : (
             <>
               <div className="form-group">
-                <label className="form-label">Số điện thoại đăng ký <span style={{ color: 'var(--orange)' }}>*</span></label>
+                <label className="form-label">
+                  {isEN ? 'Registered Phone Number' : 'Số điện thoại đăng ký'} <span style={{ color: 'var(--orange)' }}>*</span>
+                </label>
                 <input
                   className="form-input"
                   type="text"
-                  placeholder="VD: 0901234567"
+                  placeholder={isEN ? 'e.g. 0901234567' : 'VD: 0901234567'}
                   value={phone}
                   onChange={e => setPhone(e.target.value)}
                   required
                 />
               </div>
               <div className="form-group">
-                <label className="form-label">Email đăng ký <span style={{ color: 'var(--orange)' }}>*</span></label>
+                <label className="form-label">
+                  {isEN ? 'Registered Email' : 'Email đăng ký'} <span style={{ color: 'var(--orange)' }}>*</span>
+                </label>
                 <input
                   className="form-input"
                   type="email"
-                  placeholder="VD: ten@email.com"
+                  placeholder={isEN ? 'e.g. name@email.com' : 'VD: ten@email.com'}
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   required
@@ -157,8 +183,8 @@ function LookupSection() {
             style={{ fontFamily: 'inherit', opacity: loading ? 0.6 : 1 }}
           >
             {loading ? (
-              <><span className="spinner" />Đang tra cứu...</>
-            ) : 'Kiểm tra →'}
+              <><span className="spinner" />{isEN ? 'Searching...' : 'Đang tra cứu...'}</>
+            ) : (isEN ? 'Check →' : 'Kiểm tra →')}
           </button>
         </form>
 
@@ -176,21 +202,21 @@ function LookupSection() {
             padding: 'clamp(18px,3vw,28px)',
           }}>
             <div style={{ fontWeight: 800, color: 'var(--navy)', fontSize: 15, marginBottom: 20 }}>
-              Kết quả tra cứu
+              {isEN ? 'Lookup Result' : 'Kết quả tra cứu'}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 24px' }} className="result-grid">
               {[
-                ['Họ và tên', result.name],
-                ['Gói sử dụng', result.plan],
-                ['Hạn sử dụng', result.expire ? `${result.expire}${result.daysLeft != null ? ` (còn ${result.daysLeft} ngày)` : ''}` : '—'],
-                ['Trạng thái', '__status__'],
-                ['Số điện thoại', maskPhone(result.phone)],
-                ['Email', maskEmail(result.email)],
+                [resultLabels[0], result.name],
+                [resultLabels[1], result.plan],
+                [resultLabels[2], result.expire ? `${result.expire}${result.daysLeft != null ? ` ${daysLeftText(result.daysLeft)}` : ''}` : '—'],
+                [resultLabels[3], '__status__'],
+                [resultLabels[4], maskPhone(result.phone)],
+                [resultLabels[5], maskEmail(result.email)],
               ].map(([label, val]) => (
                 <div key={label}>
                   <div style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 600, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.3px' }}>{label}</div>
                   {val === '__status__'
-                    ? <StatusBadge status={result.status} />
+                    ? <StatusBadge status={result.status} isEN={isEN} />
                     : <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>{val || '—'}</div>
                   }
                 </div>
@@ -198,7 +224,9 @@ function LookupSection() {
             </div>
             {result.key && (
               <div style={{ marginTop: 18, paddingTop: 18, borderTop: '1px solid var(--gray2)' }}>
-                <div style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.3px' }}>Key của bạn</div>
+                <div style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                  {isEN ? 'Your Key' : 'Key của bạn'}
+                </div>
                 <div style={{
                   fontFamily: 'monospace', fontWeight: 800, fontSize: 16,
                   color: 'var(--navy)', background: 'var(--navy-light)',
@@ -215,7 +243,7 @@ function LookupSection() {
 }
 
 // ─── SECTION 2: RESET THIẾT BỊ ───────────────────────────────────────────────
-function ResetSection() {
+function ResetSection({ isEN }) {
   const [key, setKey] = useState('')
   const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(false)
@@ -235,14 +263,20 @@ function ResetSection() {
       })
       const data = await res.json()
       if (data.ok) {
-        setSuccess(data.message || 'Reset thiết bị thành công! Đăng nhập lại trên máy mới.')
+        setSuccess(data.message || (isEN
+          ? 'Device reset successful! Sign in again on your new device.'
+          : 'Reset thiết bị thành công! Đăng nhập lại trên máy mới.'))
         setKey('')
         setPhone('')
       } else {
-        setError(data.error || 'Không thể reset. Kiểm tra lại key và SĐT.')
+        setError(data.error || (isEN
+          ? 'Cannot reset. Please check your key and phone number.'
+          : 'Không thể reset. Kiểm tra lại key và SĐT.'))
       }
     } catch {
-      setError('Không thể kết nối máy chủ. Vui lòng thử lại sau.')
+      setError(isEN
+        ? 'Cannot connect to server. Please try again later.'
+        : 'Không thể kết nối máy chủ. Vui lòng thử lại sau.')
     } finally {
       setLoading(false)
     }
@@ -259,28 +293,37 @@ function ResetSection() {
             fontWeight: 900, fontSize: 17, flexShrink: 0,
           }}>2</div>
           <h2 style={{ fontSize: 22, fontWeight: 900, color: 'var(--navy)', margin: 0 }}>
-            Reset thiết bị
+            {isEN ? 'Reset Device' : 'Reset thiết bị'}
           </h2>
         </div>
         <p style={{ color: 'var(--text2)', fontSize: 15, margin: '0 0 24px 56px', lineHeight: 1.6 }}>
-          Key bị khóa thiết bị — cần reset khi đổi máy tính hoặc cài lại Chrome.
+          {isEN
+            ? 'Key locked to a device — reset when switching computers or reinstalling Chrome.'
+            : 'Key bị khóa thiết bị — cần reset khi đổi máy tính hoặc cài lại Chrome.'}
         </p>
 
-        {/* Warning box vàng */}
+        {/* Warning box */}
         <div className="alert alert-warning" style={{ marginBottom: 24, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
           <span style={{ fontSize: 20, flexShrink: 0 }}>⚠️</span>
           <div>
-            <div style={{ fontWeight: 700, marginBottom: 4 }}>Lưu ý quan trọng</div>
+            <div style={{ fontWeight: 700, marginBottom: 4 }}>
+              {isEN ? 'Important Note' : 'Lưu ý quan trọng'}
+            </div>
             <div style={{ fontSize: 14, lineHeight: 1.7 }}>
-              Mỗi key chỉ được reset tối đa <strong>1 lần/tháng</strong>.
-              Sau khi reset, thiết bị cũ sẽ bị đăng xuất ngay lập tức.
+              {isEN ? (
+                <>Each key can only be reset <strong>1 time/month</strong>. The old device will be signed out immediately after reset.</>
+              ) : (
+                <>Mỗi key chỉ được reset tối đa <strong>1 lần/tháng</strong>. Sau khi reset, thiết bị cũ sẽ bị đăng xuất ngay lập tức.</>
+              )}
             </div>
           </div>
         </div>
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label className="form-label">Key của bạn <span style={{ color: 'var(--orange)' }}>*</span></label>
+            <label className="form-label">
+              {isEN ? 'Your Key' : 'Key của bạn'} <span style={{ color: 'var(--orange)' }}>*</span>
+            </label>
             <input
               className="form-input"
               type="text"
@@ -291,11 +334,13 @@ function ResetSection() {
             />
           </div>
           <div className="form-group">
-            <label className="form-label">Số điện thoại đăng ký <span style={{ color: 'var(--orange)' }}>*</span></label>
+            <label className="form-label">
+              {isEN ? 'Registered Phone Number' : 'Số điện thoại đăng ký'} <span style={{ color: 'var(--orange)' }}>*</span>
+            </label>
             <input
               className="form-input"
               type="text"
-              placeholder="VD: 0901234567"
+              placeholder={isEN ? 'e.g. 0901234567' : 'VD: 0901234567'}
               value={phone}
               onChange={e => setPhone(e.target.value)}
               required
@@ -309,8 +354,8 @@ function ResetSection() {
             style={{ fontFamily: 'inherit', opacity: loading ? 0.6 : 1 }}
           >
             {loading ? (
-              <><span className="spinner" />Đang xử lý...</>
-            ) : '🔓 Reset thiết bị →'}
+              <><span className="spinner" />{isEN ? 'Processing...' : 'Đang xử lý...'}</>
+            ) : (isEN ? '🔓 Reset Device →' : '🔓 Reset thiết bị →')}
           </button>
         </form>
 
@@ -322,31 +367,56 @@ function ResetSection() {
 }
 
 // ─── SECTION 3: NÂNG CẤP / GIA HẠN ──────────────────────────────────────────
-function UpgradeSection() {
-  const plans = [
-    {
-      name: 'Personal',
-      price: '200.000đ',
-      period: '/tháng',
-      features: ['1 Admin + 1 Nhân viên', '3 Sản phẩm', 'CPA tracking cơ bản', 'Hỗ trợ Zalo'],
-      highlight: false,
-    },
-    {
-      name: 'Business',
-      price: '500.000đ',
-      period: '/tháng',
-      features: ['2 Admin + 5 Nhân viên', 'Không giới hạn SP', 'Báo cáo nâng cao', 'Cảnh báo tự động'],
-      highlight: true,
-      badge: 'PHỔ BIẾN NHẤT',
-    },
-    {
-      name: 'Agency',
-      price: '1.200.000đ',
-      period: '/tháng',
-      features: ['6 Admin không giới hạn NV', 'Không giới hạn SP', 'Báo cáo agency', 'SLA 24/7'],
-      highlight: false,
-    },
-  ]
+function UpgradeSection({ isEN }) {
+  const plans = isEN
+    ? [
+        {
+          name: 'Personal',
+          price: '200.000đ',
+          period: '/month',
+          features: ['1 Admin + 1 Staff', '3 Products', 'Basic CPA tracking', 'Zalo support'],
+          highlight: false,
+        },
+        {
+          name: 'Business',
+          price: '500.000đ',
+          period: '/month',
+          features: ['2 Admin + 5 Staff', 'Unlimited products', 'Advanced reports', 'Auto alerts'],
+          highlight: true,
+          badge: 'MOST POPULAR',
+        },
+        {
+          name: 'Agency',
+          price: '1.200.000đ',
+          period: '/month',
+          features: ['6 Admin unlimited staff', 'Unlimited products', 'Agency reports', 'SLA 24/7'],
+          highlight: false,
+        },
+      ]
+    : [
+        {
+          name: 'Personal',
+          price: '200.000đ',
+          period: '/tháng',
+          features: ['1 Admin + 1 Nhân viên', '3 Sản phẩm', 'CPA tracking cơ bản', 'Hỗ trợ Zalo'],
+          highlight: false,
+        },
+        {
+          name: 'Business',
+          price: '500.000đ',
+          period: '/tháng',
+          features: ['2 Admin + 5 Nhân viên', 'Không giới hạn SP', 'Báo cáo nâng cao', 'Cảnh báo tự động'],
+          highlight: true,
+          badge: 'PHỔ BIẾN NHẤT',
+        },
+        {
+          name: 'Agency',
+          price: '1.200.000đ',
+          period: '/tháng',
+          features: ['6 Admin không giới hạn NV', 'Không giới hạn SP', 'Báo cáo agency', 'SLA 24/7'],
+          highlight: false,
+        },
+      ]
 
   return (
     <Reveal delay={160}>
@@ -362,10 +432,14 @@ function UpgradeSection() {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontWeight: 900, fontSize: 17, flexShrink: 0,
           }}>3</div>
-          <h2 style={{ fontSize: 22, fontWeight: 900, margin: 0 }}>Nâng cấp / Gia hạn</h2>
+          <h2 style={{ fontSize: 22, fontWeight: 900, margin: 0 }}>
+            {isEN ? 'Upgrade / Renew' : 'Nâng cấp / Gia hạn'}
+          </h2>
         </div>
         <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 15, margin: '0 0 32px 56px', lineHeight: 1.6 }}>
-          Nâng cấp để mở khóa thêm tính năng và tăng số lượng nhân viên.
+          {isEN
+            ? 'Upgrade to unlock more features and increase team capacity.'
+            : 'Nâng cấp để mở khóa thêm tính năng và tăng số lượng nhân viên.'}
         </p>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16, marginBottom: 28 }} className="upgrade-plans">
@@ -408,14 +482,14 @@ function UpgradeSection() {
               }}
                 onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
                 onMouseOut={e => e.currentTarget.style.background = p.highlight ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.12)'}
-              >Chọn gói →</a>
+              >{isEN ? 'Choose plan →' : 'Chọn gói →'}</a>
             </div>
           ))}
         </div>
 
         <div style={{ textAlign: 'center' }}>
           <a href="/mua-goi" className="btn btn-white" style={{ fontFamily: 'inherit' }}>
-            Xem chi tiết & Mua gói →
+            {isEN ? 'View details & Buy →' : 'Xem chi tiết & Mua gói →'}
           </a>
         </div>
       </div>
@@ -425,11 +499,17 @@ function UpgradeSection() {
 
 // ─── PAGE ─────────────────────────────────────────────────────────────────────
 export default function QuanLy() {
+  const { lang } = useLang()
+  const isEN = lang === 'en'
+
   return (
     <>
       <Head>
-        <title>Quản lý tài khoản — Go Meta Ads Pro</title>
-        <meta name="description" content="Tra cứu key, reset thiết bị và quản lý tài khoản Go Meta Ads Pro." />
+        <title>{isEN ? 'Account Management — Go Meta Ads Pro' : 'Quản lý tài khoản — Go Meta Ads Pro'}</title>
+        <meta name="description" content={isEN
+          ? 'Look up your key, reset device, and manage your Go Meta Ads Pro account.'
+          : 'Tra cứu key, reset thiết bị và quản lý tài khoản Go Meta Ads Pro.'
+        } />
       </Head>
       <Navbar />
 
@@ -443,13 +523,15 @@ export default function QuanLy() {
       }}>
         <div className="container" style={{ maxWidth: 680 }}>
           <div className="badge badge-white" style={{ marginBottom: 20 }}>
-            🔑 Tra cứu &amp; Quản lý
+            {isEN ? '🔑 Lookup & Manage' : '🔑 Tra cứu & Quản lý'}
           </div>
           <h1 style={{ margin: '0 0 16px', fontSize: 'clamp(28px,5vw,42px)' }}>
-            Quản lý tài khoản
+            {isEN ? 'Account Management' : 'Quản lý tài khoản'}
           </h1>
           <p style={{ color: 'rgba(255,255,255,0.78)', fontSize: 17, lineHeight: 1.7, margin: 0 }}>
-            Tra cứu thông tin key, reset thiết bị khi đổi máy, và nâng cấp gói sử dụng.
+            {isEN
+              ? 'Look up key info, reset device when switching computers, and upgrade your plan.'
+              : 'Tra cứu thông tin key, reset thiết bị khi đổi máy, và nâng cấp gói sử dụng.'}
           </p>
         </div>
       </section>
@@ -457,9 +539,9 @@ export default function QuanLy() {
       {/* Content */}
       <main style={{ background: 'var(--gray)', minHeight: '80vh', padding: '56px 16px 96px' }}>
         <div style={{ maxWidth: 800, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 28 }}>
-          <LookupSection />
-          <ResetSection />
-          <UpgradeSection />
+          <LookupSection isEN={isEN} />
+          <ResetSection isEN={isEN} />
+          <UpgradeSection isEN={isEN} />
         </div>
       </main>
 

@@ -3,27 +3,42 @@ import Head from 'next/head'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import Reveal from '../components/Reveal'
+import { useLang } from '../lib/LangContext'
 
 const API_AFFILIATE = 'https://go-meta-ads-backend.vercel.app/api/affiliate'
 
 // ─── COMMISSION CARDS ─────────────────────────────────────────────────────────
-const COMMISSION_CARDS = [
+const COMMISSION_CARDS_VI = [
   { pct: '5%', label: 'Gói Cá nhân', sub: 'Tháng đầu tiên', color: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe' },
   { pct: '7%', label: 'Gói Doanh nghiệp', sub: 'Tháng đầu tiên', color: 'var(--navy)', bg: '#f0f4ff', border: '#c7d7ff' },
   { pct: '9%', label: 'Gói Agency', sub: 'Tháng đầu tiên', color: 'var(--orange)', bg: '#fff5f0', border: '#fed7aa' },
   { pct: '3%', label: 'Gia hạn', sub: 'Mỗi lần gia hạn', color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' },
 ]
 
+const COMMISSION_CARDS_EN = [
+  { pct: '5%', label: 'Personal Plan', sub: 'First month', color: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe' },
+  { pct: '7%', label: 'Business Plan', sub: 'First month', color: 'var(--navy)', bg: '#f0f4ff', border: '#c7d7ff' },
+  { pct: '9%', label: 'Agency Plan', sub: 'First month', color: 'var(--orange)', bg: '#fff5f0', border: '#fed7aa' },
+  { pct: '3%', label: 'Renewal', sub: 'Each renewal', color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' },
+]
+
 // ─── HOW IT WORKS STEPS ───────────────────────────────────────────────────────
-const HOW_STEPS = [
+const HOW_STEPS_VI = [
   { num: '01', icon: '📋', title: 'Đăng ký affiliate', desc: 'Điền form bên dưới với key đã mua và thông tin ngân hàng để nhận hoa hồng.' },
   { num: '02', icon: '🔗', title: 'Nhận link riêng', desc: 'Hệ thống cấp mã & link cá nhân — VD: adsmeta.gonetwork.vn?ref=ABC123' },
   { num: '03', icon: '🛒', title: 'Khách mua qua link', desc: 'Cookie tracking 30 ngày — khách click link rồi mua bất kỳ lúc nào đều tính hoa hồng.' },
   { num: '04', icon: '💸', title: 'Nhận tiền hàng tháng', desc: 'Hoa hồng tổng hợp và chuyển khoản ngân hàng theo tháng — tự động, không cần nhắc.' },
 ]
 
+const HOW_STEPS_EN = [
+  { num: '01', icon: '📋', title: 'Register as affiliate', desc: 'Fill in the form below with your purchased key and bank details to receive commissions.' },
+  { num: '02', icon: '🔗', title: 'Get your personal link', desc: 'The system generates your code & personal link — e.g. adsmeta.gonetwork.vn?ref=ABC123' },
+  { num: '03', icon: '🛒', title: 'Customer buys via your link', desc: '30-day cookie tracking — any purchase after clicking your link counts as commission.' },
+  { num: '04', icon: '💸', title: 'Receive monthly payments', desc: 'Commission is summarized and bank-transferred monthly — automatic, no chasing needed.' },
+]
+
 // ─── REGISTER FORM ────────────────────────────────────────────────────────────
-function RegisterForm() {
+function RegisterForm({ isEN }) {
   const [form, setForm] = useState({
     key: '', name: '', phone: '', email: '',
     bank_name: '', bank_account: '', bank_owner: '',
@@ -51,10 +66,14 @@ function RegisterForm() {
         setSuccess(data)
         setForm({ key: '', name: '', phone: '', email: '', bank_name: '', bank_account: '', bank_owner: '' })
       } else {
-        setError(data.error || 'Đăng ký thất bại. Kiểm tra lại key và thông tin.')
+        setError(data.error || (isEN
+          ? 'Registration failed. Please check your key and information.'
+          : 'Đăng ký thất bại. Kiểm tra lại key và thông tin.'))
       }
     } catch {
-      setError('Không thể kết nối máy chủ. Vui lòng thử lại sau.')
+      setError(isEN
+        ? 'Cannot connect to server. Please try again later.'
+        : 'Không thể kết nối máy chủ. Vui lòng thử lại sau.')
     } finally {
       setLoading(false)
     }
@@ -68,7 +87,7 @@ function RegisterForm() {
             <div className="card" style={{ padding: 'clamp(28px,4vw,44px)' }}>
               <div style={{ marginBottom: 24 }}>
                 <h2 style={{ color: 'var(--navy)', fontWeight: 900, fontSize: 24, margin: '0 0 10px' }}>
-                  📋 Đăng ký Affiliate
+                  📋 {isEN ? 'Register as Affiliate' : 'Đăng ký Affiliate'}
                 </h2>
                 <div style={{
                   display: 'inline-flex', alignItems: 'center', gap: 8,
@@ -76,57 +95,117 @@ function RegisterForm() {
                   borderRadius: 8, padding: '7px 14px', fontSize: 13, color: '#78350f',
                 }}>
                   <span>⚠️</span>
-                  <span>Chỉ user đã trả phí mới được đăng ký affiliate</span>
+                  <span>
+                    {isEN
+                      ? 'Only paid users are eligible to register as affiliates'
+                      : 'Chỉ user đã trả phí mới được đăng ký affiliate'}
+                  </span>
                 </div>
               </div>
 
               <form onSubmit={handleSubmit}>
-                {/* Thông tin cá nhân */}
+                {/* Personal info section */}
                 <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid var(--gray2)' }}>
-                  Thông tin cá nhân
+                  {isEN ? 'Personal Information' : 'Thông tin cá nhân'}
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Key của bạn <span style={{ color: 'var(--orange)' }}>*</span></label>
+                  <label className="form-label">
+                    {isEN ? 'Your Key' : 'Key của bạn'} <span style={{ color: 'var(--orange)' }}>*</span>
+                  </label>
                   <input className="form-input" type="text" placeholder="GMAP-XXXX-XXXX-XXXX" value={form.key} onChange={set('key')} required />
-                  <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>Key admin đã mua — dùng để xác minh tư cách affiliate</div>
+                  <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>
+                    {isEN
+                      ? 'Admin key you purchased — used to verify affiliate eligibility'
+                      : 'Key admin đã mua — dùng để xác minh tư cách affiliate'}
+                  </div>
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Họ và tên <span style={{ color: 'var(--orange)' }}>*</span></label>
-                  <input className="form-input" type="text" placeholder="Nguyễn Văn A" value={form.name} onChange={set('name')} required />
+                  <label className="form-label">
+                    {isEN ? 'Full Name' : 'Họ và tên'} <span style={{ color: 'var(--orange)' }}>*</span>
+                  </label>
+                  <input
+                    className="form-input"
+                    type="text"
+                    placeholder={isEN ? 'John Doe' : 'Nguyễn Văn A'}
+                    value={form.name}
+                    onChange={set('name')}
+                    required
+                  />
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }} className="two-col">
                   <div className="form-group">
-                    <label className="form-label">Số điện thoại <span style={{ color: 'var(--orange)' }}>*</span></label>
-                    <input className="form-input" type="tel" placeholder="0901234567" value={form.phone} onChange={set('phone')} required />
+                    <label className="form-label">
+                      {isEN ? 'Phone Number' : 'Số điện thoại'} <span style={{ color: 'var(--orange)' }}>*</span>
+                    </label>
+                    <input
+                      className="form-input"
+                      type="tel"
+                      placeholder="0901234567"
+                      value={form.phone}
+                      onChange={set('phone')}
+                      required
+                    />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Email</label>
-                    <input className="form-input" type="email" placeholder="ten@email.com" value={form.email} onChange={set('email')} />
+                    <input
+                      className="form-input"
+                      type="email"
+                      placeholder={isEN ? 'name@email.com' : 'ten@email.com'}
+                      value={form.email}
+                      onChange={set('email')}
+                    />
                   </div>
                 </div>
 
-                {/* Thông tin ngân hàng */}
+                {/* Bank info section */}
                 <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.6px', marginTop: 8, marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid var(--gray2)' }}>
-                  Thông tin ngân hàng nhận tiền
+                  {isEN ? 'Bank Details for Receiving Commission' : 'Thông tin ngân hàng nhận tiền'}
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Tên ngân hàng</label>
-                  <input className="form-input" type="text" placeholder="VD: Vietcombank, MB Bank, Techcombank..." value={form.bank_name} onChange={set('bank_name')} />
+                  <label className="form-label">{isEN ? 'Bank Name' : 'Tên ngân hàng'}</label>
+                  <input
+                    className="form-input"
+                    type="text"
+                    placeholder={isEN ? 'e.g. Vietcombank, MB Bank, Techcombank...' : 'VD: Vietcombank, MB Bank, Techcombank...'}
+                    value={form.bank_name}
+                    onChange={set('bank_name')}
+                  />
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }} className="two-col">
                   <div className="form-group">
-                    <label className="form-label">Số tài khoản <span style={{ color: 'var(--orange)' }}>*</span></label>
-                    <input className="form-input" type="text" placeholder="0123456789" value={form.bank_account} onChange={set('bank_account')} required />
+                    <label className="form-label">
+                      {isEN ? 'Account Number' : 'Số tài khoản'} <span style={{ color: 'var(--orange)' }}>*</span>
+                    </label>
+                    <input
+                      className="form-input"
+                      type="text"
+                      placeholder="0123456789"
+                      value={form.bank_account}
+                      onChange={set('bank_account')}
+                      required
+                    />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Tên chủ tài khoản <span style={{ color: 'var(--orange)' }}>*</span></label>
-                    <input className="form-input" type="text" placeholder="NGUYEN VAN A" value={form.bank_owner} onChange={set('bank_owner')} required />
-                    <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>Viết IN HOA không dấu</div>
+                    <label className="form-label">
+                      {isEN ? 'Account Holder Name' : 'Tên chủ tài khoản'} <span style={{ color: 'var(--orange)' }}>*</span>
+                    </label>
+                    <input
+                      className="form-input"
+                      type="text"
+                      placeholder={isEN ? 'JOHN DOE' : 'NGUYEN VAN A'}
+                      value={form.bank_owner}
+                      onChange={set('bank_owner')}
+                      required
+                    />
+                    <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>
+                      {isEN ? 'UPPERCASE without accents' : 'Viết IN HOA không dấu'}
+                    </div>
                   </div>
                 </div>
 
@@ -137,8 +216,8 @@ function RegisterForm() {
                   style={{ fontFamily: 'inherit', fontSize: 16, padding: '14px', marginTop: 8, opacity: loading ? 0.7 : 1 }}
                 >
                   {loading
-                    ? <><span className="spinner" />Đang đăng ký...</>
-                    : '🚀 Đăng ký Affiliate →'}
+                    ? <><span className="spinner" />{isEN ? 'Registering...' : 'Đang đăng ký...'}</>
+                    : (isEN ? '🚀 Register as Affiliate →' : '🚀 Đăng ký Affiliate →')}
                 </button>
               </form>
 
@@ -154,10 +233,10 @@ function RegisterForm() {
                 }}>
                   <div style={{ fontSize: 44, marginBottom: 12 }}>🎉</div>
                   <div style={{ fontWeight: 900, color: '#059669', fontSize: 18, marginBottom: 8 }}>
-                    Đăng ký thành công!
+                    {isEN ? 'Registration successful!' : 'Đăng ký thành công!'}
                   </div>
                   <div style={{ color: 'var(--text2)', fontSize: 14, marginBottom: 16 }}>
-                    Mã affiliate của bạn:
+                    {isEN ? 'Your affiliate code:' : 'Mã affiliate của bạn:'}
                   </div>
                   <div style={{
                     fontFamily: 'monospace', fontWeight: 900, fontSize: 26,
@@ -169,7 +248,7 @@ function RegisterForm() {
                     {success.referral_code || 'N/A'}
                   </div>
                   <div style={{ color: 'var(--text2)', fontSize: 13, marginTop: 14 }}>
-                    Link của bạn:{' '}
+                    {isEN ? 'Your link:' : 'Link của bạn:'}{' '}
                     <strong style={{ color: 'var(--navy)' }}>
                       adsmeta.gonetwork.vn?ref={success.referral_code}
                     </strong>
@@ -185,7 +264,7 @@ function RegisterForm() {
 }
 
 // ─── LOOKUP COMMISSION ────────────────────────────────────────────────────────
-function LookupCommission() {
+function LookupCommission({ isEN }) {
   const [key, setKey] = useState('')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
@@ -206,10 +285,14 @@ function LookupCommission() {
       if (data.ok) {
         setResult(data)
       } else {
-        setError(data.error || 'Không tìm thấy tài khoản affiliate với key này.')
+        setError(data.error || (isEN
+          ? 'No affiliate account found for this key.'
+          : 'Không tìm thấy tài khoản affiliate với key này.'))
       }
     } catch {
-      setError('Không thể kết nối máy chủ. Vui lòng thử lại sau.')
+      setError(isEN
+        ? 'Cannot connect to server. Please try again later.'
+        : 'Không thể kết nối máy chủ. Vui lòng thử lại sau.')
     } finally {
       setLoading(false)
     }
@@ -221,8 +304,12 @@ function LookupCommission() {
         <Reveal>
           <div style={{ maxWidth: 560, margin: '0 auto' }}>
             <div style={{ textAlign: 'center', marginBottom: 36 }}>
-              <div className="badge badge-navy" style={{ marginBottom: 16 }}>📊 Tra cứu hoa hồng</div>
-              <h2 style={{ margin: 0 }}>Kiểm tra hoa hồng của bạn</h2>
+              <div className="badge badge-navy" style={{ marginBottom: 16 }}>
+                📊 {isEN ? 'Commission Lookup' : 'Tra cứu hoa hồng'}
+              </div>
+              <h2 style={{ margin: 0 }}>
+                {isEN ? 'Check your commission' : 'Kiểm tra hoa hồng của bạn'}
+              </h2>
             </div>
 
             <div className="card" style={{ padding: 'clamp(24px,4vw,36px)' }}>
@@ -230,7 +317,7 @@ function LookupCommission() {
                 <input
                   className="form-input"
                   type="text"
-                  placeholder="Nhập key của bạn..."
+                  placeholder={isEN ? 'Enter your key...' : 'Nhập key của bạn...'}
                   value={key}
                   onChange={e => setKey(e.target.value.toUpperCase())}
                   required
@@ -242,7 +329,7 @@ function LookupCommission() {
                   className="btn btn-navy"
                   style={{ fontFamily: 'inherit', whiteSpace: 'nowrap', opacity: loading ? 0.7 : 1 }}
                 >
-                  {loading ? '...' : 'Tra cứu →'}
+                  {loading ? '...' : (isEN ? 'Look up →' : 'Tra cứu →')}
                 </button>
               </form>
 
@@ -258,7 +345,7 @@ function LookupCommission() {
                       border: '1px solid rgba(12,42,114,0.12)',
                     }}>
                       <div style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
-                        Mã Affiliate
+                        {isEN ? 'Affiliate Code' : 'Mã Affiliate'}
                       </div>
                       <div style={{ fontFamily: 'monospace', fontWeight: 900, fontSize: 18, color: 'var(--navy)' }}>
                         {result.referral_code || '—'}
@@ -269,7 +356,7 @@ function LookupCommission() {
                       border: '1px solid rgba(16,185,129,0.2)',
                     }}>
                       <div style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
-                        Tổng hoa hồng
+                        {isEN ? 'Total Commission' : 'Tổng hoa hồng'}
                       </div>
                       <div style={{ fontWeight: 900, fontSize: 18, color: '#16a34a' }}>
                         {result.total_earned != null
@@ -284,7 +371,9 @@ function LookupCommission() {
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                     border: '1px solid var(--gray2)',
                   }}>
-                    <span style={{ color: 'var(--text2)', fontSize: 14 }}>Trạng thái tài khoản</span>
+                    <span style={{ color: 'var(--text2)', fontSize: 14 }}>
+                      {isEN ? 'Account status' : 'Trạng thái tài khoản'}
+                    </span>
                     <span style={{
                       background: result.status === 'active' ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.1)',
                       color: result.status === 'active' ? '#059669' : '#dc2626',
@@ -292,7 +381,9 @@ function LookupCommission() {
                       borderRadius: 'var(--radius-full)',
                       border: result.status === 'active' ? '1px solid rgba(16,185,129,0.25)' : '1px solid rgba(239,68,68,0.25)',
                     }}>
-                      {result.status === 'active' ? '✓ Đang hoạt động' : '✕ Không hoạt động'}
+                      {result.status === 'active'
+                        ? (isEN ? '✓ Active' : '✓ Đang hoạt động')
+                        : (isEN ? '✕ Inactive' : '✕ Không hoạt động')}
                     </span>
                   </div>
                 </div>
@@ -307,11 +398,22 @@ function LookupCommission() {
 
 // ─── PAGE ─────────────────────────────────────────────────────────────────────
 export default function Affiliate() {
+  const { lang } = useLang()
+  const isEN = lang === 'en'
+
+  const COMMISSION_CARDS = isEN ? COMMISSION_CARDS_EN : COMMISSION_CARDS_VI
+  const HOW_STEPS = isEN ? HOW_STEPS_EN : HOW_STEPS_VI
+
   return (
     <>
       <Head>
-        <title>Affiliate — Go Meta Ads Pro | Kiếm hoa hồng giới thiệu</title>
-        <meta name="description" content="Tham gia chương trình affiliate Go Meta Ads Pro — nhận hoa hồng đến 9% mỗi lần giới thiệu khách mua gói." />
+        <title>{isEN
+          ? 'Affiliate — Go Meta Ads Pro | Earn Referral Commission'
+          : 'Affiliate — Go Meta Ads Pro | Kiếm hoa hồng giới thiệu'}</title>
+        <meta name="description" content={isEN
+          ? 'Join the Go Meta Ads Pro affiliate program — earn up to 9% commission each time you refer a customer.'
+          : 'Tham gia chương trình affiliate Go Meta Ads Pro — nhận hoa hồng đến 9% mỗi lần giới thiệu khách mua gói.'
+        } />
       </Head>
       <Navbar />
 
@@ -328,26 +430,33 @@ export default function Affiliate() {
 
         <div className="container" style={{ maxWidth: 780, position: 'relative' }}>
           <div className="badge badge-white" style={{ marginBottom: 24, background: 'rgba(254,95,1,0.15)', borderColor: 'rgba(254,95,1,0.3)', color: '#ffb380' }}>
-            🤝 Chương trình Affiliate
+            🤝 {isEN ? 'Affiliate Program' : 'Chương trình Affiliate'}
           </div>
 
           <h1 style={{ margin: '0 0 20px', fontSize: 'clamp(28px,5vw,48px)', lineHeight: 1.2 }}>
-            Giới thiệu — Nhận hoa hồng tự động
+            {isEN ? 'Refer — Earn automatic commission' : 'Giới thiệu — Nhận hoa hồng tự động'}
           </h1>
 
           <p style={{ fontSize: 'clamp(15px,2.5vw,18px)', opacity: 0.85, lineHeight: 1.8, maxWidth: 620, margin: '0 auto 40px' }}>
-            Đã dùng Go Meta Ads Pro? Chia link cho đồng nghiệp &amp; bạn bè.
-            Mỗi khi họ mua key, bạn nhận hoa hồng đến{' '}
-            <strong style={{ color: '#fbbf24' }}>9% tháng đầu</strong> +{' '}
-            <strong style={{ color: '#fbbf24' }}>3% mỗi lần gia hạn</strong>.
+            {isEN ? (
+              <>Already using Go Meta Ads Pro? Share your link with colleagues &amp; friends.
+                Every time they purchase a key, you earn commission up to{' '}
+                <strong style={{ color: '#fbbf24' }}>9% first month</strong> +{' '}
+                <strong style={{ color: '#fbbf24' }}>3% each renewal</strong>.</>
+            ) : (
+              <>Đã dùng Go Meta Ads Pro? Chia link cho đồng nghiệp &amp; bạn bè.
+                Mỗi khi họ mua key, bạn nhận hoa hồng đến{' '}
+                <strong style={{ color: '#fbbf24' }}>9% tháng đầu</strong> +{' '}
+                <strong style={{ color: '#fbbf24' }}>3% mỗi lần gia hạn</strong>.</>
+            )}
           </p>
 
           <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
             <a href="#register" className="btn btn-primary btn-lg" style={{ fontFamily: 'inherit' }}>
-              Đăng ký ngay →
+              {isEN ? 'Register now →' : 'Đăng ký ngay →'}
             </a>
             <a href="#dashboard" className="btn btn-glass btn-lg" style={{ fontFamily: 'inherit' }}>
-              Tra cứu hoa hồng
+              {isEN ? 'Check commission' : 'Tra cứu hoa hồng'}
             </a>
           </div>
 
@@ -359,9 +468,9 @@ export default function Affiliate() {
             overflow: 'hidden', maxWidth: 540, marginLeft: 'auto', marginRight: 'auto',
           }}>
             {[
-              { val: 'đến 9%', label: 'Hoa hồng tháng đầu' },
-              { val: '3%', label: 'Hoa hồng gia hạn' },
-              { val: '30 ngày', label: 'Cookie tracking' },
+              { val: isEN ? 'up to 9%' : 'đến 9%', label: isEN ? 'First month commission' : 'Hoa hồng tháng đầu' },
+              { val: '3%', label: isEN ? 'Renewal commission' : 'Hoa hồng gia hạn' },
+              { val: isEN ? '30 days' : '30 ngày', label: isEN ? 'Cookie tracking' : 'Cookie tracking' },
             ].map((s, i) => (
               <div key={i} style={{
                 flex: 1, padding: '20px 14px', textAlign: 'center',
@@ -380,9 +489,11 @@ export default function Affiliate() {
         <div className="container">
           <Reveal>
             <div className="section-header">
-              <div className="badge">💰 Tỉ lệ hoa hồng</div>
-              <h2>Hoa hồng hấp dẫn, tự động thanh toán</h2>
-              <p>Hoa hồng tính theo từng gói khách mua — thanh toán hàng tháng qua chuyển khoản ngân hàng.</p>
+              <div className="badge">💰 {isEN ? 'Commission Rates' : 'Tỉ lệ hoa hồng'}</div>
+              <h2>{isEN ? 'Attractive commissions, automatic payouts' : 'Hoa hồng hấp dẫn, tự động thanh toán'}</h2>
+              <p>{isEN
+                ? 'Commission calculated per plan purchased — paid monthly via bank transfer.'
+                : 'Hoa hồng tính theo từng gói khách mua — thanh toán hàng tháng qua chuyển khoản ngân hàng.'}</p>
             </div>
           </Reveal>
 
@@ -415,8 +526,8 @@ export default function Affiliate() {
         <div className="container">
           <Reveal>
             <div className="section-header">
-              <div className="badge">⚙️ Cách hoạt động</div>
-              <h2>4 bước đơn giản</h2>
+              <div className="badge">⚙️ {isEN ? 'How it works' : 'Cách hoạt động'}</div>
+              <h2>{isEN ? '4 simple steps' : '4 bước đơn giản'}</h2>
             </div>
           </Reveal>
 
@@ -438,7 +549,7 @@ export default function Affiliate() {
                     fontSize: 28, boxShadow: 'var(--shadow)',
                   }}>{s.icon}</div>
                   <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--orange)', letterSpacing: '1px', marginBottom: 8 }}>
-                    BƯỚC {s.num}
+                    {isEN ? `STEP ${s.num}` : `BƯỚC ${s.num}`}
                   </div>
                   <div style={{ fontWeight: 800, color: 'var(--navy)', fontSize: 15, marginBottom: 10 }}>{s.title}</div>
                   <div style={{ color: 'var(--text2)', fontSize: 14, lineHeight: 1.7 }}>{s.desc}</div>
@@ -450,10 +561,10 @@ export default function Affiliate() {
       </section>
 
       {/* ─── REGISTER FORM ─── */}
-      <RegisterForm />
+      <RegisterForm isEN={isEN} />
 
       {/* ─── LOOKUP ─── */}
-      <LookupCommission />
+      <LookupCommission isEN={isEN} />
 
       {/* ─── BOTTOM CTA ─── */}
       <section style={{
@@ -462,12 +573,16 @@ export default function Affiliate() {
       }}>
         <div className="container" style={{ maxWidth: 640 }}>
           <Reveal>
-            <h2 style={{ margin: '0 0 14px' }}>Bắt đầu kiếm hoa hồng ngay hôm nay</h2>
+            <h2 style={{ margin: '0 0 14px' }}>
+              {isEN ? 'Start earning commission today' : 'Bắt đầu kiếm hoa hồng ngay hôm nay'}
+            </h2>
             <p style={{ color: 'rgba(255,255,255,0.72)', fontSize: 16, margin: '0 0 32px', lineHeight: 1.7 }}>
-              Chỉ cần chia link — phần còn lại hệ thống tự động xử lý cho bạn
+              {isEN
+                ? 'Just share your link — the system handles everything else automatically'
+                : 'Chỉ cần chia link — phần còn lại hệ thống tự động xử lý cho bạn'}
             </p>
             <a href="#register" className="btn btn-primary btn-lg" style={{ fontFamily: 'inherit' }}>
-              Đăng ký Affiliate miễn phí →
+              {isEN ? 'Register Affiliate for free →' : 'Đăng ký Affiliate miễn phí →'}
             </a>
           </Reveal>
         </div>

@@ -3,8 +3,9 @@ import Head from 'next/head'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import Reveal from '../components/Reveal'
+import { useLang } from '../lib/LangContext'
 
-const PLANS = {
+const PLANS_VI = {
   thang: [
     {
       id: 'ca-nhan',
@@ -32,7 +33,7 @@ const PLANS = {
       price: 1200000,
       priceLabel: '1.200.000đ',
       period: '/tháng',
-      desc: 'Cho agency &amp; team lớn',
+      desc: 'Cho agency & team lớn',
       features: ['6 Admin', 'Không giới hạn nhân viên', 'Không giới hạn sản phẩm', 'Báo cáo agency', 'Onboarding riêng', 'SLA 24/7'],
       recommended: false,
     },
@@ -67,7 +68,7 @@ const PLANS = {
       priceLabel: '11.520.000đ',
       period: '/năm',
       originalPrice: '14.400.000đ',
-      desc: 'Cho agency &amp; team lớn',
+      desc: 'Cho agency & team lớn',
       features: ['6 Admin', 'Không giới hạn nhân viên', 'Không giới hạn sản phẩm', 'Báo cáo agency', 'Onboarding riêng', 'SLA 24/7'],
       recommended: false,
     },
@@ -86,7 +87,89 @@ const PLANS = {
   ],
 }
 
-const FAQS = [
+const PLANS_EN = {
+  thang: [
+    {
+      id: 'ca-nhan',
+      name: 'Personal',
+      price: 200000,
+      priceLabel: '200.000đ',
+      period: '/month',
+      desc: 'For solo ads runners',
+      features: ['1 Admin + 1 Staff', '3 Products', 'Basic CPA tracking', 'Zalo support'],
+      recommended: false,
+    },
+    {
+      id: 'doanh-nghiep',
+      name: 'Business',
+      price: 500000,
+      priceLabel: '500.000đ',
+      period: '/month',
+      desc: 'Ideal for teams of 5–10',
+      features: ['2 Admin + 5 Staff', 'Unlimited products', 'Advanced reports', 'Auto alerts', 'Priority support'],
+      recommended: true,
+    },
+    {
+      id: 'agency',
+      name: 'Agency',
+      price: 1200000,
+      priceLabel: '1.200.000đ',
+      period: '/month',
+      desc: 'For agencies & large teams',
+      features: ['6 Admin', 'Unlimited staff', 'Unlimited products', 'Agency reports', 'Private onboarding', 'SLA 24/7'],
+      recommended: false,
+    },
+  ],
+  nam: [
+    {
+      id: 'ca-nhan',
+      name: 'Personal',
+      price: 1920000,
+      priceLabel: '1.920.000đ',
+      period: '/year',
+      originalPrice: '2.400.000đ',
+      desc: 'For solo ads runners',
+      features: ['1 Admin + 1 Staff', '3 Products', 'Basic CPA tracking', 'Zalo support'],
+      recommended: false,
+    },
+    {
+      id: 'doanh-nghiep',
+      name: 'Business',
+      price: 4800000,
+      priceLabel: '4.800.000đ',
+      period: '/year',
+      originalPrice: '6.000.000đ',
+      desc: 'Ideal for teams of 5–10',
+      features: ['2 Admin + 5 Staff', 'Unlimited products', 'Advanced reports', 'Auto alerts', 'Priority support'],
+      recommended: true,
+    },
+    {
+      id: 'agency',
+      name: 'Agency',
+      price: 11520000,
+      priceLabel: '11.520.000đ',
+      period: '/year',
+      originalPrice: '14.400.000đ',
+      desc: 'For agencies & large teams',
+      features: ['6 Admin', 'Unlimited staff', 'Unlimited products', 'Agency reports', 'Private onboarding', 'SLA 24/7'],
+      recommended: false,
+    },
+  ],
+  trial: [
+    {
+      id: 'thu-nghiem',
+      name: 'Free Trial',
+      price: 0,
+      priceLabel: 'Free',
+      period: '7 days',
+      desc: 'Experience all features',
+      features: ['Full Business features', 'No credit card needed', 'Onboarding support', 'Expires after 7 days'],
+      recommended: false,
+    },
+  ],
+}
+
+const FAQS_VI = [
   {
     q: 'Mất bao lâu để nhận được key?',
     a: 'Sau khi chúng tôi xác nhận thanh toán (thường trong giờ hành chính), key sẽ được gửi trong vòng 15–30 phút qua Zalo hoặc Email bạn đăng ký.',
@@ -105,13 +188,31 @@ const FAQS = [
   },
 ]
 
+const FAQS_EN = [
+  {
+    q: 'How long does it take to receive the key?',
+    a: 'Once we confirm your payment (usually within business hours), the key will be sent within 15–30 minutes via the Zalo or Email you registered.',
+  },
+  {
+    q: 'Can I change my plan?',
+    a: 'Yes. Contact the admin via Zalo to upgrade or downgrade. The price difference will be calculated based on the remaining days of your current plan.',
+  },
+  {
+    q: 'What payment methods are accepted?',
+    a: 'We currently accept bank transfers (MB Bank). After transferring, upload a confirmation screenshot so we can approve quickly.',
+  },
+  {
+    q: 'Is there a refund if I am not satisfied?',
+    a: 'We offer a free 7-day trial so you can test everything before purchasing. After purchase, we do not support refunds. Please use the trial thoroughly before deciding.',
+  },
+]
+
 // Stepper
-function Stepper({ step }) {
-  const steps = [
-    { n: 1, label: 'Thông tin' },
-    { n: 2, label: 'Thanh toán' },
-    { n: 3, label: 'Hoàn tất' },
-  ]
+function Stepper({ step, isEN }) {
+  const steps = isEN
+    ? [{ n: 1, label: 'Info' }, { n: 2, label: 'Payment' }, { n: 3, label: 'Done' }]
+    : [{ n: 1, label: 'Thông tin' }, { n: 2, label: 'Thanh toán' }, { n: 3, label: 'Hoàn tất' }]
+
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0 }}>
       {steps.map((s, i) => (
@@ -137,6 +238,12 @@ function Stepper({ step }) {
 }
 
 export default function MuaGoi() {
+  const { lang } = useLang()
+  const isEN = lang === 'en'
+
+  const PLANS = isEN ? PLANS_EN : PLANS_VI
+  const FAQS = isEN ? FAQS_EN : FAQS_VI
+
   const [step, setStep] = useState(1)
   const [billingTab, setBillingTab] = useState('thang')
   const [selectedPlan, setSelectedPlan] = useState('doanh-nghiep')
@@ -154,11 +261,11 @@ export default function MuaGoi() {
 
   function validate() {
     const e = {}
-    if (!form.hoTen.trim()) e.hoTen = 'Vui lòng nhập họ tên'
-    if (!form.sdt.trim()) e.sdt = 'Vui lòng nhập số điện thoại'
-    else if (!/^[0-9]{9,11}$/.test(form.sdt.replace(/\s/g, ''))) e.sdt = 'Số điện thoại không hợp lệ'
-    if (!form.email.trim()) e.email = 'Vui lòng nhập email'
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Email không hợp lệ'
+    if (!form.hoTen.trim()) e.hoTen = isEN ? 'Please enter your full name' : 'Vui lòng nhập họ tên'
+    if (!form.sdt.trim()) e.sdt = isEN ? 'Please enter your phone number' : 'Vui lòng nhập số điện thoại'
+    else if (!/^[0-9]{9,11}$/.test(form.sdt.replace(/\s/g, ''))) e.sdt = isEN ? 'Invalid phone number' : 'Số điện thoại không hợp lệ'
+    if (!form.email.trim()) e.email = isEN ? 'Please enter your email' : 'Vui lòng nhập email'
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = isEN ? 'Invalid email' : 'Email không hợp lệ'
     return e
   }
 
@@ -180,7 +287,10 @@ export default function MuaGoi() {
   }
 
   async function handleSubmit() {
-    if (!uploadedFile) { alert('Vui lòng upload ảnh chuyển khoản'); return }
+    if (!uploadedFile) {
+      alert(isEN ? 'Please upload a payment screenshot' : 'Vui lòng upload ảnh chuyển khoản')
+      return
+    }
     setSubmitting(true)
     try {
       const fd = new FormData()
@@ -209,11 +319,43 @@ export default function MuaGoi() {
   const ckContent = `GMAP ${form.sdt} ${planObj?.name?.toUpperCase().replace(/\s/g, '') || 'BUSINESS'}`
   const bankAccount = '[SỐ TÀI KHOẢN - ANH TỰ ĐIỀN]' // placeholder
 
+  const billingTabs = isEN
+    ? [
+        { key: 'thang', label: 'Monthly' },
+        { key: 'nam', label: 'Yearly' },
+        { key: 'trial', label: '7-day Trial' },
+      ]
+    : [
+        { key: 'thang', label: 'Theo tháng' },
+        { key: 'nam', label: 'Theo năm' },
+        { key: 'trial', label: 'Dùng thử 7 ngày' },
+      ]
+
+  const summaryBillingLabel = billingTab === 'thang'
+    ? (isEN ? 'Monthly' : 'Theo tháng')
+    : billingTab === 'nam'
+      ? (isEN ? 'Yearly' : 'Theo năm')
+      : (isEN ? 'Trial' : 'Dùng thử')
+
+  const bankRows = [
+    { label: isEN ? 'Bank' : 'Ngân hàng', value: 'MB Bank (Ngân hàng Quân đội)', highlight: false },
+    { label: isEN ? 'Account Number' : 'Số tài khoản', value: bankAccount, highlight: true, copy: 'stk' },
+    { label: isEN ? 'Account Name' : 'Tên tài khoản', value: 'GO MEDIA VIETNAM', highlight: false },
+    { label: isEN ? 'Transfer Content' : 'Nội dung CK', value: ckContent, highlight: true, copy: 'ck' },
+  ]
+
+  const summaryKeys = isEN
+    ? ['Selected Plan', 'Price', 'Full Name', 'Phone', 'Email', 'Shop/Company', 'Referral Code']
+    : ['Gói đã chọn', 'Giá', 'Họ tên', 'Số điện thoại', 'Email', 'Shop/Công ty', 'Mã giới thiệu']
+
   return (
     <>
       <Head>
-        <title>Mua gói Go Meta Ads Pro</title>
-        <meta name="description" content="Đăng ký sử dụng Go Meta Ads Pro — tiện ích quản lý Facebook Ads chuyên nghiệp cho team." />
+        <title>{isEN ? 'Buy Plan — Go Meta Ads Pro' : 'Mua gói Go Meta Ads Pro'}</title>
+        <meta name="description" content={isEN
+          ? 'Subscribe to Go Meta Ads Pro — professional Facebook Ads management extension for your team.'
+          : 'Đăng ký sử dụng Go Meta Ads Pro — tiện ích quản lý Facebook Ads chuyên nghiệp cho team.'
+        } />
       </Head>
       <Navbar />
 
@@ -226,12 +368,14 @@ export default function MuaGoi() {
         {/* Hero strip */}
         <div style={{ textAlign: 'center', padding: '36px 20px 0' }}>
           <h1 style={{ color: '#fff', fontSize: 'clamp(22px,4vw,34px)', fontWeight: 800, margin: '0 0 8px' }}>
-            Đăng ký Go Meta Ads Pro
+            {isEN ? 'Subscribe to Go Meta Ads Pro' : 'Đăng ký Go Meta Ads Pro'}
           </h1>
           <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 15, margin: '0 0 32px' }}>
-            Hoàn tất trong 3 bước đơn giản — nhận key trong 30 phút
+            {isEN
+              ? 'Complete in 3 simple steps — receive key within 30 minutes'
+              : 'Hoàn tất trong 3 bước đơn giản — nhận key trong 30 phút'}
           </p>
-          <Stepper step={step} />
+          <Stepper step={step} isEN={isEN} />
         </div>
 
         {/* Card */}
@@ -245,19 +389,41 @@ export default function MuaGoi() {
             {step === 1 && (
               <div style={{ padding: 'clamp(24px,5vw,48px)' }}>
                 <h2 style={{ color: 'var(--navy)', fontWeight: 800, fontSize: 22, margin: '0 0 6px' }}>
-                  Thông tin đăng ký
+                  {isEN ? 'Registration Info' : 'Thông tin đăng ký'}
                 </h2>
                 <p style={{ color: 'var(--text2)', fontSize: 14, margin: '0 0 32px' }}>
-                  Điền đầy đủ thông tin để chúng tôi tạo tài khoản cho bạn.
+                  {isEN
+                    ? 'Fill in all details so we can set up your account.'
+                    : 'Điền đầy đủ thông tin để chúng tôi tạo tài khoản cho bạn.'}
                 </p>
 
                 {/* Info grid */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: '0 20px' }}>
                   {[
-                    { key: 'hoTen', label: 'Họ và tên', placeholder: 'Nguyễn Văn A', required: true },
-                    { key: 'sdt', label: 'Số điện thoại', placeholder: '0912 345 678', required: true },
-                    { key: 'email', label: 'Email', placeholder: 'ban@email.com', required: true },
-                    { key: 'tenShop', label: 'Tên shop / Công ty viết tắt', placeholder: 'VD: CTYA → key CTYA-ADMIN-01', required: false },
+                    {
+                      key: 'hoTen',
+                      label: isEN ? 'Full Name' : 'Họ và tên',
+                      placeholder: isEN ? 'John Doe' : 'Nguyễn Văn A',
+                      required: true,
+                    },
+                    {
+                      key: 'sdt',
+                      label: isEN ? 'Phone Number' : 'Số điện thoại',
+                      placeholder: isEN ? '0912 345 678' : '0912 345 678',
+                      required: true,
+                    },
+                    {
+                      key: 'email',
+                      label: 'Email',
+                      placeholder: isEN ? 'you@email.com' : 'ban@email.com',
+                      required: true,
+                    },
+                    {
+                      key: 'tenShop',
+                      label: isEN ? 'Shop / Company abbreviation' : 'Tên shop / Công ty viết tắt',
+                      placeholder: isEN ? 'e.g. CTYA → key CTYA-ADMIN-01' : 'VD: CTYA → key CTYA-ADMIN-01',
+                      required: false,
+                    },
                   ].map(f => (
                     <div className="form-group" key={f.key}>
                       <label className="form-label">
@@ -284,25 +450,24 @@ export default function MuaGoi() {
                 {/* Referral */}
                 <div className="form-group" style={{ marginBottom: 32 }}>
                   <label className="form-label">
-                    Mã giới thiệu <span style={{ color: 'var(--text3)', fontWeight: 400 }}>(tùy chọn)</span>
+                    {isEN ? 'Referral Code' : 'Mã giới thiệu'}{' '}
+                    <span style={{ color: 'var(--text3)', fontWeight: 400 }}>
+                      {isEN ? '(optional)' : '(tùy chọn)'}
+                    </span>
                   </label>
                   <input
                     className="form-input"
                     type="text"
                     value={form.maGioiThieu}
                     onChange={e => setForm(p => ({ ...p, maGioiThieu: e.target.value }))}
-                    placeholder="Nhập mã nếu có"
+                    placeholder={isEN ? 'Enter code if you have one' : 'Nhập mã nếu có'}
                   />
                 </div>
 
                 {/* Billing tabs */}
                 <div style={{ marginBottom: 20 }}>
                   <div style={{ display: 'flex', background: 'var(--gray)', borderRadius: 12, padding: 4, gap: 4, marginBottom: 20, flexWrap: 'wrap' }}>
-                    {[
-                      { key: 'thang', label: 'Theo tháng' },
-                      { key: 'nam', label: 'Theo năm' },
-                      { key: 'trial', label: 'Dùng thử 7 ngày' },
-                    ].map(t => (
+                    {billingTabs.map(t => (
                       <button
                         key={t.key}
                         onClick={() => {
@@ -322,7 +487,7 @@ export default function MuaGoi() {
                         }}
                       >
                         {t.key === 'nam'
-                          ? <span>Theo năm <span style={{ background: '#22c55e', color: '#fff', borderRadius: 6, padding: '2px 7px', fontSize: 11, marginLeft: 4, fontWeight: 700 }}>−20%</span></span>
+                          ? <span>{t.label} <span style={{ background: '#22c55e', color: '#fff', borderRadius: 6, padding: '2px 7px', fontSize: 11, marginLeft: 4, fontWeight: 700 }}>−20%</span></span>
                           : t.label
                         }
                       </button>
@@ -401,7 +566,7 @@ export default function MuaGoi() {
                   className="btn btn-primary btn-lg"
                   style={{ fontFamily: 'inherit', width: '100%' }}
                 >
-                  Tiếp tục →
+                  {isEN ? 'Continue →' : 'Tiếp tục →'}
                 </button>
               </div>
             )}
@@ -417,11 +582,15 @@ export default function MuaGoi() {
                     display: 'flex', alignItems: 'center', gap: 6,
                     fontFamily: 'inherit',
                   }}
-                >← Quay lại</button>
+                >← {isEN ? 'Back' : 'Quay lại'}</button>
 
-                <h2 style={{ color: 'var(--navy)', fontWeight: 800, fontSize: 22, margin: '0 0 6px' }}>Thanh toán</h2>
+                <h2 style={{ color: 'var(--navy)', fontWeight: 800, fontSize: 22, margin: '0 0 6px' }}>
+                  {isEN ? 'Payment' : 'Thanh toán'}
+                </h2>
                 <p style={{ color: 'var(--text2)', fontSize: 14, margin: '0 0 28px' }}>
-                  Chuyển khoản và upload ảnh xác nhận để chúng tôi duyệt nhanh.
+                  {isEN
+                    ? 'Transfer payment and upload a confirmation screenshot for quick approval.'
+                    : 'Chuyển khoản và upload ảnh xác nhận để chúng tôi duyệt nhanh.'}
                 </p>
 
                 {/* Order summary */}
@@ -430,17 +599,17 @@ export default function MuaGoi() {
                   borderRadius: 'var(--radius)', padding: '22px 26px', marginBottom: 28, color: '#fff',
                 }}>
                   <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 14, opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    Tóm tắt đơn hàng
+                    {isEN ? 'Order Summary' : 'Tóm tắt đơn hàng'}
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 20px' }} className="summary-grid">
                     {[
-                      ['Gói đã chọn', `${planObj.name} (${billingTab === 'thang' ? 'Theo tháng' : billingTab === 'nam' ? 'Theo năm' : 'Dùng thử'})`],
-                      ['Giá', planObj.priceLabel],
-                      ['Họ tên', form.hoTen],
-                      ['Số điện thoại', form.sdt],
-                      ['Email', form.email],
-                      ...(form.tenShop ? [['Shop/Công ty', form.tenShop]] : []),
-                      ...(form.maGioiThieu ? [['Mã giới thiệu', form.maGioiThieu]] : []),
+                      [summaryKeys[0], `${planObj.name} (${summaryBillingLabel})`],
+                      [summaryKeys[1], planObj.priceLabel],
+                      [summaryKeys[2], form.hoTen],
+                      [summaryKeys[3], form.sdt],
+                      [summaryKeys[4], form.email],
+                      ...(form.tenShop ? [[summaryKeys[5], form.tenShop]] : []),
+                      ...(form.maGioiThieu ? [[summaryKeys[6], form.maGioiThieu]] : []),
                     ].map(([k, v]) => (
                       <div key={k}>
                         <div style={{ fontSize: 11, opacity: 0.6, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: 2 }}>{k}</div>
@@ -461,18 +630,19 @@ export default function MuaGoi() {
                       borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
                     }}>🏦</div>
                     <div>
-                      <div style={{ fontWeight: 800, color: 'var(--navy)', fontSize: 16 }}>Thông tin chuyển khoản</div>
-                      <div style={{ fontSize: 12, color: 'var(--text2)' }}>Chuyển đúng nội dung để hệ thống tự động xác nhận</div>
+                      <div style={{ fontWeight: 800, color: 'var(--navy)', fontSize: 16 }}>
+                        {isEN ? 'Bank Transfer Details' : 'Thông tin chuyển khoản'}
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--text2)' }}>
+                        {isEN
+                          ? 'Use the exact transfer content for automatic confirmation'
+                          : 'Chuyển đúng nội dung để hệ thống tự động xác nhận'}
+                      </div>
                     </div>
                   </div>
 
                   <div style={{ display: 'grid', gap: 10 }}>
-                    {[
-                      { label: 'Ngân hàng', value: 'MB Bank (Ngân hàng Quân đội)', highlight: false },
-                      { label: 'Số tài khoản', value: bankAccount, highlight: true, copy: 'stk' },
-                      { label: 'Tên tài khoản', value: 'GO MEDIA VIETNAM', highlight: false },
-                      { label: 'Nội dung CK', value: ckContent, highlight: true, copy: 'ck' },
-                    ].map(row => (
+                    {bankRows.map(row => (
                       <div key={row.label} style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                         padding: '12px 16px',
@@ -493,7 +663,7 @@ export default function MuaGoi() {
                             className="btn btn-navy btn-sm"
                             style={{ fontFamily: 'inherit' }}
                           >
-                            {copiedField === row.copy ? '✓ Đã copy' : 'Copy'}
+                            {copiedField === row.copy ? (isEN ? '✓ Copied' : '✓ Đã copy') : 'Copy'}
                           </button>
                         )}
                       </div>
@@ -501,14 +671,17 @@ export default function MuaGoi() {
                   </div>
 
                   <div className="alert alert-warning" style={{ marginTop: 14 }}>
-                    <strong>VD nội dung:</strong> GMAP 0912345678 BUSINESS
+                    <strong>{isEN ? 'Example content:' : 'VD nội dung:'}</strong> GMAP 0912345678 BUSINESS
                   </div>
                 </div>
 
-                {/* Upload ảnh CK */}
+                {/* Upload screenshot */}
                 <div style={{ marginBottom: 28 }}>
                   <label className="form-label" style={{ fontSize: 15, marginBottom: 10 }}>
-                    Upload ảnh xác nhận chuyển khoản <span style={{ color: 'var(--orange)' }}>*</span>
+                    {isEN
+                      ? 'Upload payment confirmation screenshot'
+                      : 'Upload ảnh xác nhận chuyển khoản'}{' '}
+                    <span style={{ color: 'var(--orange)' }}>*</span>
                   </label>
                   <div
                     onClick={() => fileInputRef.current?.click()}
@@ -523,13 +696,19 @@ export default function MuaGoi() {
                     {previewImg ? (
                       <div>
                         <img src={previewImg} alt="preview" style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 10, marginBottom: 10 }} />
-                        <div style={{ fontSize: 13, color: '#22c55e', fontWeight: 700 }}>✓ Ảnh đã chọn — nhấn để đổi ảnh</div>
+                        <div style={{ fontSize: 13, color: '#22c55e', fontWeight: 700 }}>
+                          {isEN ? '✓ Image selected — click to change' : '✓ Ảnh đã chọn — nhấn để đổi ảnh'}
+                        </div>
                       </div>
                     ) : (
                       <div>
                         <div style={{ fontSize: 36, marginBottom: 10 }}>📤</div>
-                        <div style={{ fontWeight: 700, color: 'var(--navy)', marginBottom: 4 }}>Nhấn để chọn ảnh</div>
-                        <div style={{ fontSize: 13, color: 'var(--text3)' }}>PNG, JPG, HEIC — tối đa 10MB</div>
+                        <div style={{ fontWeight: 700, color: 'var(--navy)', marginBottom: 4 }}>
+                          {isEN ? 'Click to select image' : 'Nhấn để chọn ảnh'}
+                        </div>
+                        <div style={{ fontSize: 13, color: 'var(--text3)' }}>
+                          {isEN ? 'PNG, JPG, HEIC — max 10MB' : 'PNG, JPG, HEIC — tối đa 10MB'}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -543,8 +722,8 @@ export default function MuaGoi() {
                   style={{ fontFamily: 'inherit', width: '100%', opacity: submitting ? 0.7 : 1 }}
                 >
                   {submitting
-                    ? <><span className="spinner" /> Đang gửi...</>
-                    : '📤 Đã thanh toán, gửi xác nhận'}
+                    ? <><span className="spinner" /> {isEN ? 'Sending...' : 'Đang gửi...'}</>
+                    : (isEN ? '📤 Payment done, send confirmation' : '📤 Đã thanh toán, gửi xác nhận')}
                 </button>
               </div>
             )}
@@ -554,23 +733,27 @@ export default function MuaGoi() {
               <div style={{ padding: 'clamp(24px,5vw,56px)', textAlign: 'center' }}>
                 <div style={{ fontSize: 80, marginBottom: 16, animation: 'successBounce 0.6s ease' }}>✅</div>
                 <h2 style={{ color: 'var(--navy)', fontWeight: 800, fontSize: 28, margin: '0 0 14px' }}>
-                  Đã nhận đơn thành công!
+                  {isEN ? 'Order received successfully!' : 'Đã nhận đơn thành công!'}
                 </h2>
                 <p style={{ color: 'var(--text2)', fontSize: 16, maxWidth: 480, margin: '0 auto 28px', lineHeight: 1.7 }}>
-                  Cảm ơn bạn đã đăng ký! Key kích hoạt sẽ được gửi qua <strong>Zalo</strong> hoặc <strong>Email</strong> trong vòng <strong>15–30 phút</strong> sau khi xác nhận thanh toán.
+                  {isEN ? (
+                    <>Thank you for subscribing! Your activation key will be sent via <strong>Zalo</strong> or <strong>Email</strong> within <strong>15–30 minutes</strong> after payment is confirmed.</>
+                  ) : (
+                    <>Cảm ơn bạn đã đăng ký! Key kích hoạt sẽ được gửi qua <strong>Zalo</strong> hoặc <strong>Email</strong> trong vòng <strong>15–30 phút</strong> sau khi xác nhận thanh toán.</>
+                  )}
                 </p>
                 <div className="alert alert-success" style={{ maxWidth: 440, margin: '0 auto 36px', textAlign: 'left' }}>
-                  <strong>Thông tin đã gửi:</strong><br />
-                  Email: {form.email}<br />
-                  SĐT: {form.sdt}<br />
-                  Gói: {planObj.name}
+                  <strong>{isEN ? 'Submitted info:' : 'Thông tin đã gửi:'}</strong><br />
+                  {isEN ? 'Email:' : 'Email:'} {form.email}<br />
+                  {isEN ? 'Phone:' : 'SĐT:'} {form.sdt}<br />
+                  {isEN ? 'Plan:' : 'Gói:'} {planObj.name}
                 </div>
                 <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
                   <a href="/tai-xuong" className="btn btn-primary" style={{ fontFamily: 'inherit' }}>
-                    Tải xuống ngay →
+                    {isEN ? 'Download now →' : 'Tải xuống ngay →'}
                   </a>
                   <a href="/" className="btn btn-outline-navy" style={{ fontFamily: 'inherit' }}>
-                    Về trang chủ
+                    {isEN ? 'Back to homepage' : 'Về trang chủ'}
                   </a>
                 </div>
               </div>
@@ -582,7 +765,7 @@ export default function MuaGoi() {
             <Reveal delay={100}>
               <div style={{ marginTop: 52 }}>
                 <h3 style={{ color: 'var(--navy)', fontWeight: 800, fontSize: 20, marginBottom: 20, textAlign: 'center' }}>
-                  Câu hỏi thường gặp
+                  {isEN ? 'Frequently Asked Questions' : 'Câu hỏi thường gặp'}
                 </h3>
                 {FAQS.map((faq, i) => (
                   <div className="accordion" key={i}>
