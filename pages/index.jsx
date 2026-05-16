@@ -3,6 +3,8 @@ import Head from 'next/head'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import Reveal from '../components/Reveal'
+import ParticleCanvas from '../components/ParticleCanvas'
+import CountUp from '../components/CountUp'
 import { useLang } from '../lib/LangContext'
 
 // ─── DATA ───────────────────────────────────────────────────────────────────
@@ -227,25 +229,24 @@ export default function Home() {
       <Navbar />
 
       {/* ══ 1. HERO ══════════════════════════════════════════════════════════ */}
-      <section style={{
-        background: 'linear-gradient(135deg, #071a4a 0%, #0c2a72 40%, #1a3a8f 70%, #0e1f50 100%)',
-        paddingTop: 'calc(var(--nav-h) + 60px)',
-        paddingBottom: 100,
+      <section id="hero-section" className="mesh-gradient" style={{
+        paddingTop: 'calc(var(--nav-h) + 70px)',
+        paddingBottom: 110,
         position: 'relative',
         overflow: 'hidden',
+        minHeight: '100vh',
+        display: 'flex', flexDirection: 'column', justifyContent: 'center',
       }}>
-        {/* Animated mesh gradient */}
-        <div style={{
-          position: 'absolute', inset: 0, zIndex: 0,
-          background: 'linear-gradient(270deg, #071a4a, #0c2a72, #1a3a8f, #0c2a72)',
-          backgroundSize: '400% 400%',
-          animation: 'gradient-move 10s ease infinite',
-          opacity: 0.6,
-        }} />
+        {/* Particles */}
+        <ParticleCanvas />
+
+        {/* Spotlight follow mouse */}
+        <div id="hero-spotlight" className="spotlight" style={{ opacity: 0 }} />
+
         {/* Glow blobs */}
-        <div style={{ position: 'absolute', top: -80, right: -80, width: 560, height: 560, background: 'radial-gradient(circle, rgba(254,95,1,0.18) 0%, transparent 70%)', borderRadius: '50%', zIndex: 0 }} />
-        <div style={{ position: 'absolute', bottom: -120, left: -80, width: 460, height: 460, background: 'radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)', borderRadius: '50%', zIndex: 0 }} />
-        <div style={{ position: 'absolute', top: '40%', left: '30%', width: 300, height: 300, background: 'radial-gradient(circle, rgba(16,185,129,0.06) 0%, transparent 70%)', borderRadius: '50%', zIndex: 0 }} />
+        <div style={{ position: 'absolute', top: -80, right: -80, width: 560, height: 560, background: 'radial-gradient(circle, rgba(254,95,1,0.2) 0%, transparent 70%)', borderRadius: '50%', zIndex: 0, animation: 'orbFloat 7s ease-in-out infinite' }} />
+        <div style={{ position: 'absolute', bottom: -120, left: -80, width: 460, height: 460, background: 'radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)', borderRadius: '50%', zIndex: 0, animation: 'orbFloat 9s ease-in-out infinite reverse' }} />
+        <div style={{ position: 'absolute', top: '35%', left: '25%', width: 300, height: 300, background: 'radial-gradient(circle, rgba(16,185,129,0.08) 0%, transparent 70%)', borderRadius: '50%', zIndex: 0, animation: 'orbFloat 11s ease-in-out infinite' }} />
 
         <div className="container" style={{ position: 'relative', zIndex: 1 }}>
           <div style={{ textAlign: 'center', maxWidth: 860, margin: '0 auto' }}>
@@ -373,20 +374,33 @@ export default function Home() {
       </section>
 
       {/* ══ 2. STATS BAR ═════════════════════════════════════════════════════ */}
-      <section style={{ background: '#0c2a72', padding: '44px 0' }}>
+      <section style={{ background: 'linear-gradient(135deg, #0a1535 0%, #0c2a72 50%, #071a4a 100%)', padding: '56px 0', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, transparent, rgba(254,95,1,0.5), transparent)' }} />
         <div className="container">
-          <div style={{ display: 'flex', justifyContent: 'space-around', flexWrap: 'wrap', gap: 32 }}>
-            {STATS.map((s, i) => (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 24, textAlign: 'center' }} className="stats-grid">
+            {[
+              { end: 2800, suffix: '+', label: 'Tài khoản ads đang đồng bộ', icon: '📊', note: 'và tăng mỗi ngày' },
+              { display: '1 phút', label: 'Tự động cập nhật dữ liệu', icon: '⚡', note: 'không cần F5' },
+              { end: 22, suffix: '%', label: 'Giảm chi phí ads trung bình', icon: '📉', note: 'sau 30 ngày dùng' },
+              { end: 4.9, suffix: '⭐', label: 'Từ 127+ người dùng thực tế', icon: '🏆', note: 'đánh giá trung bình' },
+            ].map((s, i) => (
               <Reveal key={i} delay={i * 100}>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 28, marginBottom: 6 }}>{s.icon}</div>
-                  <div className="stat-number">{s.display}</div>
-                  <div className="stat-label">{s.label}</div>
+                <div style={{ position: 'relative' }}>
+                  <div style={{ fontSize: 32, marginBottom: 10 }}>{s.icon}</div>
+                  <div className="stat-number" style={{ fontSize: 'clamp(2rem,4vw,3rem)' }}>
+                    {s.display ? s.display : (
+                      s.end ? <CountUp end={s.end} suffix={s.suffix} /> : s.suffix
+                    )}
+                  </div>
+                  <div className="stat-label" style={{ fontSize: 14, marginTop: 6 }}>{s.label}</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 4 }}>{s.note}</div>
                 </div>
               </Reveal>
             ))}
           </div>
         </div>
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)' }} />
+        <style>{`.stats-grid { @media (max-width:768px) { grid-template-columns: repeat(2,1fr) !important; } }`}</style>
       </section>
 
       {/* ══ 3. PROBLEM SECTION ═══════════════════════════════════════════════ */}
@@ -425,21 +439,20 @@ export default function Home() {
             </div>
           </Reveal>
 
-          <div className="grid-3">
+          <div className="grid-3 stagger">
             {FEATURES.map((f, i) => (
-              <Reveal key={i} delay={i * 90}>
-                <div className="card" style={{ height: '100%', position: 'relative', overflow: 'hidden' }}>
-                  <div style={{ position: 'absolute', top: 0, right: 0, width: 80, height: 80, background: 'radial-gradient(circle, rgba(254,95,1,0.07) 0%, transparent 70%)', borderRadius: '0 0 0 80px' }} />
-                  <div className="feature-icon">{f.icon}</div>
-                  <h3 style={{ marginBottom: 10, color: 'var(--navy)' }}>{f.title}</h3>
-                  <p style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.7, marginBottom: 18 }}>{f.desc}</p>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    {f.tags.map(tag => (
-                      <span key={tag} className="tag tag-navy">{tag}</span>
-                    ))}
-                  </div>
+              <div key={i} className="card tilt-card" style={{ height: '100%', position: 'relative', overflow: 'hidden', cursor: 'default' }}>
+                <div style={{ position: 'absolute', top: 0, right: 0, width: 100, height: 100, background: 'radial-gradient(circle, rgba(254,95,1,0.08) 0%, transparent 70%)', borderRadius: '0 0 0 100px' }} />
+                <div style={{ position: 'absolute', bottom: 0, left: 0, width: 60, height: 60, background: 'radial-gradient(circle, rgba(12,42,114,0.06) 0%, transparent 70%)' }} />
+                <div className="feature-icon" style={{ fontSize: 28 }}>{f.icon}</div>
+                <h3 style={{ marginBottom: 10, color: 'var(--navy)', fontSize: 17 }}>{f.title}</h3>
+                <p style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.75, marginBottom: 18 }}>{f.desc}</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {f.tags.map(tag => (
+                    <span key={tag} className="tag tag-navy">{tag}</span>
+                  ))}
                 </div>
-              </Reveal>
+              </div>
             ))}
           </div>
         </div>
@@ -927,11 +940,101 @@ export default function Home() {
       <Footer />
 
       <style>{`
+        /* ─── Responsive ─── */
         @media (max-width: 768px) {
           .grid-4 { grid-template-columns: 1fr 1fr !important; }
         }
         @media (max-width: 480px) {
           .grid-4 { grid-template-columns: 1fr !important; }
+        }
+
+        /* ─── Hero animations ─── */
+        @keyframes orbFloat {
+          0%,100% { transform: translateY(0) scale(1) }
+          50% { transform: translateY(-24px) scale(1.05) }
+        }
+        @keyframes float {
+          0%,100% { transform: translateY(0) }
+          50% { transform: translateY(-14px) }
+        }
+        @keyframes blink {
+          0%,100% { opacity: 1 }
+          50% { opacity: 0 }
+        }
+        @keyframes gradient-move {
+          0% { background-position: 0% 50% }
+          50% { background-position: 100% 50% }
+          100% { background-position: 0% 50% }
+        }
+        @keyframes meshMove {
+          0% { background-position: 0% 0%, 100% 100%, 50% 50%, 0% 50% }
+          33% { background-position: 50% 100%, 0% 0%, 100% 50%, 100% 50% }
+          66% { background-position: 100% 50%, 50% 0%, 0% 100%, 50% 50% }
+          100% { background-position: 0% 0%, 100% 100%, 50% 50%, 0% 50% }
+        }
+
+        /* ─── Button ripple ─── */
+        .btn-primary, .btn-navy { position: relative; overflow: hidden; }
+
+        /* ─── Card shine on hover ─── */
+        .card::before {
+          content: '';
+          position: absolute;
+          top: 0; left: -100%;
+          width: 60%; height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+          transition: left 0.5s ease;
+          z-index: 0;
+          pointer-events: none;
+        }
+        .card:hover::before { left: 150%; }
+        .card { position: relative; }
+
+        /* ─── Feature icon glow ─── */
+        .feature-icon {
+          transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover .feature-icon {
+          transform: scale(1.1) rotate(-3deg);
+          box-shadow: 0 8px 24px rgba(254,95,1,0.2);
+        }
+
+        /* ─── Stats responsive ─── */
+        @media (max-width: 768px) {
+          .stats-grid { grid-template-columns: repeat(2,1fr) !important; }
+        }
+        @media (max-width: 480px) {
+          .stats-grid { grid-template-columns: repeat(2,1fr) !important; }
+        }
+
+        /* ─── Testimonial hover ─── */
+        .testimonial-card {
+          transition: all 0.3s cubic-bezier(0.23,1,0.32,1);
+        }
+        .testimonial-card:hover {
+          transform: translateY(-8px);
+          box-shadow: 0 24px 64px rgba(12,42,114,0.18);
+        }
+
+        /* ─── Accordion smooth ─── */
+        .accordion-body {
+          animation: fadeIn 0.25s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+
+        /* ─── Plan card hover ─── */
+        .plan-card-hover {
+          transition: all 0.3s cubic-bezier(0.23,1,0.32,1);
+        }
+        .plan-card-hover:hover {
+          transform: translateY(-6px) scale(1.01);
+          box-shadow: 0 24px 56px rgba(254,95,1,0.25);
+        }
+
+        /* ─── Scroll reveal for stagger on mobile ─── */
+        @media (prefers-reduced-motion: reduce) {
+          .reveal, .reveal-left, .reveal-right { opacity: 1 !important; transform: none !important; }
+          .stagger > * { opacity: 1 !important; transform: none !important; }
         }
       `}</style>
     </>
