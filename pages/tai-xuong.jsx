@@ -2,49 +2,56 @@ import { useState, useEffect } from 'react'
 import Head from 'next/head'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
+import Reveal from '../components/Reveal'
 
-const NAVY = '#0c2a72'
-const ORANGE = '#fe5f01'
+const FALLBACK_NOTES = [
+  'Theo dõi CPA realtime theo từng sản phẩm',
+  'Đồng bộ mục tiêu CPA cho cả team',
+  'Cảnh báo camp vượt CPA qua Telegram',
+  'Báo cáo doanh thu / lãi lỗ tổng hợp',
+  'Hỗ trợ nhiều tài khoản quảng cáo',
+]
 
 const FALLBACK = {
   version: 'v1.0.0',
   release_date: '2026-05-15',
-  notes: [
-    'Theo dõi CPA realtime theo từng sản phẩm',
-    'Đồng bộ mục tiêu CPA cho cả team',
-    'Cảnh báo camp vượt CPA qua Telegram',
-    'Báo cáo doanh thu / lãi lỗ tổng hợp',
-    'Hỗ trợ nhiều tài khoản quảng cáo',
-  ],
+  notes: FALLBACK_NOTES,
   download_url: '#',
 }
 
 const STEPS = [
   {
     n: 1,
-    title: 'Giải nén file ZIP',
-    desc: 'Sau khi tải về, nhấp chuột phải vào file ZIP → Giải nén. Chọn thư mục Desktop hoặc Documents để lưu.',
-    warn: 'KHÔNG xóa thư mục này sau khi cài — tiện ích sẽ mất hoạt động.',
     icon: '📦',
+    title: 'Giải nén file ZIP',
+    desc: 'Nhấp chuột phải vào file ZIP → Giải nén ra. Chọn thư mục Desktop hoặc Documents để lưu lâu dài.',
+    warn: 'KHÔNG xóa thư mục này sau khi cài — tiện ích sẽ ngừng hoạt động.',
   },
   {
     n: 2,
-    title: 'Bật chế độ nhà phát triển',
-    desc: 'Mở Chrome và truy cập địa chỉ chrome://extensions trên thanh địa chỉ. Bật công tắc "Chế độ dành cho nhà phát triển" ở góc trên bên phải.',
     icon: '⚙️',
+    title: 'Bật chế độ nhà phát triển',
+    desc: 'Mở Chrome và truy cập chrome://extensions. Bật công tắc "Chế độ dành cho nhà phát triển" ở góc trên bên phải.',
+    code: 'chrome://extensions',
   },
   {
     n: 3,
-    title: 'Tải tiện ích & đăng nhập',
-    desc: 'Nhấn nút "Tải tiện ích đã giải nén" → chọn thư mục camp_monitor vừa giải nén. Icon sẽ xuất hiện trên thanh Chrome. Nhấp vào → nhập key kích hoạt.',
     icon: '🔑',
+    title: 'Tải tiện ích & đăng nhập',
+    desc: 'Nhấn "Tải tiện ích đã giải nén" → chọn thư mục camp_monitor. Icon xuất hiện trên thanh Chrome → nhập key kích hoạt.',
   },
 ]
+
+function formatDate(str) {
+  try {
+    const d = new Date(str)
+    return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  } catch { return str }
+}
 
 export default function TaiXuong() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [pulse, setPulse] = useState(true)
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
@@ -54,27 +61,15 @@ export default function TaiXuong() {
       .catch(() => { setData(FALLBACK); setLoading(false) })
   }, [])
 
-  useEffect(() => {
-    const t = setInterval(() => setPulse(p => !p), 1400)
-    return () => clearInterval(t)
-  }, [])
-
   const version = data?.version || FALLBACK.version
   const releaseDate = data?.date || data?.release_date || FALLBACK.release_date
   const notesRaw = data?.notes
   const notes = Array.isArray(notesRaw)
     ? notesRaw
-    : notesRaw
+    : (typeof notesRaw === 'string'
       ? notesRaw.split(/[.\n]/).map(s => s.trim()).filter(Boolean)
-      : FALLBACK.notes
+      : FALLBACK_NOTES)
   const downloadUrl = data?.download_url || FALLBACK.download_url
-
-  function formatDate(str) {
-    try {
-      const d = new Date(str)
-      return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
-    } catch { return str }
-  }
 
   return (
     <>
@@ -84,215 +79,269 @@ export default function TaiXuong() {
       </Head>
       <Navbar />
 
-      <main style={{ background: '#f0f4ff', minHeight: '100vh', paddingTop: 64 }}>
+      {/* ─── HERO ─── */}
+      <section style={{
+        background: 'linear-gradient(135deg, var(--navy) 0%, var(--navy2) 60%, #0e1e50 100%)',
+        paddingTop: 'calc(var(--nav-h) + 60px)',
+        paddingBottom: 80,
+        textAlign: 'center',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        {/* decorative blobs */}
+        <div style={{ position: 'absolute', top: -80, right: -80, width: 340, height: 340, borderRadius: '50%', background: 'rgba(254,95,1,0.09)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: -60, left: -60, width: 220, height: 220, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
 
-        {/* ─── Hero (navy) ─── */}
-        <div style={{ background: `linear-gradient(135deg,${NAVY} 0%,#1a3a8f 100%)`, padding: 'clamp(40px,6vw,80px) 20px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
-          {/* bg decoration */}
-          <div style={{ position: 'absolute', top: -60, right: -60, width: 260, height: 260, borderRadius: '50%', background: 'rgba(254,95,1,0.08)', pointerEvents: 'none' }} />
-          <div style={{ position: 'absolute', bottom: -40, left: -40, width: 180, height: 180, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
+        <div className="container" style={{ position: 'relative', maxWidth: 700 }}>
+          {/* version badge */}
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
+            borderRadius: 'var(--radius-full)', padding: '6px 18px', marginBottom: 24,
+          }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', display: 'inline-block', animation: 'liveDot 2s infinite' }} />
+            <span style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>
+              {loading ? 'Đang tải...' : version}
+            </span>
+            <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>·</span>
+            <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>
+              {loading ? '...' : formatDate(releaseDate)}
+            </span>
+          </div>
 
-          <div style={{ position: 'relative', maxWidth: 680, margin: '0 auto' }}>
-            {/* Version badge */}
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 24, padding: '6px 16px', marginBottom: 20 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', display: 'inline-block', boxShadow: '0 0 8px #22c55e' }} />
-              <span style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>
-                {loading ? 'Đang tải...' : version}
-              </span>
-              <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>·</span>
-              <span style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12 }}>Release {formatDate(releaseDate)}</span>
-            </div>
+          <h1 style={{ color: '#fff', margin: '0 0 18px', fontSize: 'clamp(28px,5vw,48px)' }}>
+            Tải xuống Go Meta Ads Pro
+          </h1>
+          <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 'clamp(15px,2.5vw,18px)', margin: '0 0 44px', lineHeight: 1.7 }}>
+            Chrome Extension quản lý Facebook Ads — theo dõi CPA, đồng bộ team, cảnh báo tự động realtime.
+          </p>
 
-            <h1 style={{ color: '#fff', fontSize: 'clamp(26px,5vw,44px)', fontWeight: 900, margin: '0 0 14px', lineHeight: 1.2 }}>
-              Tải xuống tiện ích
-            </h1>
-            <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 'clamp(14px,2.5vw,18px)', margin: '0 0 36px', lineHeight: 1.6 }}>
-              Chrome Extension quản lý Facebook Ads — theo dõi CPA, đồng bộ team, cảnh báo tự động
-            </p>
+          {/* Big download button with pulse */}
+          <a
+            href={downloadUrl}
+            download
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 14,
+              background: 'linear-gradient(135deg, var(--orange) 0%, #ff8c00 100%)',
+              color: '#fff', textDecoration: 'none',
+              borderRadius: 'var(--radius-xl)',
+              padding: 'clamp(16px,3vw,22px) clamp(32px,6vw,56px)',
+              fontSize: 'clamp(17px,3vw,21px)', fontWeight: 900,
+              boxShadow: '0 8px 40px rgba(254,95,1,0.5)',
+              animation: 'btnPulse 1.4s ease-in-out infinite',
+              fontFamily: 'inherit',
+            }}
+          >
+            <span style={{ fontSize: 'clamp(22px,3vw,28px)' }}>⬇</span>
+            {loading ? 'Tải xuống' : `Tải xuống ${version}`}
+          </a>
 
-            {/* Big Download Button */}
-            <a
-              href={downloadUrl}
-              download
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 14,
-                background: `linear-gradient(135deg,${ORANGE},#ff8c00)`,
-                color: '#fff', textDecoration: 'none', borderRadius: 16,
-                padding: 'clamp(14px,3vw,20px) clamp(28px,5vw,48px)',
-                fontSize: 'clamp(16px,3vw,20px)', fontWeight: 900,
-                boxShadow: pulse
-                  ? '0 8px 40px rgba(254,95,1,0.65), 0 0 0 0 rgba(254,95,1,0)'
-                  : '0 8px 40px rgba(254,95,1,0.45), 0 0 0 12px rgba(254,95,1,0.1)',
-                transition: 'box-shadow 0.7s ease, transform 0.15s',
-                transform: pulse ? 'scale(1.02)' : 'scale(1)',
-              }}
-            >
-              <span style={{ fontSize: 'clamp(20px,3vw,26px)' }}>⬇</span>
-              Tải xuống {loading ? '' : version}
-            </a>
-
-            <div style={{ marginTop: 16, color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>
-              Chrome Extension · Miễn phí dùng thử 7 ngày
-            </div>
+          <div style={{ marginTop: 16, color: 'rgba(255,255,255,0.45)', fontSize: 13 }}>
+            Chrome Extension · Miễn phí dùng thử 7 ngày
           </div>
         </div>
+      </section>
 
-        {/* ─── Content ─── */}
-        <div style={{ maxWidth: 860, margin: '0 auto', padding: '48px 16px 80px' }}>
+      {/* ─── CONTENT ─── */}
+      <main style={{ background: 'var(--gray)', minHeight: '100vh' }}>
+        <div style={{ maxWidth: 860, margin: '0 auto', padding: '56px 16px 96px' }}>
 
           {/* Release Notes */}
-          <div style={{ background: '#fff', borderRadius: 20, boxShadow: '0 4px 24px rgba(12,42,114,0.08)', padding: 'clamp(24px,4vw,40px)', marginBottom: 32 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
-              <h2 style={{ color: NAVY, fontWeight: 800, fontSize: 20, margin: 0 }}>Release Notes</h2>
-              <span style={{ background: 'linear-gradient(135deg,#e8f0ff,#d0e0ff)', color: NAVY, fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 20, border: '1px solid #c7d7ff' }}>
-                {loading ? '...' : version}
-              </span>
-              <span style={{ color: '#94a3b8', fontSize: 13 }}>{formatDate(releaseDate)}</span>
+          <Reveal>
+            <div className="card" style={{ marginBottom: 28, padding: 'clamp(24px,4vw,40px)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 22, flexWrap: 'wrap' }}>
+                <h2 style={{ color: 'var(--navy)', fontWeight: 800, fontSize: 20, margin: 0 }}>
+                  Release Notes
+                </h2>
+                <span style={{
+                  background: 'var(--navy-light)', color: 'var(--navy)',
+                  fontSize: 12, fontWeight: 700, padding: '3px 12px',
+                  borderRadius: 'var(--radius-full)', border: '1px solid rgba(12,42,114,0.15)',
+                }}>
+                  {loading ? '...' : version}
+                </span>
+                <span style={{ color: 'var(--text3)', fontSize: 13 }}>
+                  {loading ? '' : formatDate(releaseDate)}
+                </span>
+              </div>
+
+              {loading ? (
+                <div style={{ color: 'var(--text3)', fontSize: 15 }}>Đang tải changelog...</div>
+              ) : (
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                  {notes.map((note, i) => (
+                    <li key={i} style={{
+                      display: 'flex', alignItems: 'flex-start', gap: 12,
+                      padding: '11px 0',
+                      borderBottom: i < notes.length - 1 ? '1px solid var(--gray)' : 'none',
+                    }}>
+                      <span style={{
+                        background: 'linear-gradient(135deg,#22c55e,#16a34a)',
+                        color: '#fff', borderRadius: 6,
+                        width: 22, height: 22, display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', fontSize: 12, fontWeight: 800,
+                        flexShrink: 0, marginTop: 2,
+                      }}>✓</span>
+                      <span style={{ color: 'var(--text)', fontSize: 15, lineHeight: 1.6 }}>{note}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
-            {loading ? (
-              <div style={{ color: '#94a3b8', fontSize: 15 }}>Đang tải changelog...</div>
-            ) : (
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                {notes.map((note, i) => (
-                  <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 0', borderBottom: i < notes.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
-                    <span style={{ background: 'linear-gradient(135deg,#22c55e,#16a34a)', color: '#fff', borderRadius: 6, width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, flexShrink: 0, marginTop: 1 }}>✓</span>
-                    <span style={{ color: '#334155', fontSize: 15, lineHeight: 1.5 }}>{note}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          </Reveal>
 
           {/* Install Steps */}
-          <div style={{ background: '#fff', borderRadius: 20, boxShadow: '0 4px 24px rgba(12,42,114,0.08)', padding: 'clamp(24px,4vw,40px)', marginBottom: 32 }}>
-            <h2 style={{ color: NAVY, fontWeight: 800, fontSize: 20, margin: '0 0 28px' }}>Hướng dẫn cài đặt</h2>
-            <div style={{ display: 'grid', gap: 0 }}>
+          <Reveal delay={80}>
+            <div className="card" style={{ marginBottom: 28, padding: 'clamp(24px,4vw,40px)' }}>
+              <h2 style={{ color: 'var(--navy)', fontWeight: 800, fontSize: 20, margin: '0 0 32px' }}>
+                Hướng dẫn cài đặt
+              </h2>
+
               {STEPS.map((s, i) => (
                 <div key={s.n} style={{ display: 'flex', gap: 20, position: 'relative' }}>
-                  {/* connector line */}
                   {i < STEPS.length - 1 && (
-                    <div style={{ position: 'absolute', left: 24, top: 56, bottom: 0, width: 2, background: 'linear-gradient(to bottom,rgba(12,42,114,0.15),transparent)' }} />
+                    <div style={{
+                      position: 'absolute', left: 23, top: 52, bottom: 0,
+                      width: 2,
+                      background: 'linear-gradient(to bottom, rgba(12,42,114,0.18), transparent)',
+                    }} />
                   )}
-                  {/* step number circle */}
-                  <div style={{ flexShrink: 0, width: 48, height: 48, borderRadius: '50%', background: `linear-gradient(135deg,${NAVY},#1a3a8f)`, color: '#fff', fontWeight: 900, fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 18px rgba(12,42,114,0.3)', zIndex: 1 }}>
-                    {s.n}
-                  </div>
-                  <div style={{ paddingBottom: i < STEPS.length - 1 ? 32 : 0, flex: 1 }}>
+                  <div style={{
+                    flexShrink: 0, width: 48, height: 48, borderRadius: '50%',
+                    background: 'linear-gradient(135deg,var(--navy),var(--navy2))',
+                    color: '#fff', fontWeight: 900, fontSize: 20,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: '0 6px 18px rgba(12,42,114,0.28)', zIndex: 1,
+                  }}>{s.n}</div>
+
+                  <div style={{ paddingBottom: i < STEPS.length - 1 ? 36 : 0, flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                       <span style={{ fontSize: 22 }}>{s.icon}</span>
-                      <h3 style={{ color: NAVY, fontWeight: 800, fontSize: 17, margin: 0 }}>{s.title}</h3>
+                      <h3 style={{ color: 'var(--navy)', fontWeight: 800, fontSize: 16, margin: 0 }}>{s.title}</h3>
                     </div>
-                    <p style={{ color: '#475569', fontSize: 15, lineHeight: 1.7, margin: '0 0 8px' }}>{s.desc}</p>
+                    <p style={{ color: 'var(--text2)', fontSize: 15, lineHeight: 1.7, margin: '0 0 10px' }}>{s.desc}</p>
+
                     {s.warn && (
-                      <div style={{ background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: 8, padding: '8px 14px', fontSize: 13, color: '#92400e', fontWeight: 600, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                        <span>⚠️</span> {s.warn}
+                      <div className="alert alert-warning" style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                        <span>⚠️</span>
+                        <span style={{ fontWeight: 600 }}>{s.warn}</span>
                       </div>
                     )}
-                    {s.n === 2 && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
-                        <code style={{ background: '#1e293b', color: '#38bdf8', padding: '6px 14px', borderRadius: 8, fontSize: 14, fontFamily: 'monospace', fontWeight: 700 }}>
-                          chrome://extensions
-                        </code>
+
+                    {s.code && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10, flexWrap: 'wrap' }}>
+                        <code style={{
+                          background: '#1e293b', color: '#38bdf8',
+                          padding: '6px 14px', borderRadius: 8,
+                          fontSize: 14, fontFamily: 'monospace', fontWeight: 700,
+                        }}>{s.code}</code>
                         <button
-                          onClick={() => { navigator.clipboard?.writeText('chrome://extensions'); setCopied(true); setTimeout(() => setCopied(false), 1800) }}
-                          style={{ background: 'none', border: `1.5px solid #cbd5e1`, borderRadius: 8, padding: '5px 12px', fontSize: 12, fontWeight: 700, color: '#64748b', cursor: 'pointer' }}
-                        >
-                          {copied ? '✓ Copied' : 'Copy'}
-                        </button>
+                          onClick={() => { navigator.clipboard?.writeText(s.code); setCopied(true); setTimeout(() => setCopied(false), 1800) }}
+                          style={{
+                            background: 'none', border: '1.5px solid var(--gray2)',
+                            borderRadius: 8, padding: '5px 12px',
+                            fontSize: 12, fontWeight: 700, color: 'var(--text2)',
+                            cursor: 'pointer', fontFamily: 'inherit',
+                          }}
+                        >{copied ? '✓ Copied' : 'Copy'}</button>
                       </div>
                     )}
                   </div>
                 </div>
               ))}
             </div>
-          </div>
+          </Reveal>
 
-          {/* Warning box */}
-          <div style={{ background: '#fffbeb', border: '2px solid #f59e0b', borderRadius: 16, padding: '24px 28px', marginBottom: 36, display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-            <div style={{ fontSize: 28, flexShrink: 0, marginTop: 2 }}>⚠️</div>
-            <div>
-              <div style={{ fontWeight: 800, color: '#92400e', fontSize: 16, marginBottom: 8 }}>Mỗi lần có bản cập nhật mới</div>
-              <ol style={{ margin: 0, paddingLeft: 20, color: '#78350f', fontSize: 15, lineHeight: 1.8 }}>
-                <li>Tải file ZIP bản mới về</li>
-                <li>Giải nén và <strong>đè lên thư mục cũ</strong> (chọn "Yes to all" khi được hỏi)</li>
-                <li>Mở <code style={{ background: '#fef3c7', padding: '1px 6px', borderRadius: 4, fontFamily: 'monospace' }}>chrome://extensions</code></li>
-                <li>Nhấn nút <strong>Reload</strong> (biểu tượng mũi tên xoay) trên thẻ tiện ích</li>
-              </ol>
+          {/* Update warning */}
+          <Reveal delay={120}>
+            <div style={{
+              background: 'rgba(254,95,1,0.06)', border: '2px solid rgba(254,95,1,0.25)',
+              borderRadius: 'var(--radius-lg)', padding: '24px 28px',
+              marginBottom: 40, display: 'flex', gap: 18, alignItems: 'flex-start',
+            }}>
+              <span style={{ fontSize: 28, flexShrink: 0 }}>🔄</span>
+              <div>
+                <div style={{ fontWeight: 800, color: 'var(--orange)', fontSize: 16, marginBottom: 8 }}>
+                  Mỗi lần có bản cập nhật mới
+                </div>
+                <ol style={{ margin: 0, paddingLeft: 20, color: 'var(--text)', fontSize: 15, lineHeight: 1.9 }}>
+                  <li>Tải file ZIP bản mới về</li>
+                  <li>Giải nén và <strong>đè lên thư mục cũ</strong> (chọn "Yes to all" khi được hỏi)</li>
+                  <li>Mở <code style={{ background: 'rgba(254,95,1,0.1)', padding: '1px 6px', borderRadius: 4, fontFamily: 'monospace', fontSize: 13 }}>chrome://extensions</code></li>
+                  <li>Nhấn nút <strong>Reload</strong> (biểu tượng mũi tên xoay) trên thẻ tiện ích</li>
+                </ol>
+              </div>
             </div>
-          </div>
+          </Reveal>
 
           {/* Support buttons */}
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ color: '#64748b', fontSize: 15, marginBottom: 20, fontWeight: 600 }}>
-              Cần hỗ trợ cài đặt? Liên hệ ngay:
-            </div>
-            <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <a
-                href="https://zalo.me/g/abcdef"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 10,
-                  background: 'linear-gradient(135deg,#0068ff,#0050cc)',
-                  color: '#fff', textDecoration: 'none', borderRadius: 12,
-                  padding: '14px 28px', fontWeight: 800, fontSize: 15,
-                  boxShadow: '0 6px 20px rgba(0,104,255,0.3)',
-                  transition: 'transform 0.15s, box-shadow 0.15s',
-                }}
-                onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 28px rgba(0,104,255,0.4)' }}
-                onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,104,255,0.3)' }}
-              >
-                <span style={{ fontSize: 22 }}>💬</span>
-                Zalo hỗ trợ
-              </a>
-              <a
-                href="mailto:admin@gonetwork.vn"
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 10,
-                  background: '#fff', color: NAVY, textDecoration: 'none', borderRadius: 12,
-                  padding: '14px 28px', fontWeight: 800, fontSize: 15,
-                  border: `2px solid ${NAVY}`,
-                  boxShadow: '0 4px 14px rgba(12,42,114,0.1)',
-                  transition: 'transform 0.15s, background 0.15s',
-                }}
-                onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.background = '#f0f4ff' }}
-                onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = '#fff' }}
-              >
-                <span style={{ fontSize: 22 }}>✉️</span>
-                Email admin
-              </a>
-            </div>
-
-            {/* Mua goi CTA */}
-            <div style={{ marginTop: 48, padding: '32px', background: `linear-gradient(135deg,${NAVY},#1a3a8f)`, borderRadius: 20, color: '#fff' }}>
-              <div style={{ fontSize: 22, marginBottom: 10 }}>🚀</div>
-              <h3 style={{ fontWeight: 800, fontSize: 20, margin: '0 0 8px' }}>Chưa có key kích hoạt?</h3>
-              <p style={{ color: 'rgba(255,255,255,0.72)', fontSize: 15, margin: '0 0 20px' }}>
-                Bắt đầu dùng thử miễn phí 7 ngày hoặc chọn gói phù hợp với team.
+          <Reveal delay={160}>
+            <div style={{ textAlign: 'center' }}>
+              <p style={{ color: 'var(--text2)', fontSize: 15, marginBottom: 20, fontWeight: 600 }}>
+                Cần hỗ trợ cài đặt? Liên hệ ngay:
               </p>
-              <a
-                href="/mua-goi"
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 8,
-                  background: `linear-gradient(135deg,${ORANGE},#ff8c00)`,
-                  color: '#fff', textDecoration: 'none', borderRadius: 12,
-                  padding: '13px 30px', fontWeight: 800, fontSize: 16,
-                  boxShadow: '0 6px 20px rgba(254,95,1,0.4)',
-                }}
-              >
+              <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
+                <a
+                  href="https://zalo.me/g/abcdef"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn"
+                  style={{
+                    background: 'linear-gradient(135deg,#0068ff,#0050cc)',
+                    color: '#fff',
+                    boxShadow: '0 6px 20px rgba(0,104,255,0.3)',
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  <span style={{ fontSize: 20 }}>💬</span> Zalo hỗ trợ
+                </a>
+                <a
+                  href="mailto:admin@gonetwork.vn"
+                  className="btn btn-outline-navy"
+                  style={{ fontFamily: 'inherit' }}
+                >
+                  <span style={{ fontSize: 20 }}>✉️</span> Email admin
+                </a>
+              </div>
+            </div>
+          </Reveal>
+
+          {/* CTA card */}
+          <Reveal delay={200}>
+            <div style={{
+              marginTop: 56, textAlign: 'center',
+              background: 'linear-gradient(135deg, var(--navy) 0%, var(--navy2) 100%)',
+              borderRadius: 'var(--radius-xl)', padding: 'clamp(28px,5vw,48px)',
+              color: '#fff',
+            }}>
+              <div style={{ fontSize: 40, marginBottom: 14 }}>🚀</div>
+              <h3 style={{ fontWeight: 800, fontSize: 22, margin: '0 0 10px' }}>
+                Chưa có key kích hoạt?
+              </h3>
+              <p style={{ color: 'rgba(255,255,255,0.72)', fontSize: 16, margin: '0 0 28px', lineHeight: 1.6 }}>
+                Bắt đầu dùng thử miễn phí 7 ngày hoặc chọn gói phù hợp với team của bạn.
+              </p>
+              <a href="/mua-goi" className="btn btn-primary btn-lg" style={{ fontFamily: 'inherit' }}>
                 Mua gói ngay →
               </a>
             </div>
-          </div>
+          </Reveal>
         </div>
       </main>
 
       <Footer />
 
       <style>{`
-        * { box-sizing: border-box; }
-        @media (max-width: 600px) {
-          main > div:first-child { padding-left: 16px !important; padding-right: 16px !important; }
+        @keyframes btnPulse {
+          0%, 100% { box-shadow: 0 8px 40px rgba(254,95,1,0.5), 0 0 0 0 rgba(254,95,1,0.3); }
+          50%       { box-shadow: 0 8px 40px rgba(254,95,1,0.7), 0 0 0 14px rgba(254,95,1,0); }
+        }
+        @keyframes liveDot {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.6); }
+          50% { box-shadow: 0 0 0 6px rgba(34,197,94,0); }
+        }
+        @media (max-width: 640px) {
+          .tai-xuong-steps-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
     </>

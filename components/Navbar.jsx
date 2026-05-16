@@ -1,114 +1,132 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useLang } from '../lib/LangContext'
 
 export default function Navbar() {
+  const { lang, setLang, t } = useLang()
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20)
-    window.addEventListener('scroll', onScroll)
-    return () => window.removeEventListener('scroll', onScroll)
+    const fn = () => setScrolled(window.scrollY > 30)
+    window.addEventListener('scroll', fn, { passive: true })
+    return () => window.removeEventListener('scroll', fn)
   }, [])
+
+  const links = [
+    [t.nav.features, '/#features'],
+    [t.nav.pricing, '/#pricing'],
+    [t.nav.guide, '/huong-dan'],
+    [t.nav.affiliate, '/affiliate'],
+    [t.nav.download, '/tai-xuong'],
+  ]
 
   return (
     <>
       <nav style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000,
-        padding: '0 20px', height: 64,
-        display: 'flex', alignItems: 'center',
-        background: scrolled ? 'rgba(12,42,114,0.97)' : 'transparent',
-        backdropFilter: scrolled ? 'blur(16px)' : 'none',
-        borderBottom: scrolled ? '1px solid rgba(255,255,255,0.1)' : 'none',
-        transition: 'all 0.3s ease'
+        height: 'var(--nav-h)',
+        display: 'flex', alignItems: 'center', padding: '0 24px',
+        background: scrolled ? 'rgba(10,20,60,0.97)' : 'transparent',
+        backdropFilter: scrolled ? 'blur(20px)' : 'none',
+        borderBottom: scrolled ? '1px solid rgba(255,255,255,0.08)' : 'none',
+        transition: 'background 0.35s ease, border-color 0.35s ease',
+        boxShadow: scrolled ? '0 2px 20px rgba(0,0,0,0.3)' : 'none',
       }}>
-        <div className="container" style={{ display: 'flex', alignItems: 'center', width: '100%', maxWidth: 1200, margin: '0 auto' }}>
-          {/* Logo */}
-          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-            <img src="/logo.png" alt="Go Meta Ads Pro" style={{ height: 34, borderRadius: 8 }} />
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', lineHeight: 1.2 }}>Go Meta Ads Pro</div>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)' }}>by Go Media Vietnam</div>
-            </div>
-          </Link>
+        <div style={{ maxWidth: 'var(--max-w)', margin: '0 auto', width: '100%', display: 'flex', alignItems: 'center', gap: 8 }}>
 
-          {/* Desktop Menu */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 40, flex: 1 }} className="desktop-menu">
-            {[
-              ['Tính năng', '/#features'],
-              ['Bảng giá', '/#pricing'],
-              ['Hướng dẫn', '/huong-dan'],
-              ['Affiliate', '/affiliate'],
-              ['Tải xuống', '/tai-xuong'],
-            ].map(([label, href]) => (
-              <a key={label} href={href} style={{
-                color: 'rgba(255,255,255,0.8)', textDecoration: 'none',
-                fontSize: 14, fontWeight: 500, padding: '8px 14px',
-                borderRadius: 8, transition: 'all 0.15s'
-              }}
-              onMouseOver={e => e.target.style.background = 'rgba(255,255,255,0.1)'}
-              onMouseOut={e => e.target.style.background = 'transparent'}>
-                {label}
-              </a>
+          {/* Logo */}
+          <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', flexShrink: 0 }}>
+            <img src="/logo.png" alt="Go Meta Ads Pro" style={{ height: 36, borderRadius: 9, objectFit: 'cover' }} />
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', lineHeight: 1.2, fontFamily: 'Be Vietnam Pro, sans-serif' }}>Go Meta Ads Pro</div>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: 500 }}>by Go Media Vietnam</div>
+            </div>
+          </a>
+
+          {/* Desktop links */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 36, flex: 1 }} className="hide-mobile">
+            {links.map(([label, href]) => (
+              <a key={label} href={href} className="nav-link">{label}</a>
             ))}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 'auto' }}>
-            <a href="/quan-ly" style={{
-              color: 'rgba(255,255,255,0.8)', textDecoration: 'none',
-              fontSize: 13, fontWeight: 600, padding: '8px 16px'
-            }}>Tra cứu key</a>
-            <a href="/tai-xuong" className="btn btn-primary" style={{ padding: '9px 22px', fontSize: 13 }}>
-              Dùng thử 7 ngày miễn phí
-            </a>
-          </div>
+          {/* Right side */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 'auto', flexShrink: 0 }}>
+            {/* Language switcher */}
+            <div style={{ display: 'flex', background: 'rgba(255,255,255,0.1)', borderRadius: 'var(--radius-full)', padding: 3, gap: 2 }} className="hide-mobile">
+              {['vi', 'en'].map(l => (
+                <button key={l} onClick={() => setLang(l)} style={{
+                  padding: '4px 12px', borderRadius: 'var(--radius-full)', border: 'none',
+                  fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                  background: lang === l ? '#fff' : 'transparent',
+                  color: lang === l ? 'var(--navy)' : 'rgba(255,255,255,0.7)',
+                  transition: 'all 0.2s',
+                }}>
+                  {l === 'vi' ? '🇻🇳 VI' : '🇬🇧 EN'}
+                </button>
+              ))}
+            </div>
 
-          {/* Mobile menu button */}
-          <button onClick={() => setMenuOpen(!menuOpen)} className="mobile-menu-btn" style={{
-            background: 'rgba(255,255,255,0.1)', border: 'none',
-            color: '#fff', padding: '8px 12px', borderRadius: 8,
-            cursor: 'pointer', fontSize: 18, marginLeft: 12,
-            display: 'none'
-          }}>☰</button>
+            <a href="/quan-ly" className="hide-mobile" style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.75)', textDecoration: 'none', padding: '8px 14px', transition: 'color 0.2s' }}
+              onMouseOver={e => e.target.style.color = '#fff'}
+              onMouseOut={e => e.target.style.color = 'rgba(255,255,255,0.75)'}>
+              {t.nav.lookupKey}
+            </a>
+
+            <a href="/tai-xuong" className="btn btn-primary btn-sm hide-mobile">
+              🚀 {t.nav.tryFree}
+            </a>
+
+            {/* Mobile burger */}
+            <button onClick={() => setMenuOpen(!menuOpen)} className="hide-desktop" style={{
+              background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)',
+              color: '#fff', padding: '8px 12px', borderRadius: 10,
+              cursor: 'pointer', fontSize: 18, lineHeight: 1,
+            }}>
+              {menuOpen ? '✕' : '☰'}
+            </button>
+          </div>
         </div>
       </nav>
 
       {/* Mobile menu */}
       {menuOpen && (
         <div style={{
-          position: 'fixed', top: 64, left: 0, right: 0, zIndex: 999,
-          background: 'rgba(12,42,114,0.98)', backdropFilter: 'blur(16px)',
-          padding: '20px', borderBottom: '1px solid rgba(255,255,255,0.1)'
+          position: 'fixed', top: 'var(--nav-h)', left: 0, right: 0, zIndex: 999,
+          background: 'rgba(8,18,48,0.98)', backdropFilter: 'blur(20px)',
+          padding: '20px 24px 28px',
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          animation: 'slideDown 0.2s ease',
         }}>
-          {[
-            ['Tính năng', '/#features'],
-            ['Bảng giá', '/#pricing'],
-            ['Hướng dẫn', '/huong-dan'],
-            ['Affiliate', '/affiliate'],
-            ['Tải xuống', '/tai-xuong'],
-            ['Tra cứu key', '/quan-ly'],
-          ].map(([label, href]) => (
+          {links.map(([label, href]) => (
             <a key={label} href={href} onClick={() => setMenuOpen(false)} style={{
-              display: 'block', color: '#fff', textDecoration: 'none',
-              padding: '12px 16px', fontSize: 15, fontWeight: 600,
-              borderRadius: 8, marginBottom: 4
+              display: 'block', color: 'rgba(255,255,255,0.85)', textDecoration: 'none',
+              padding: '13px 0', fontSize: 16, fontWeight: 600,
+              borderBottom: '1px solid rgba(255,255,255,0.07)',
+              transition: 'color 0.15s',
             }}>{label}</a>
           ))}
-          <a href="/tai-xuong" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: 12 }}>
-            Dùng thử miễn phí 7 ngày
+
+          <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
+            {['vi', 'en'].map(l => (
+              <button key={l} onClick={() => setLang(l)} style={{
+                padding: '8px 18px', borderRadius: 'var(--radius-full)', border: 'none',
+                fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                background: lang === l ? '#fff' : 'rgba(255,255,255,0.1)',
+                color: lang === l ? 'var(--navy)' : 'rgba(255,255,255,0.7)',
+              }}>
+                {l === 'vi' ? '🇻🇳 Tiếng Việt' : '🇬🇧 English'}
+              </button>
+            ))}
+          </div>
+
+          <a href="/tai-xuong" onClick={() => setMenuOpen(false)}
+            className="btn btn-primary btn-block" style={{ marginTop: 16 }}>
+            🚀 {t.nav.tryFree}
           </a>
         </div>
       )}
-
-      <style>{`
-        @media (max-width: 768px) {
-          .desktop-menu { display: none !important; }
-          .mobile-menu-btn { display: block !important; }
-        }
-        @media (max-width: 900px) {
-          .desktop-menu a:nth-child(n+4) { display: none; }
-        }
-      `}</style>
     </>
   )
 }
