@@ -555,43 +555,48 @@ export default function MuaGoi() {
       </Head>
       <Navbar />
 
-      {/* ─── Override CSS vars cho context sáng ─── */}
+      {/* ─── CSS override cho white card ─── */}
       <style>{`
-        .mua-goi-light .form-label { color: #0c2a72 !important; }
-        .mua-goi-light .form-input {
+        /* Chỉ áp dụng cho white card, KHÔNG áp dụng cho FAQ dark bg */
+        .light-card .form-label { color: #0c2a72 !important; }
+        .light-card .form-input {
           color: #1a2332 !important;
           background: #f8faff !important;
           border: 1.5px solid #e2e8f0 !important;
         }
-        .mua-goi-light .form-input:focus {
+        .light-card .form-input:focus {
           border-color: #0c2a72 !important;
           box-shadow: 0 0 0 3px rgba(12,42,114,0.08) !important;
         }
-        .mua-goi-light .form-input::placeholder { color: #94a3b8 !important; }
-        .mua-goi-light .form-error { color: #dc2626 !important; }
-        .mua-goi-light .accordion { border-bottom: 1px solid #e2e8f0 !important; }
-        .mua-goi-light .accordion-trigger { color: #1a2332 !important; }
-        .mua-goi-light .accordion-trigger:hover { background: #f8faff !important; color: #0c2a72 !important; }
-        .mua-goi-light .accordion-body { color: #64748b !important; }
-        .mua-goi-light .alert-warning { background: #fffbeb !important; border-color: rgba(245,158,11,0.3) !important; color: #78350f !important; }
-        .mua-goi-light .btn-outline-navy { color: #0c2a72 !important; border-color: #0c2a72 !important; }
-        .mua-goi-light .btn-outline-navy:hover { background: #0c2a72 !important; color: #fff !important; }
+        .light-card .form-input::placeholder { color: #94a3b8 !important; }
+        .light-card .form-error { color: #dc2626 !important; }
+        .light-card .alert-warning { background: #fffbeb !important; border-color: rgba(245,158,11,0.3) !important; color: #78350f !important; }
+        .light-card .alert-success { background: #f0fdf4 !important; border-color: rgba(34,197,94,0.3) !important; color: #15803d !important; }
+        /* FAQ accordion trên nền sáng */
+        .faq-light .accordion { border-bottom: 1px solid #e2e8f0 !important; background: transparent; }
+        .faq-light .accordion-trigger { color: #1a2332 !important; font-size: 15px; }
+        .faq-light .accordion-trigger:hover { background: #f0f4ff !important; color: #0c2a72 !important; }
+        .faq-light .accordion-trigger .icon { color: #fe5f01 !important; }
+        .faq-light .accordion-body { color: #64748b !important; }
         @media (max-width: 640px) { .plan-grid { grid-template-columns: 1fr !important; } }
         @media (max-width: 900px) { .summary-grid { grid-template-columns: 1fr !important; } }
       `}</style>
 
-      <main className="mua-goi-light" style={{
-        background: 'linear-gradient(180deg, var(--navy) 0%, var(--navy2) 200px, #f1f5f9 200px)',
+      <main style={{
+        background: '#f1f5f9',
         minHeight: '100vh',
         paddingTop: 'calc(var(--header-h) + 4px)',
       }}>
 
-        {/* Hero strip */}
-        <div style={{ textAlign: 'center', padding: '36px 20px 0' }}>
+        {/* Hero strip - dark navy bg */}
+        <div style={{
+          background: 'linear-gradient(135deg, #0c2a72 0%, #1a3a8f 100%)',
+          textAlign: 'center', padding: '40px 20px 48px',
+        }}>
           <h1 style={{ color: '#fff', fontSize: 'clamp(22px,4vw,34px)', fontWeight: 800, margin: '0 0 8px' }}>
             {isEN ? 'Subscribe to Go Meta Ads Pro' : 'Đăng ký Go Meta Ads Pro'}
           </h1>
-          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 15, margin: '0 0 32px' }}>
+          <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 15, margin: '0 0 32px' }}>
             {isEN
               ? 'Complete in 3 simple steps — receive key within 30 minutes'
               : 'Hoàn tất trong 3 bước đơn giản — nhận key trong 30 phút'}
@@ -601,15 +606,15 @@ export default function MuaGoi() {
 
         {/* Card */}
         <div style={{ maxWidth: 800, margin: '32px auto 0', padding: '0 16px 80px' }}>
-          <div style={{
+          <div className="light-card" style={{
             background: '#fff', borderRadius: 'var(--radius-xl)',
-            boxShadow: 'var(--shadow-xl)', overflow: 'hidden',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.15)', overflow: 'hidden',
           }}>
 
             {/* ══════ STEP 1 ══════ */}
             {step === 1 && (
               <div style={{ padding: 'clamp(24px,5vw,48px)' }}>
-                <h2 style={{ color: 'var(--navy)', fontWeight: 800, fontSize: 22, margin: '0 0 6px' }}>
+                <h2 style={{ color: '#0c2a72', fontWeight: 800, fontSize: 22, margin: '0 0 6px' }}>
                   {isEN ? 'Registration Info' : 'Thông tin đăng ký'}
                 </h2>
                 <p style={{ color: '#64748b', fontSize: 14, margin: '0 0 32px' }}>
@@ -648,7 +653,7 @@ export default function MuaGoi() {
                   ].map(f => (
                     <div className="form-group" key={f.key}>
                       <label className="form-label">
-                        {f.label} {f.required && <span style={{ color: 'var(--orange)' }}>*</span>}
+                        {f.label} {f.required && <span style={{ color: '#fe5f01' }}>*</span>}
                       </label>
                       <input
                         className="form-input"
@@ -701,7 +706,7 @@ export default function MuaGoi() {
                           flex: 1, padding: '10px 10px', borderRadius: 9, border: 'none',
                           cursor: 'pointer', fontWeight: 700, fontSize: 12,
                           fontFamily: 'inherit',
-                          background: billingTab === tab.key ? 'var(--navy)' : 'transparent',
+                          background: billingTab === tab.key ? '#0c2a72' : 'transparent',
                           color: billingTab === tab.key ? '#fff' : '#64748b',
                           transition: 'all 0.2s', whiteSpace: 'nowrap',
                           position: 'relative',
@@ -743,7 +748,7 @@ export default function MuaGoi() {
                           <div style={{
                             width: 18, height: 18, borderRadius: '50%',
                             border: `2px solid ${selectedPlan === plan.id ? '#fe5f01' : '#e2e8f0'}`,
-                            background: selectedPlan === plan.id ? 'var(--orange)' : '#fff',
+                            background: selectedPlan === plan.id ? '#fe5f01' : '#fff',
                             flexShrink: 0,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                           }}>
@@ -751,18 +756,18 @@ export default function MuaGoi() {
                               <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#fff' }} />
                             )}
                           </div>
-                          <span style={{ fontWeight: 800, fontSize: 15, color: 'var(--navy)' }}>{plan.name}</span>
+                          <span style={{ fontWeight: 800, fontSize: 15, color: '#0c2a72' }}>{plan.name}</span>
                         </div>
                         {/* Price */}
                         <div style={{ marginBottom: 6 }}>
                           {plan.originalPrice && (
-                            <div style={{ textDecoration: 'line-through', color: 'var(--text3)', fontSize: 13 }}>
+                            <div style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: 13 }}>
                               {plan.originalPrice}
                             </div>
                           )}
                           <span style={{
                             fontSize: 'clamp(15px,2.5vw,20px)', fontWeight: 800,
-                            color: plan.price === 0 ? '#22c55e' : 'var(--orange)',
+                            color: plan.price === 0 ? '#22c55e' : '#fe5f01',
                           }}>{plan.priceLabel}</span>
                           <span style={{ color: '#64748b', fontSize: 12 }}> {plan.period}</span>
                           {plan.priceMonthly && (
@@ -817,7 +822,7 @@ export default function MuaGoi() {
                   }}
                 >← {isEN ? 'Back' : 'Quay lại'}</button>
 
-                <h2 style={{ color: 'var(--navy)', fontWeight: 800, fontSize: 22, margin: '0 0 6px' }}>
+                <h2 style={{ color: '#0c2a72', fontWeight: 800, fontSize: 22, margin: '0 0 6px' }}>
                   {isEN ? 'Payment' : 'Thanh toán'}
                 </h2>
                 <p style={{ color: '#64748b', fontSize: 14, margin: '0 0 28px' }}>
@@ -828,7 +833,7 @@ export default function MuaGoi() {
 
                 {/* Order summary */}
                 <div style={{
-                  background: 'linear-gradient(135deg, var(--navy) 0%, var(--navy2) 100%)',
+                  background: 'linear-gradient(135deg, #0c2a72 0%, #1a3a8f 100%)',
                   borderRadius: 'var(--radius)', padding: '22px 26px', marginBottom: 28, color: '#fff',
                 }}>
                   <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 14, opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
@@ -854,7 +859,7 @@ export default function MuaGoi() {
 
                 {/* Bank info */}
                 <div style={{
-                  background: '#fff', border: '2px solid var(--orange)',
+                  background: '#fff', border: '2px solid #fe5f01',
                   borderRadius: 'var(--radius)', padding: '24px', marginBottom: 28,
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
@@ -863,7 +868,7 @@ export default function MuaGoi() {
                       borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
                     }}>🏦</div>
                     <div>
-                      <div style={{ fontWeight: 800, color: 'var(--navy)', fontSize: 16 }}>
+                      <div style={{ fontWeight: 800, color: '#0c2a72', fontSize: 16 }}>
                         {isEN ? 'Bank Transfer Details' : 'Thông tin chuyển khoản'}
                       </div>
                       <div style={{ fontSize: 12, color: '#64748b' }}>
@@ -914,7 +919,7 @@ export default function MuaGoi() {
                     {isEN
                       ? 'Upload payment confirmation screenshot'
                       : 'Upload ảnh xác nhận chuyển khoản'}{' '}
-                    <span style={{ color: 'var(--orange)' }}>*</span>
+                    <span style={{ color: '#fe5f01' }}>*</span>
                   </label>
                   <div
                     onClick={() => fileInputRef.current?.click()}
@@ -936,7 +941,7 @@ export default function MuaGoi() {
                     ) : (
                       <div>
                         <div style={{ fontSize: 36, marginBottom: 10 }}>📤</div>
-                        <div style={{ fontWeight: 700, color: 'var(--navy)', marginBottom: 4 }}>
+                        <div style={{ fontWeight: 700, color: '#0c2a72', marginBottom: 4 }}>
                           {isEN ? 'Click to select image' : 'Nhấn để chọn ảnh'}
                         </div>
                         <div style={{ fontSize: 13, color: '#94a3b8' }}>
@@ -965,7 +970,7 @@ export default function MuaGoi() {
             {step === 3 && (
               <div style={{ padding: 'clamp(24px,5vw,56px)', textAlign: 'center' }}>
                 <div style={{ fontSize: 80, marginBottom: 16, animation: 'successBounce 0.6s ease' }}>✅</div>
-                <h2 style={{ color: 'var(--navy)', fontWeight: 800, fontSize: 28, margin: '0 0 14px' }}>
+                <h2 style={{ color: '#0c2a72', fontWeight: 800, fontSize: 28, margin: '0 0 14px' }}>
                   {isEN ? 'Order received successfully!' : 'Đã nhận đơn thành công!'}
                 </h2>
                 <p style={{ color: '#64748b', fontSize: 16, maxWidth: 480, margin: '0 auto 28px', lineHeight: 1.7 }}>
@@ -996,7 +1001,7 @@ export default function MuaGoi() {
           {/* FAQ */}
           {step < 3 && (
             <Reveal delay={100}>
-              <div style={{ marginTop: 52 }}>
+              <div className="faq-light" style={{ marginTop: 52, background: '#f1f5f9', borderRadius: 16, padding: '32px 28px' }}>
                 <h3 style={{ color: '#0c2a72', fontWeight: 800, fontSize: 20, marginBottom: 20, textAlign: 'center' }}>
                   {isEN ? 'Frequently Asked Questions' : 'Câu hỏi thường gặp'}
                 </h3>
