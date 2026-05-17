@@ -24,7 +24,7 @@ function recommend(answers) {
 
 // ─── MAIN ────────────────────────────────────────────────────────────────────
 export default function Home() {
-  const { t } = useLang()
+  const { t, lang } = useLang()
 
   // Mouse spotlight
   const heroRef    = useRef(null)
@@ -50,7 +50,7 @@ export default function Home() {
   const [wizardStep, setWizardStep]   = useState(0)
   const [answers, setAnswers]         = useState({})
   const [showPlans, setShowPlans]     = useState(false)
-  const [billingYear, setBillingYear] = useState(false)
+  const [billingPeriod, setBillingPeriod] = useState('month') // 'month' | 'year1' | 'year3' | 'year5'
   const recommendedPlan = showPlans ? recommend(answers) : null
 
   function handleChoice(stepIdx, value) {
@@ -304,7 +304,7 @@ export default function Home() {
 
           {/* Scroll indicator */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, marginTop: 60, position: 'relative', zIndex: 1 }}>
-            <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' }}>Cuộn xuống để khám phá</span>
+            <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' }}>{lang === 'en' ? 'Scroll down to explore' : 'Cuộn xuống để khám phá'}</span>
             <div className="scroll-indicator">
               <div className="scroll-arrow" />
             </div>
@@ -335,13 +335,20 @@ export default function Home() {
               <div>
                 <span className="badge" style={{ marginBottom: 24 }}>😤 {t.problems.badge}</span>
                 <h2 style={{ fontSize: 'clamp(2rem,4.5vw,3.5rem)', lineHeight: 1.15, marginBottom: 32 }}>
-                  Bạn có thể tiếp tục<br />
-                  quản lý thủ công.<br />
-                  <span className="text-teal">Nhưng tại sao phải</span><br />
-                  <span className="grad-text">vất vả như vậy?</span>
+                  {lang === 'en' ? (
+                    <>You can keep managing<br />
+                    ads manually.<br />
+                    <span className="text-teal">But why make it</span><br />
+                    <span className="grad-text">so hard?</span></>
+                  ) : (
+                    <>Bạn có thể tiếp tục<br />
+                    quản lý thủ công.<br />
+                    <span className="text-teal">Nhưng tại sao phải</span><br />
+                    <span className="grad-text">vất vả như vậy?</span></>
+                  )}
                 </h2>
                 <a href="/tai-xuong" className="btn btn-teal btn-lg">
-                  Thử ngay — Miễn phí 7 ngày →
+                  {lang === 'en' ? 'Try free — 1 day free →' : 'Thử ngay — Miễn phí 1 ngày →'}
                 </a>
               </div>
             </Reveal>
@@ -499,7 +506,7 @@ export default function Home() {
           <Reveal delay={500}>
             <div style={{ textAlign: 'center' }}>
               <a href="/tai-xuong" className="btn btn-teal btn-lg btn-ripple">
-                📥 Cài tiện ích ngay — Miễn phí 7 ngày
+                📥 Cài tiện ích ngay — Miễn phí 1 ngày
               </a>
             </div>
           </Reveal>
@@ -544,9 +551,9 @@ export default function Home() {
         <div className="container" style={{ position: 'relative' }}>
           <Reveal>
             <div className="section-header">
-              <span className="badge">📈 Kết quả thực tế</span>
-              <h2 style={{ color: '#fff' }}>Kết quả thực tế sau khi dùng<br /><span className="grad-text">Go Meta Ads Pro</span></h2>
-              <p style={{ color: 'rgba(255,255,255,0.6)' }}>Số liệu tổng hợp từ 3,200+ người dùng hoạt động — đo lường sau 30 ngày sử dụng</p>
+              <span className="badge">📈 {lang === 'en' ? 'Real Results' : 'Kết quả thực tế'}</span>
+              <h2 style={{ color: '#fff' }}>{lang === 'en' ? <>Real results after using<br /><span className="grad-text">Go Meta Ads Pro</span></> : <>Kết quả thực tế sau khi dùng<br /><span className="grad-text">Go Meta Ads Pro</span></>}</h2>
+              <p style={{ color: 'rgba(255,255,255,0.6)' }}>{lang === 'en' ? 'Aggregated data from 3,200+ active users — measured after 30 days of use' : 'Số liệu tổng hợp từ 3,200+ người dùng hoạt động — đo lường sau 30 ngày sử dụng'}</p>
             </div>
           </Reveal>
 
@@ -557,9 +564,9 @@ export default function Home() {
             <Reveal direction="left" delay={80}>
               <div className="analytics-card">
                 <div style={{ marginBottom: 20 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--teal)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>CPA trung bình</div>
-                  <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', lineHeight: 1.2 }}>CPA trung bình giảm 27%</div>
-                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>So sánh trước và sau khi dùng tool</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--teal)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>{lang === 'en' ? 'Average CPA' : 'CPA trung bình'}</div>
+                  <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', lineHeight: 1.2 }}>{lang === 'en' ? 'Average CPA dropped 27%' : 'CPA trung bình giảm 27%'}</div>
+                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>{lang === 'en' ? 'Before vs after using the tool' : 'So sánh trước và sau khi dùng tool'}</div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: 140, padding: '0 4px' }}>
                   {[
@@ -582,11 +589,11 @@ export default function Home() {
                 <div style={{ display: 'flex', gap: 16, marginTop: 16 }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>
                     <span style={{ width: 10, height: 10, borderRadius: 2, background: 'rgba(239,68,68,0.7)', flexShrink: 0 }} />
-                    Trước khi dùng
+                    {lang === 'en' ? 'Before' : 'Trước khi dùng'}
                   </span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>
                     <span style={{ width: 10, height: 10, borderRadius: 2, background: 'var(--teal)', flexShrink: 0 }} />
-                    Sau khi dùng
+                    {lang === 'en' ? 'After' : 'Sau khi dùng'}
                   </span>
                 </div>
               </div>
@@ -597,8 +604,8 @@ export default function Home() {
               <div className="analytics-card">
                 <div style={{ marginBottom: 20 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--teal)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>ROAS</div>
-                  <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', lineHeight: 1.2 }}>ROAS tăng 15% sau 30 ngày</div>
-                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>Đường xanh = sau khi dùng Go Meta Ads Pro</div>
+                  <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', lineHeight: 1.2 }}>{lang === 'en' ? 'ROAS up 15% after 30 days' : 'ROAS tăng 15% sau 30 ngày'}</div>
+                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>{lang === 'en' ? 'Teal line = after using Go Meta Ads Pro' : 'Đường xanh = sau khi dùng Go Meta Ads Pro'}</div>
                 </div>
                 <svg viewBox="0 0 260 120" style={{ width: '100%', height: 140 }}>
                   <defs>
@@ -624,11 +631,11 @@ export default function Home() {
                 <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>
                     <span style={{ width: 14, height: 2, background: 'rgba(239,68,68,0.6)', flexShrink: 0, borderRadius: 1 }} />
-                    Trước
+                    {lang === 'en' ? 'Before' : 'Trước'}
                   </span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>
                     <span style={{ width: 14, height: 2, background: 'var(--teal)', flexShrink: 0, borderRadius: 1 }} />
-                    Sau
+                    {lang === 'en' ? 'After' : 'Sau'}
                   </span>
                 </div>
               </div>
@@ -638,9 +645,9 @@ export default function Home() {
             <Reveal direction="right" delay={240}>
               <div className="analytics-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <div style={{ marginBottom: 20, textAlign: 'center' }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--teal)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Thời gian báo cáo</div>
-                  <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', lineHeight: 1.2 }}>Tiết kiệm 96% thời gian báo cáo</div>
-                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>Từ 2 giờ/ngày xuống còn 5 phút</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--teal)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>{lang === 'en' ? 'Reporting Time' : 'Thời gian báo cáo'}</div>
+                  <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', lineHeight: 1.2 }}>{lang === 'en' ? 'Save 96% of reporting time' : 'Tiết kiệm 96% thời gian báo cáo'}</div>
+                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>{lang === 'en' ? 'From 2 hours/day down to 5 minutes' : 'Từ 2 giờ/ngày xuống còn 5 phút'}</div>
                 </div>
                 <div style={{ position: 'relative', width: 130, height: 130, margin: '0 auto' }}>
                   <svg viewBox="0 0 42 42" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
@@ -656,12 +663,12 @@ export default function Home() {
                 <div style={{ display: 'flex', gap: 20, marginTop: 20 }}>
                   <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: 18, fontWeight: 800, color: 'rgba(239,68,68,0.8)' }}>2h</div>
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Trước</div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{lang === 'en' ? 'Before' : 'Trước'}</div>
                   </div>
                   <div style={{ fontSize: 20, color: 'rgba(255,255,255,0.2)', alignSelf: 'center' }}>→</div>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--teal)' }}>5 phút</div>
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Sau</div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--teal)' }}>{lang === 'en' ? '5 min' : '5 phút'}</div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{lang === 'en' ? 'After' : 'Sau'}</div>
                   </div>
                 </div>
               </div>
@@ -670,12 +677,17 @@ export default function Home() {
 
           {/* 4 metric cards */}
           <div className="analytics-metrics-grid">
-            {[
+            {(lang === 'en' ? [
+              { icon: '📉', label: 'Average CPA reduction', value: '27%', sub: 'thanks to timely AI alert responses', color: 'var(--teal)' },
+              { icon: '📈', label: 'ROAS improvement', value: '+15%', sub: 'after 30 days of continuous use', color: 'var(--lime)' },
+              { icon: '⏱', label: 'Reporting time', value: '-96%', sub: 'from 2 hours down to 5 minutes per day', color: '#60a5fa' },
+              { icon: '⚡', label: 'React to losing campaigns', value: '<5 min', sub: 'receive alert and act before more is lost', color: '#f59e0b' },
+            ] : [
               { icon: '📉', label: 'CPA giảm trung bình', value: '27%', sub: 'nhờ phản ứng kịp thời với cảnh báo AI', color: 'var(--teal)' },
               { icon: '📈', label: 'ROAS cải thiện', value: '+15%', sub: 'sau 30 ngày sử dụng liên tục', color: 'var(--lime)' },
               { icon: '⏱', label: 'Thời gian báo cáo', value: '-96%', sub: 'từ 2 tiếng xuống còn 5 phút mỗi ngày', color: '#60a5fa' },
               { icon: '⚡', label: 'Phản ứng camp lỗ', value: '<5 phút', sub: 'nhận cảnh báo và xử lý trước khi mất thêm', color: '#f59e0b' },
-            ].map((m, i) => (
+            ]).map((m, i) => (
               <Reveal key={i} delay={i * 80}>
                 <div style={{
                   background: 'rgba(255,255,255,0.04)',
@@ -852,39 +864,58 @@ export default function Home() {
                     </span>
                   </div>
 
-                  {/* Billing toggle */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14 }}>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: billingYear ? 'var(--text3)' : 'var(--text)' }}>{t.pricing.billingMonth}</span>
-                    <button
-                      onClick={() => setBillingYear(b => !b)}
-                      style={{
-                        width: 52, height: 28, borderRadius: 14, border: 'none', cursor: 'pointer',
-                        background: billingYear ? 'var(--teal)' : 'var(--surface2)',
-                        position: 'relative', transition: 'background 0.25s', flexShrink: 0,
-                      }}
-                      aria-label="Toggle billing period"
-                    >
-                      <div style={{
-                        width: 20, height: 20, borderRadius: '50%', background: '#fff',
-                        position: 'absolute', top: 4, left: billingYear ? 28 : 4,
-                        transition: 'left 0.25s', boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
-                      }} />
-                    </button>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: billingYear ? 'var(--text)' : 'var(--text3)' }}>
-                      {t.pricing.billingYear}{' '}
-                      <span className="badge-lime" style={{ display: 'inline-flex', padding: '2px 8px', borderRadius: 'var(--radius-full)', fontSize: 11, fontWeight: 700, background: 'rgba(204,244,86,0.12)', color: 'var(--lime)', border: '1px solid rgba(204,244,86,0.25)' }}>
-                        {t.pricing.yearSave}
-                      </span>
-                    </span>
+                  {/* Billing tabs — 4 options */}
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+                    {[
+                      { key: 'month', label: t.pricing.billingMonth, badge: null },
+                      { key: 'year1', label: t.pricing.billingYear1, badge: '-20%' },
+                      { key: 'year3', label: t.pricing.billingYear3, badge: '-30%' },
+                      { key: 'year5', label: t.pricing.billingYear5, badge: '-40%' },
+                    ].map(opt => (
+                      <button
+                        key={opt.key}
+                        onClick={() => setBillingPeriod(opt.key)}
+                        style={{
+                          padding: '8px 16px', borderRadius: 'var(--radius-full)', border: 'none',
+                          cursor: 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit',
+                          background: billingPeriod === opt.key ? 'var(--teal)' : 'var(--surface2)',
+                          color: billingPeriod === opt.key ? '#000' : 'var(--text3)',
+                          transition: 'all 0.2s', whiteSpace: 'nowrap',
+                          display: 'flex', alignItems: 'center', gap: 6,
+                          boxShadow: billingPeriod === opt.key ? '0 0 16px rgba(0,199,222,0.35)' : 'none',
+                        }}
+                      >
+                        {opt.label}
+                        {opt.badge && billingPeriod === opt.key && (
+                          <span style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 4, padding: '1px 6px', fontSize: 10, fontWeight: 800 }}>
+                            {opt.badge}
+                          </span>
+                        )}
+                        {opt.badge && billingPeriod !== opt.key && (
+                          <span style={{ background: 'rgba(204,244,86,0.15)', color: 'var(--lime)', border: '1px solid rgba(204,244,86,0.3)', borderRadius: 4, padding: '1px 6px', fontSize: 10, fontWeight: 800 }}>
+                            {opt.badge}
+                          </span>
+                        )}
+                      </button>
+                    ))}
                   </div>
+                  {billingPeriod === 'year3' && (
+                    <div style={{ marginTop: 10, fontSize: 13, color: 'var(--lime)', fontWeight: 600, textAlign: 'center' }}>
+                      {lang === 'en' ? '🔥 Most popular long-term plan — save the most per year' : '🔥 Gói dài hạn phổ biến nhất — tiết kiệm nhiều nhất mỗi năm'}
+                    </div>
+                  )}
                 </div>
 
                 {/* Plan cards */}
                 <div className="grid-3" style={{ alignItems: 'start', gap: 20 }}>
                   {plans.map((plan, i) => {
                     const isRec  = plan.key === recommendedPlan
-                    const price  = billingYear ? plan.priceYear : plan.priceMonth
-                    const yearSaved = ((plan.priceMonth - plan.priceYear) * 12).toLocaleString()
+                    const priceMap = { month: plan.priceMonth, year1: plan.priceYear1, year3: plan.priceYear3, year5: plan.priceYear5 }
+                    const totalMap = { year1: plan.totalYear1, year3: plan.totalYear3, year5: plan.totalYear5 }
+                    const price  = priceMap[billingPeriod]
+                    const monthlySaving = plan.priceMonth - price
+                    const yearlyTotal = totalMap[billingPeriod]
+                    const billingLabel = { month: '', year1: 'year1', year3: 'year3', year5: 'year5' }[billingPeriod]
                     return (
                       <div key={i} className="card-solid plan-card" style={{
                         borderColor: isRec ? 'var(--teal)' : plan.popular ? 'rgba(254,95,1,0.3)' : 'var(--border2)',
@@ -923,22 +954,36 @@ export default function Home() {
 
                           {/* Price */}
                           <div style={{ marginBottom: 20 }}>
-                            <span style={{ fontSize: 42, fontWeight: 900, color: 'var(--text)', lineHeight: 1 }}>
-                              {price.toLocaleString('vi-VN')}K
-                            </span>
-                            <span style={{ fontSize: 14, color: 'var(--text3)' }}>{t.pricing.perMonth}</span>
-                            {billingYear && (
+                            {billingPeriod !== 'month' && (
+                              <div style={{ fontSize: 12, color: 'var(--text3)', textDecoration: 'line-through', marginBottom: 2 }}>
+                                {plan.priceMonth.toLocaleString('vi-VN')}K{t.pricing.perMonth}
+                              </div>
+                            )}
+                            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: 42, fontWeight: 900, color: 'var(--text)', lineHeight: 1 }}>
+                                {price.toLocaleString('vi-VN')}K
+                              </span>
+                              <span style={{ fontSize: 14, color: 'var(--text3)' }}>{t.pricing.perMonth}</span>
+                              {billingPeriod !== 'month' && (
+                                <span style={{ fontSize: 11, fontWeight: 800, background: 'rgba(204,244,86,0.15)', color: 'var(--lime)', border: '1px solid rgba(204,244,86,0.3)', borderRadius: 4, padding: '2px 7px' }}>
+                                  {billingPeriod === 'year1' ? '-20%' : billingPeriod === 'year3' ? '-30%' : '-40%'}
+                                </span>
+                              )}
+                            </div>
+                            {billingPeriod !== 'month' && yearlyTotal && (
                               <div style={{ fontSize: 12, color: 'var(--lime)', fontWeight: 600, marginTop: 4 }}>
-                                Tiết kiệm {yearSaved}K/năm
+                                {lang === 'en'
+                                  ? `Total: ${(yearlyTotal).toLocaleString('vi-VN')}K · Save ${(monthlySaving * 12 * (billingPeriod === 'year1' ? 1 : billingPeriod === 'year3' ? 3 : 5)).toLocaleString('vi-VN')}K vs monthly`
+                                  : `Tổng: ${(yearlyTotal).toLocaleString('vi-VN')}K · Tiết kiệm ${(monthlySaving * 12 * (billingPeriod === 'year1' ? 1 : billingPeriod === 'year3' ? 3 : 5)).toLocaleString('vi-VN')}K so với tháng`}
                               </div>
                             )}
                           </div>
 
                           {/* CTA */}
                           <a
-                            href={`/mua-goi?plan=${plan.key}&billing=${billingYear ? 'year' : 'month'}`}
+                            href={`/mua-goi?plan=${plan.key}&billing=${billingPeriod}`}
                             className={`btn btn-block ${isRec ? 'btn-teal' : 'btn-glass'}`}
-                            style={{ marginBottom: 22, justifyContent: 'center' }}
+                            style={{ marginBottom: 22, justifyContent: 'center', fontFamily: 'inherit' }}
                           >
                             {plan.cta}
                           </a>

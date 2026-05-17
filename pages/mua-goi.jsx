@@ -10,11 +10,11 @@ const PLANS_VI = {
     {
       id: 'ca-nhan',
       name: 'Cá nhân',
-      price: 200000,
-      priceLabel: '200.000đ',
+      price: 180000,
+      priceLabel: '180.000đ',
       period: '/tháng',
       desc: 'Dành cho cá nhân chạy ads',
-      features: ['1 Admin + 1 Nhân viên', '3 Sản phẩm', 'Theo dõi CPA cơ bản', 'Hỗ trợ Zalo'],
+      features: ['1 Admin + 1 Nhân viên', 'Không giới hạn tài khoản ads', 'Đồng bộ CPA cơ bản', 'Hỗ trợ Zalo'],
       recommended: false,
     },
     {
@@ -38,16 +38,18 @@ const PLANS_VI = {
       recommended: false,
     },
   ],
-  nam: [
+  nam1: [
     {
       id: 'ca-nhan',
       name: 'Cá nhân',
-      price: 1920000,
-      priceLabel: '1.920.000đ',
+      price: 1728000,
+      priceLabel: '1.728.000đ',
+      priceMonthly: '144.000đ/tháng',
       period: '/năm',
-      originalPrice: '2.400.000đ',
+      originalPrice: '2.160.000đ',
+      savingLabel: 'Tiết kiệm 432.000đ so với tháng',
       desc: 'Dành cho cá nhân chạy ads',
-      features: ['1 Admin + 1 Nhân viên', '3 Sản phẩm', 'Theo dõi CPA cơ bản', 'Hỗ trợ Zalo'],
+      features: ['1 Admin + 1 Nhân viên', 'Không giới hạn tài khoản ads', 'Đồng bộ CPA cơ bản', 'Hỗ trợ Zalo'],
       recommended: false,
     },
     {
@@ -55,8 +57,10 @@ const PLANS_VI = {
       name: 'Doanh nghiệp',
       price: 4800000,
       priceLabel: '4.800.000đ',
+      priceMonthly: '400.000đ/tháng',
       period: '/năm',
       originalPrice: '6.000.000đ',
+      savingLabel: 'Tiết kiệm 1.200.000đ so với tháng',
       desc: 'Phù hợp team 5–10 người',
       features: ['2 Admin + 5 Nhân viên', 'Không giới hạn sản phẩm', 'Báo cáo nâng cao', 'Cảnh báo tự động', 'Hỗ trợ ưu tiên'],
       recommended: true,
@@ -66,8 +70,98 @@ const PLANS_VI = {
       name: 'Agency',
       price: 11520000,
       priceLabel: '11.520.000đ',
+      priceMonthly: '960.000đ/tháng',
       period: '/năm',
       originalPrice: '14.400.000đ',
+      savingLabel: 'Tiết kiệm 2.880.000đ so với tháng',
+      desc: 'Cho agency & team lớn',
+      features: ['6 Admin', 'Không giới hạn nhân viên', 'Không giới hạn sản phẩm', 'Báo cáo agency', 'Onboarding riêng', 'SLA 24/7'],
+      recommended: false,
+    },
+  ],
+  nam3: [
+    {
+      id: 'ca-nhan',
+      name: 'Cá nhân',
+      price: 4536000,
+      priceLabel: '4.536.000đ',
+      priceMonthly: '126.000đ/tháng',
+      period: '/3 năm',
+      originalPrice: '6.480.000đ',
+      savingLabel: 'Tiết kiệm 1.944.000đ so với tháng',
+      fomoLabel: 'Còn 8 slot giá này',
+      desc: 'Dành cho cá nhân chạy ads',
+      features: ['1 Admin + 1 Nhân viên', 'Không giới hạn tài khoản ads', 'Đồng bộ CPA cơ bản', 'Hỗ trợ Zalo'],
+      recommended: false,
+    },
+    {
+      id: 'doanh-nghiep',
+      name: 'Doanh nghiệp',
+      price: 12600000,
+      priceLabel: '12.600.000đ',
+      priceMonthly: '350.000đ/tháng',
+      period: '/3 năm',
+      originalPrice: '18.000.000đ',
+      savingLabel: 'Tiết kiệm 5.400.000đ so với tháng',
+      fomoLabel: 'Còn 5 slot giá này',
+      desc: 'Phù hợp team 5–10 người',
+      features: ['2 Admin + 5 Nhân viên', 'Không giới hạn sản phẩm', 'Báo cáo nâng cao', 'Cảnh báo tự động', 'Hỗ trợ ưu tiên'],
+      recommended: true,
+    },
+    {
+      id: 'agency',
+      name: 'Agency',
+      price: 30240000,
+      priceLabel: '30.240.000đ',
+      priceMonthly: '840.000đ/tháng',
+      period: '/3 năm',
+      originalPrice: '43.200.000đ',
+      savingLabel: 'Tiết kiệm 12.960.000đ so với tháng',
+      fomoLabel: 'Còn 3 slot giá này',
+      desc: 'Cho agency & team lớn',
+      features: ['6 Admin', 'Không giới hạn nhân viên', 'Không giới hạn sản phẩm', 'Báo cáo agency', 'Onboarding riêng', 'SLA 24/7'],
+      recommended: false,
+    },
+  ],
+  nam5: [
+    {
+      id: 'ca-nhan',
+      name: 'Cá nhân',
+      price: 6480000,
+      priceLabel: '6.480.000đ',
+      priceMonthly: '108.000đ/tháng',
+      period: '/5 năm',
+      originalPrice: '10.800.000đ',
+      savingLabel: 'Tiết kiệm 4.320.000đ so với tháng',
+      fomoLabel: 'Còn 5 slot giá này',
+      desc: 'Dành cho cá nhân chạy ads',
+      features: ['1 Admin + 1 Nhân viên', 'Không giới hạn tài khoản ads', 'Đồng bộ CPA cơ bản', 'Hỗ trợ Zalo'],
+      recommended: false,
+    },
+    {
+      id: 'doanh-nghiep',
+      name: 'Doanh nghiệp',
+      price: 18000000,
+      priceLabel: '18.000.000đ',
+      priceMonthly: '300.000đ/tháng',
+      period: '/5 năm',
+      originalPrice: '30.000.000đ',
+      savingLabel: 'Tiết kiệm 12.000.000đ so với tháng',
+      fomoLabel: 'Còn 3 slot giá này',
+      desc: 'Phù hợp team 5–10 người',
+      features: ['2 Admin + 5 Nhân viên', 'Không giới hạn sản phẩm', 'Báo cáo nâng cao', 'Cảnh báo tự động', 'Hỗ trợ ưu tiên'],
+      recommended: true,
+    },
+    {
+      id: 'agency',
+      name: 'Agency',
+      price: 43200000,
+      priceLabel: '43.200.000đ',
+      priceMonthly: '720.000đ/tháng',
+      period: '/5 năm',
+      originalPrice: '72.000.000đ',
+      savingLabel: 'Tiết kiệm 28.800.000đ so với tháng',
+      fomoLabel: 'Còn 2 slot giá này',
       desc: 'Cho agency & team lớn',
       features: ['6 Admin', 'Không giới hạn nhân viên', 'Không giới hạn sản phẩm', 'Báo cáo agency', 'Onboarding riêng', 'SLA 24/7'],
       recommended: false,
@@ -79,9 +173,9 @@ const PLANS_VI = {
       name: 'Dùng thử',
       price: 0,
       priceLabel: 'Miễn phí',
-      period: '7 ngày',
+      period: '1 ngày',
       desc: 'Trải nghiệm toàn bộ tính năng',
-      features: ['Đầy đủ tính năng Doanh nghiệp', 'Không cần thẻ tín dụng', 'Hỗ trợ onboarding', 'Hết hạn sau 7 ngày'],
+      features: ['Đầy đủ tính năng Doanh nghiệp', 'Không cần thẻ tín dụng', 'Hỗ trợ onboarding', 'Hết hạn sau 1 ngày'],
       recommended: false,
     },
   ],
@@ -92,11 +186,11 @@ const PLANS_EN = {
     {
       id: 'ca-nhan',
       name: 'Personal',
-      price: 200000,
-      priceLabel: '200.000đ',
+      price: 180000,
+      priceLabel: '180.000đ',
       period: '/month',
       desc: 'For solo ads runners',
-      features: ['1 Admin + 1 Staff', '3 Products', 'Basic CPA tracking', 'Zalo support'],
+      features: ['1 Admin + 1 Staff', 'Unlimited ad accounts', 'Basic CPA sync', 'Zalo support'],
       recommended: false,
     },
     {
@@ -120,16 +214,18 @@ const PLANS_EN = {
       recommended: false,
     },
   ],
-  nam: [
+  nam1: [
     {
       id: 'ca-nhan',
       name: 'Personal',
-      price: 1920000,
-      priceLabel: '1.920.000đ',
+      price: 1728000,
+      priceLabel: '1.728.000đ',
+      priceMonthly: '144.000đ/mo',
       period: '/year',
-      originalPrice: '2.400.000đ',
+      originalPrice: '2.160.000đ',
+      savingLabel: 'Save 432.000đ vs monthly',
       desc: 'For solo ads runners',
-      features: ['1 Admin + 1 Staff', '3 Products', 'Basic CPA tracking', 'Zalo support'],
+      features: ['1 Admin + 1 Staff', 'Unlimited ad accounts', 'Basic CPA sync', 'Zalo support'],
       recommended: false,
     },
     {
@@ -137,8 +233,10 @@ const PLANS_EN = {
       name: 'Business',
       price: 4800000,
       priceLabel: '4.800.000đ',
+      priceMonthly: '400.000đ/mo',
       period: '/year',
       originalPrice: '6.000.000đ',
+      savingLabel: 'Save 1.200.000đ vs monthly',
       desc: 'Ideal for teams of 5–10',
       features: ['2 Admin + 5 Staff', 'Unlimited products', 'Advanced reports', 'Auto alerts', 'Priority support'],
       recommended: true,
@@ -148,8 +246,98 @@ const PLANS_EN = {
       name: 'Agency',
       price: 11520000,
       priceLabel: '11.520.000đ',
+      priceMonthly: '960.000đ/mo',
       period: '/year',
       originalPrice: '14.400.000đ',
+      savingLabel: 'Save 2.880.000đ vs monthly',
+      desc: 'For agencies & large teams',
+      features: ['6 Admin', 'Unlimited staff', 'Unlimited products', 'Agency reports', 'Private onboarding', 'SLA 24/7'],
+      recommended: false,
+    },
+  ],
+  nam3: [
+    {
+      id: 'ca-nhan',
+      name: 'Personal',
+      price: 4536000,
+      priceLabel: '4.536.000đ',
+      priceMonthly: '126.000đ/mo',
+      period: '/3 years',
+      originalPrice: '6.480.000đ',
+      savingLabel: 'Save 1.944.000đ vs monthly',
+      fomoLabel: '8 slots left at this price',
+      desc: 'For solo ads runners',
+      features: ['1 Admin + 1 Staff', 'Unlimited ad accounts', 'Basic CPA sync', 'Zalo support'],
+      recommended: false,
+    },
+    {
+      id: 'doanh-nghiep',
+      name: 'Business',
+      price: 12600000,
+      priceLabel: '12.600.000đ',
+      priceMonthly: '350.000đ/mo',
+      period: '/3 years',
+      originalPrice: '18.000.000đ',
+      savingLabel: 'Save 5.400.000đ vs monthly',
+      fomoLabel: '5 slots left at this price',
+      desc: 'Ideal for teams of 5–10',
+      features: ['2 Admin + 5 Staff', 'Unlimited products', 'Advanced reports', 'Auto alerts', 'Priority support'],
+      recommended: true,
+    },
+    {
+      id: 'agency',
+      name: 'Agency',
+      price: 30240000,
+      priceLabel: '30.240.000đ',
+      priceMonthly: '840.000đ/mo',
+      period: '/3 years',
+      originalPrice: '43.200.000đ',
+      savingLabel: 'Save 12.960.000đ vs monthly',
+      fomoLabel: '3 slots left at this price',
+      desc: 'For agencies & large teams',
+      features: ['6 Admin', 'Unlimited staff', 'Unlimited products', 'Agency reports', 'Private onboarding', 'SLA 24/7'],
+      recommended: false,
+    },
+  ],
+  nam5: [
+    {
+      id: 'ca-nhan',
+      name: 'Personal',
+      price: 6480000,
+      priceLabel: '6.480.000đ',
+      priceMonthly: '108.000đ/mo',
+      period: '/5 years',
+      originalPrice: '10.800.000đ',
+      savingLabel: 'Save 4.320.000đ vs monthly',
+      fomoLabel: '5 slots left at this price',
+      desc: 'For solo ads runners',
+      features: ['1 Admin + 1 Staff', 'Unlimited ad accounts', 'Basic CPA sync', 'Zalo support'],
+      recommended: false,
+    },
+    {
+      id: 'doanh-nghiep',
+      name: 'Business',
+      price: 18000000,
+      priceLabel: '18.000.000đ',
+      priceMonthly: '300.000đ/mo',
+      period: '/5 years',
+      originalPrice: '30.000.000đ',
+      savingLabel: 'Save 12.000.000đ vs monthly',
+      fomoLabel: '3 slots left at this price',
+      desc: 'Ideal for teams of 5–10',
+      features: ['2 Admin + 5 Staff', 'Unlimited products', 'Advanced reports', 'Auto alerts', 'Priority support'],
+      recommended: true,
+    },
+    {
+      id: 'agency',
+      name: 'Agency',
+      price: 43200000,
+      priceLabel: '43.200.000đ',
+      priceMonthly: '720.000đ/mo',
+      period: '/5 years',
+      originalPrice: '72.000.000đ',
+      savingLabel: 'Save 28.800.000đ vs monthly',
+      fomoLabel: '2 slots left at this price',
       desc: 'For agencies & large teams',
       features: ['6 Admin', 'Unlimited staff', 'Unlimited products', 'Agency reports', 'Private onboarding', 'SLA 24/7'],
       recommended: false,
@@ -161,9 +349,9 @@ const PLANS_EN = {
       name: 'Free Trial',
       price: 0,
       priceLabel: 'Free',
-      period: '7 days',
+      period: '1 day',
       desc: 'Experience all features',
-      features: ['Full Business features', 'No credit card needed', 'Onboarding support', 'Expires after 7 days'],
+      features: ['Full Business features', 'No credit card needed', 'Onboarding support', 'Expires after 1 day'],
       recommended: false,
     },
   ],
@@ -184,7 +372,7 @@ const FAQS_VI = [
   },
   {
     q: 'Có hoàn tiền nếu không hài lòng không?',
-    a: 'Chúng tôi có gói dùng thử 7 ngày miễn phí để bạn trải nghiệm trước. Sau khi mua, chúng tôi không hỗ trợ hoàn tiền. Vui lòng dùng thử kỹ trước khi quyết định.',
+    a: 'Chúng tôi có gói dùng thử 1 ngày miễn phí để bạn trải nghiệm trước. Sau khi mua, chúng tôi không hỗ trợ hoàn tiền. Vui lòng dùng thử kỹ trước khi quyết định.',
   },
 ]
 
@@ -203,7 +391,7 @@ const FAQS_EN = [
   },
   {
     q: 'Is there a refund if I am not satisfied?',
-    a: 'We offer a free 7-day trial so you can test everything before purchasing. After purchase, we do not support refunds. Please use the trial thoroughly before deciding.',
+    a: 'We offer a free 1-day trial so you can test everything before purchasing. After purchase, we do not support refunds. Please use the trial thoroughly before deciding.',
   },
 ]
 
@@ -245,7 +433,7 @@ export default function MuaGoi() {
   const FAQS = isEN ? FAQS_EN : FAQS_VI
 
   const [step, setStep] = useState(1)
-  const [billingTab, setBillingTab] = useState('thang')
+  const [billingTab, setBillingTab] = useState('thang') // 'thang' | 'nam1' | 'nam3' | 'nam5' | 'trial'
   const [selectedPlan, setSelectedPlan] = useState('doanh-nghiep')
   const [form, setForm] = useState({ hoTen: '', sdt: '', email: '', tenShop: '', maGioiThieu: '' })
   const [errors, setErrors] = useState({})
@@ -322,20 +510,28 @@ export default function MuaGoi() {
   const billingTabs = isEN
     ? [
         { key: 'thang', label: 'Monthly' },
-        { key: 'nam', label: 'Yearly' },
-        { key: 'trial', label: '7-day Trial' },
+        { key: 'nam1', label: '1 Year (-20%)' },
+        { key: 'nam3', label: '3 Years (-30%)' },
+        { key: 'nam5', label: '5 Years (-40%)' },
+        { key: 'trial', label: '1-day Trial' },
       ]
     : [
         { key: 'thang', label: 'Theo tháng' },
-        { key: 'nam', label: 'Theo năm' },
-        { key: 'trial', label: 'Dùng thử 7 ngày' },
+        { key: 'nam1', label: 'Theo năm (-20%)' },
+        { key: 'nam3', label: '3 năm (-30%)' },
+        { key: 'nam5', label: '5 năm (-40%)' },
+        { key: 'trial', label: 'Dùng thử 1 ngày' },
       ]
 
   const summaryBillingLabel = billingTab === 'thang'
     ? (isEN ? 'Monthly' : 'Theo tháng')
-    : billingTab === 'nam'
-      ? (isEN ? 'Yearly' : 'Theo năm')
-      : (isEN ? 'Trial' : 'Dùng thử')
+    : billingTab === 'nam1'
+      ? (isEN ? '1 Year' : '1 năm')
+      : billingTab === 'nam3'
+        ? (isEN ? '3 Years' : '3 năm')
+        : billingTab === 'nam5'
+          ? (isEN ? '5 Years' : '5 năm')
+          : (isEN ? 'Trial' : 'Dùng thử')
 
   const bankRows = [
     { label: isEN ? 'Bank' : 'Ngân hàng', value: 'MB Bank (Ngân hàng Quân đội)', highlight: false },
@@ -467,29 +663,26 @@ export default function MuaGoi() {
                 {/* Billing tabs */}
                 <div style={{ marginBottom: 20 }}>
                   <div style={{ display: 'flex', background: 'var(--gray)', borderRadius: 12, padding: 4, gap: 4, marginBottom: 20, flexWrap: 'wrap' }}>
-                    {billingTabs.map(t => (
+                    {billingTabs.map(tab => (
                       <button
-                        key={t.key}
+                        key={tab.key}
                         onClick={() => {
-                          setBillingTab(t.key)
-                          if (!PLANS[t.key].find(p => p.id === selectedPlan)) {
-                            setSelectedPlan(PLANS[t.key][0].id)
+                          setBillingTab(tab.key)
+                          if (!PLANS[tab.key].find(p => p.id === selectedPlan)) {
+                            setSelectedPlan(PLANS[tab.key][0].id)
                           }
                         }}
                         style={{
-                          flex: 1, padding: '10px 12px', borderRadius: 9, border: 'none',
-                          cursor: 'pointer', fontWeight: 700, fontSize: 13,
+                          flex: 1, padding: '10px 10px', borderRadius: 9, border: 'none',
+                          cursor: 'pointer', fontWeight: 700, fontSize: 12,
                           fontFamily: 'inherit',
-                          background: billingTab === t.key ? 'var(--navy)' : 'transparent',
-                          color: billingTab === t.key ? '#fff' : '#64748b',
+                          background: billingTab === tab.key ? 'var(--navy)' : 'transparent',
+                          color: billingTab === tab.key ? '#fff' : '#64748b',
                           transition: 'all 0.2s', whiteSpace: 'nowrap',
                           position: 'relative',
                         }}
                       >
-                        {t.key === 'nam'
-                          ? <span>{t.label} <span style={{ background: '#22c55e', color: '#fff', borderRadius: 6, padding: '2px 7px', fontSize: 11, marginLeft: 4, fontWeight: 700 }}>−20%</span></span>
-                          : t.label
-                        }
+                        {tab.label}
                       </button>
                     ))}
                   </div>
@@ -547,7 +740,22 @@ export default function MuaGoi() {
                             color: plan.price === 0 ? '#22c55e' : 'var(--orange)',
                           }}>{plan.priceLabel}</span>
                           <span style={{ color: '#64748b', fontSize: 12 }}> {plan.period}</span>
+                          {plan.priceMonthly && (
+                            <div style={{ fontSize: 12, color: '#0c2a72', fontWeight: 600, marginTop: 2 }}>
+                              ≈ {plan.priceMonthly}
+                            </div>
+                          )}
                         </div>
+                        {plan.savingLabel && (
+                          <div style={{ fontSize: 11, color: '#16a34a', fontWeight: 700, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 6, padding: '3px 8px', marginBottom: 6, display: 'inline-block' }}>
+                            🎉 {plan.savingLabel}
+                          </div>
+                        )}
+                        {plan.fomoLabel && (
+                          <div style={{ fontSize: 11, color: '#dc2626', fontWeight: 700, background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 6, padding: '3px 8px', marginBottom: 6, display: 'inline-block', marginLeft: 4 }}>
+                            🔥 {plan.fomoLabel}
+                          </div>
+                        )}
                         <p style={{ color: '#64748b', fontSize: 12, margin: '0 0 12px' }}>{plan.desc}</p>
                         <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                           {plan.features.map(f => (

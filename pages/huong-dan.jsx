@@ -342,7 +342,7 @@ export default function HuongDan() {
           }}>
             <div style={{
               fontSize: 11, fontWeight: 800,
-              color: 'var(--text3)',
+              color: '#94a3b8',
               padding: '0 20px 14px',
               textTransform: 'uppercase', letterSpacing: '0.7px',
             }}>
@@ -357,17 +357,17 @@ export default function HuongDan() {
                   width: '100%', padding: '10px 20px',
                   border: 'none', cursor: 'pointer',
                   fontSize: 13.5, fontWeight: active === s.id ? 700 : 500,
-                  color: active === s.id ? 'var(--navy)' : '#64748b',
-                  background: active === s.id ? 'rgba(12,42,114,0.08)' : 'transparent',
-                  borderLeft: active === s.id ? '3px solid var(--orange)' : '3px solid transparent',
+                  color: active === s.id ? '#0c2a72' : '#64748b',
+                  background: active === s.id ? 'rgba(12,42,114,0.07)' : 'transparent',
+                  borderLeft: active === s.id ? '3px solid #0c2a72' : '3px solid transparent',
                   transition: 'all 0.15s', lineHeight: 1.45,
                   textAlign: 'left', fontFamily: 'inherit',
                 }}
               >
                 <span style={{
                   width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
-                  background: active === s.id ? 'var(--orange)' : 'var(--gray)',
-                  color: active === s.id ? '#fff' : 'var(--text3)',
+                  background: active === s.id ? '#0c2a72' : '#e2e8f0',
+                  color: active === s.id ? '#fff' : '#64748b',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 11, fontWeight: 800,
                   transition: 'all 0.15s',

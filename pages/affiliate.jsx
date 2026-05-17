@@ -10,15 +10,15 @@ const API_AFFILIATE = 'https://go-meta-ads-backend.vercel.app/api/affiliate'
 // ─── COMMISSION CARDS ─────────────────────────────────────────────────────────
 const COMMISSION_CARDS_VI = [
   { pct: '5%', label: 'Gói Cá nhân', sub: 'Tháng đầu tiên', color: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe' },
-  { pct: '7%', label: 'Gói Doanh nghiệp', sub: 'Tháng đầu tiên', color: 'var(--navy)', bg: '#f0f4ff', border: '#c7d7ff' },
-  { pct: '9%', label: 'Gói Agency', sub: 'Tháng đầu tiên', color: 'var(--orange)', bg: '#fff5f0', border: '#fed7aa' },
+  { pct: '7%', label: 'Gói Doanh nghiệp', sub: 'Tháng đầu tiên', color: '#0c2a72', bg: '#f0f4ff', border: '#c7d7ff' },
+  { pct: '9%', label: 'Gói Agency', sub: 'Tháng đầu tiên', color: '#fe5f01', bg: '#fff5f0', border: '#fed7aa' },
   { pct: '3%', label: 'Gia hạn', sub: 'Mỗi lần gia hạn', color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' },
 ]
 
 const COMMISSION_CARDS_EN = [
   { pct: '5%', label: 'Personal Plan', sub: 'First month', color: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe' },
-  { pct: '7%', label: 'Business Plan', sub: 'First month', color: 'var(--navy)', bg: '#f0f4ff', border: '#c7d7ff' },
-  { pct: '9%', label: 'Agency Plan', sub: 'First month', color: 'var(--orange)', bg: '#fff5f0', border: '#fed7aa' },
+  { pct: '7%', label: 'Business Plan', sub: 'First month', color: '#0c2a72', bg: '#f0f4ff', border: '#c7d7ff' },
+  { pct: '9%', label: 'Agency Plan', sub: 'First month', color: '#fe5f01', bg: '#fff5f0', border: '#fed7aa' },
   { pct: '3%', label: 'Renewal', sub: 'Each renewal', color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' },
 ]
 
@@ -86,7 +86,7 @@ function RegisterForm({ isEN }) {
           <div style={{ maxWidth: 640, margin: '0 auto' }}>
             <div className="card" style={{ padding: 'clamp(28px,4vw,44px)' }}>
               <div style={{ marginBottom: 24 }}>
-                <h2 style={{ color: 'var(--navy)', fontWeight: 900, fontSize: 24, margin: '0 0 10px' }}>
+                <h2 style={{ color: '#0c2a72', fontWeight: 900, fontSize: 24, margin: '0 0 10px' }}>
                   📋 {isEN ? 'Register as Affiliate' : 'Đăng ký Affiliate'}
                 </h2>
                 <div style={{
@@ -105,16 +105,16 @@ function RegisterForm({ isEN }) {
 
               <form onSubmit={handleSubmit}>
                 {/* Personal info section */}
-                <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid var(--gray2)' }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid #e2e8f0' }}>
                   {isEN ? 'Personal Information' : 'Thông tin cá nhân'}
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">
-                    {isEN ? 'Your Key' : 'Key của bạn'} <span style={{ color: 'var(--orange)' }}>*</span>
+                  <label className="form-label" style={{ color: '#0c2a72' }}>
+                    {isEN ? 'Your Key' : 'Key của bạn'} <span style={{ color: '#fe5f01' }}>*</span>
                   </label>
-                  <input className="form-input" type="text" placeholder="GMAP-XXXX-XXXX-XXXX" value={form.key} onChange={set('key')} required />
-                  <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>
+                  <input className="form-input" type="text" placeholder="GMAP-XXXX-XXXX-XXXX" value={form.key} onChange={set('key')} required style={{ color: '#1a2332' }} />
+                  <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
                     {isEN
                       ? 'Admin key you purchased — used to verify affiliate eligibility'
                       : 'Key admin đã mua — dùng để xác minh tư cách affiliate'}
@@ -122,8 +122,8 @@ function RegisterForm({ isEN }) {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">
-                    {isEN ? 'Full Name' : 'Họ và tên'} <span style={{ color: 'var(--orange)' }}>*</span>
+                  <label className="form-label" style={{ color: '#0c2a72' }}>
+                    {isEN ? 'Full Name' : 'Họ và tên'} <span style={{ color: '#fe5f01' }}>*</span>
                   </label>
                   <input
                     className="form-input"
@@ -132,13 +132,14 @@ function RegisterForm({ isEN }) {
                     value={form.name}
                     onChange={set('name')}
                     required
+                    style={{ color: '#1a2332' }}
                   />
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }} className="two-col">
                   <div className="form-group">
-                    <label className="form-label">
-                      {isEN ? 'Phone Number' : 'Số điện thoại'} <span style={{ color: 'var(--orange)' }}>*</span>
+                    <label className="form-label" style={{ color: '#0c2a72' }}>
+                      {isEN ? 'Phone Number' : 'Số điện thoại'} <span style={{ color: '#fe5f01' }}>*</span>
                     </label>
                     <input
                       className="form-input"
@@ -147,40 +148,43 @@ function RegisterForm({ isEN }) {
                       value={form.phone}
                       onChange={set('phone')}
                       required
+                      style={{ color: '#1a2332' }}
                     />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Email</label>
+                    <label className="form-label" style={{ color: '#0c2a72' }}>Email</label>
                     <input
                       className="form-input"
                       type="email"
                       placeholder={isEN ? 'name@email.com' : 'ten@email.com'}
                       value={form.email}
                       onChange={set('email')}
+                      style={{ color: '#1a2332' }}
                     />
                   </div>
                 </div>
 
                 {/* Bank info section */}
-                <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.6px', marginTop: 8, marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid var(--gray2)' }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.6px', marginTop: 8, marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid #e2e8f0' }}>
                   {isEN ? 'Bank Details for Receiving Commission' : 'Thông tin ngân hàng nhận tiền'}
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">{isEN ? 'Bank Name' : 'Tên ngân hàng'}</label>
+                  <label className="form-label" style={{ color: '#0c2a72' }}>{isEN ? 'Bank Name' : 'Tên ngân hàng'}</label>
                   <input
                     className="form-input"
                     type="text"
                     placeholder={isEN ? 'e.g. Vietcombank, MB Bank, Techcombank...' : 'VD: Vietcombank, MB Bank, Techcombank...'}
                     value={form.bank_name}
                     onChange={set('bank_name')}
+                    style={{ color: '#1a2332' }}
                   />
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }} className="two-col">
                   <div className="form-group">
-                    <label className="form-label">
-                      {isEN ? 'Account Number' : 'Số tài khoản'} <span style={{ color: 'var(--orange)' }}>*</span>
+                    <label className="form-label" style={{ color: '#0c2a72' }}>
+                      {isEN ? 'Account Number' : 'Số tài khoản'} <span style={{ color: '#fe5f01' }}>*</span>
                     </label>
                     <input
                       className="form-input"
@@ -189,11 +193,12 @@ function RegisterForm({ isEN }) {
                       value={form.bank_account}
                       onChange={set('bank_account')}
                       required
+                      style={{ color: '#1a2332' }}
                     />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">
-                      {isEN ? 'Account Holder Name' : 'Tên chủ tài khoản'} <span style={{ color: 'var(--orange)' }}>*</span>
+                    <label className="form-label" style={{ color: '#0c2a72' }}>
+                      {isEN ? 'Account Holder Name' : 'Tên chủ tài khoản'} <span style={{ color: '#fe5f01' }}>*</span>
                     </label>
                     <input
                       className="form-input"
@@ -202,8 +207,9 @@ function RegisterForm({ isEN }) {
                       value={form.bank_owner}
                       onChange={set('bank_owner')}
                       required
+                      style={{ color: '#1a2332' }}
                     />
-                    <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>
+                    <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
                       {isEN ? 'UPPERCASE without accents' : 'Viết IN HOA không dấu'}
                     </div>
                   </div>
@@ -240,7 +246,7 @@ function RegisterForm({ isEN }) {
                   </div>
                   <div style={{
                     fontFamily: 'monospace', fontWeight: 900, fontSize: 26,
-                    color: 'var(--navy)', background: 'rgba(12,42,114,0.08)',
+                    color: '#0c2a72', background: 'rgba(12,42,114,0.08)',
                     padding: '12px 28px', borderRadius: 10,
                     display: 'inline-block', letterSpacing: '3px',
                     border: '1px solid rgba(12,42,114,0.15)',
@@ -249,7 +255,7 @@ function RegisterForm({ isEN }) {
                   </div>
                   <div style={{ color: '#64748b', fontSize: 13, marginTop: 14 }}>
                     {isEN ? 'Your link:' : 'Link của bạn:'}{' '}
-                    <strong style={{ color: 'var(--navy)' }}>
+                    <strong style={{ color: '#0c2a72' }}>
                       adsmeta.gonetwork.vn?ref={success.referral_code}
                     </strong>
                   </div>
@@ -489,9 +495,9 @@ export default function Affiliate() {
         <div className="container">
           <Reveal>
             <div className="section-header">
-              <div className="badge">💰 {isEN ? 'Commission Rates' : 'Tỉ lệ hoa hồng'}</div>
-              <h2>{isEN ? 'Attractive commissions, automatic payouts' : 'Hoa hồng hấp dẫn, tự động thanh toán'}</h2>
-              <p>{isEN
+              <div className="badge" style={{ color: '#0c2a72', background: 'rgba(12,42,114,0.08)', border: '1px solid rgba(12,42,114,0.15)' }}>💰 {isEN ? 'Commission Rates' : 'Tỉ lệ hoa hồng'}</div>
+              <h2 style={{ color: '#0c2a72' }}>{isEN ? 'Attractive commissions, automatic payouts' : 'Hoa hồng hấp dẫn, tự động thanh toán'}</h2>
+              <p style={{ color: '#64748b' }}>{isEN
                 ? 'Commission calculated per plan purchased — paid monthly via bank transfer.'
                 : 'Hoa hồng tính theo từng gói khách mua — thanh toán hàng tháng qua chuyển khoản ngân hàng.'}</p>
             </div>
@@ -513,7 +519,7 @@ export default function Affiliate() {
                     lineHeight: 1, marginBottom: 14,
                   }}>{c.pct}</div>
                   <div style={{ fontWeight: 800, color: '#1a2332', fontSize: 15, marginBottom: 4 }}>{c.label}</div>
-                  <div style={{ fontSize: 13, color: '#64748b' }}>{c.sub}</div>
+                  <div style={{ fontSize: 13, color: '#64748b', fontWeight: 500 }}>{c.sub}</div>
                 </div>
               </Reveal>
             ))}
