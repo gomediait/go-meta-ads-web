@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import { checkAdminAuth, adminLogout } from '../../lib/adminAuth'
+import { uploadImage } from '../../lib/uploadImage'
 
 const API = 'https://go-meta-ads-backend.vercel.app'
 
@@ -1259,19 +1260,118 @@ function AffiliateTab() {
   )
 }
 
+// ─── TICKET IMAGE GRID (admin) ────────────────────────────────────────────────
+function TicketImageGrid({ urls, onRemove }) {
+  const [fullImg, setFullImg] = useState(null)
+  if (!urls || urls.length === 0) return null
+  return (
+    <>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+        {urls.map((u, i) => {
+          const src = typeof u === 'string' ? u : (u.thumbnail || u.url)
+          const full = typeof u === 'string' ? u : u.url
+          return (
+            <div key={i} style={{ position: 'relative' }}>
+              <img
+                src={src}
+                alt=""
+                onClick={() => setFullImg(full)}
+                style={{
+                  width: 80, height: 80,
+                  objectFit: 'cover',
+                  borderRadius: 6,
+                  border: '1px solid #e2e8f0',
+                  cursor: 'pointer',
+                }}
+              />
+              {onRemove && (
+                <button
+                  onClick={() => onRemove(i)}
+                  style={{
+                    position: 'absolute', top: -6, right: -6,
+                    width: 18, height: 18,
+                    background: '#ef4444',
+                    border: 'none',
+                    borderRadius: '50%',
+                    color: '#fff',
+                    fontSize: 10,
+                    cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontFamily: 'inherit',
+                    padding: 0,
+                    lineHeight: 1,
+                  }}
+                >✕</button>
+              )}
+            </div>
+          )
+        })}
+      </div>
+      {fullImg && (
+        <div
+          onClick={() => setFullImg(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            background: 'rgba(0,0,0,0.85)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'zoom-out',
+          }}
+        >
+          <img src={fullImg} alt="" style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 8 }} />
+        </div>
+      )}
+    </>
+  )
+}
+
+// ─── TICKET STATUS BADGE (admin) ──────────────────────────────────────────────
+function TicketStatusBadge({ status }) {
+  const map = {
+    open:        { bg: '#fee2e2', color: '#b91c1c', label: 'Mở' },
+    in_progress: { bg: '#fef3c7', color: '#92400e', label: 'Đang xử lý' },
+    resolved:    { bg: '#d1fae5', color: '#065f46', label: 'Đã giải quyết' },
+    closed:      { bg: '#f1f5f9', color: '#475569', label: 'Đã đóng' },
+  }
+  const s = map[status] || { bg: '#f1f5f9', color: '#475569', label: status || 'N/A' }
+  return (
+    <span style={{
+      display: 'inline-block',
+      padding: '3px 10px',
+      borderRadius: 999,
+      fontSize: 11,
+      fontWeight: 700,
+      background: s.bg,
+      color: s.color,
+      whiteSpace: 'nowrap',
+    }}>
+      {s.label}
+    </span>
+  )
+}
+
 // ─── TICKETS TAB ──────────────────────────────────────────────────────────────
 function TicketsTab() {
   const [tickets, setTickets] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [expandedRow, setExpandedRow] = useState(null)
-  const [updating, setUpdating] = useState(null)
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [expandedId, setExpandedId] = useState(null)
+
+  // Per-ticket reply state
+  const [replyText, setReplyText] = useState({})        // id → text
+  const [replyImages, setReplyImages] = useState({})    // id → [{url, thumbnail}]
+  const [replyUploading, setReplyUploading] = useState({}) // id → bool
+  const [replyLoading, setReplyLoading] = useState({})  // id → bool
+  const [toast, setToast] = useState('')
+
+  // Detail store: id → ticket detail with replies
+  const [details, setDetails] = useState({})
 
   async function load() {
     setLoading(true)
     setError('')
     try {
-      const res = await apiPost('/api/ticket', { action: 'list', limit: 50 })
+      const res = await apiPost('/api/ticket', { action: 'list', limit: 100 })
       const data = res?.tickets || res?.data || []
       setTickets(data)
     } catch (e) {
@@ -1283,104 +1383,459 @@ function TicketsTab() {
 
   useEffect(() => { load() }, [])
 
+  async function fetchDetail(id) {
+    try {
+      const res = await apiPost('/api/ticket', { action: 'get', ticket_id: id })
+      const t = res?.ticket || res?.data
+      if (t) setDetails(prev => ({ ...prev, [id]: t }))
+    } catch {}
+  }
+
+  async function handleExpand(t) {
+    const id = t.id
+    if (expandedId === id) {
+      setExpandedId(null)
+      return
+    }
+    setExpandedId(id)
+    if (!details[id]) await fetchDetail(id)
+  }
+
   async function updateStatus(id, newStatus) {
-    setUpdating(id)
     try {
       await apiPost('/api/ticket', { action: 'update', id, status: newStatus })
       setTickets(prev => prev.map(t => t.id === id ? { ...t, status: newStatus } : t))
+      if (details[id]) setDetails(prev => ({ ...prev, [id]: { ...prev[id], status: newStatus } }))
     } catch (e) {
       alert('Lỗi cập nhật: ' + e.message)
-    } finally {
-      setUpdating(null)
     }
   }
 
-  const nextStatus = { open: 'in_progress', in_progress: 'resolved' }
-  const nextLabel = { open: '▶ Xử lý', in_progress: '✓ Giải quyết' }
+  async function handleImageUpload(id, e) {
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return
+    setReplyUploading(prev => ({ ...prev, [id]: true }))
+    try {
+      const existing = replyImages[id] || []
+      const slots = Math.min(files.length, 3 - existing.length)
+      const uploaded = await Promise.all(files.slice(0, slots).map(f => uploadImage(f)))
+      setReplyImages(prev => ({ ...prev, [id]: [...(prev[id] || []), ...uploaded].slice(0, 3) }))
+    } catch (err) {
+      alert('Upload ảnh thất bại: ' + err.message)
+    } finally {
+      setReplyUploading(prev => ({ ...prev, [id]: false }))
+      e.target.value = ''
+    }
+  }
+
+  async function handleSendReply(id) {
+    const msg = (replyText[id] || '').trim()
+    const imgs = replyImages[id] || []
+    if (!msg && imgs.length === 0) return
+    setReplyLoading(prev => ({ ...prev, [id]: true }))
+    try {
+      await apiPost('/api/ticket', {
+        action: 'reply',
+        ticket_id: id,
+        role: 'admin',
+        message: msg,
+        image_urls: imgs.map(u => u.url),
+      })
+      setReplyText(prev => ({ ...prev, [id]: '' }))
+      setReplyImages(prev => ({ ...prev, [id]: [] }))
+      await fetchDetail(id)
+      setToast('Đã gửi phản hồi!')
+      setTimeout(() => setToast(''), 2500)
+    } catch (e) {
+      alert('Gửi lỗi: ' + e.message)
+    } finally {
+      setReplyLoading(prev => ({ ...prev, [id]: false }))
+    }
+  }
+
+  const filtered = statusFilter === 'all'
+    ? tickets
+    : tickets.filter(t => t.status === statusFilter)
 
   const thStyle = { padding: '10px 12px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap' }
   const tdStyle = { padding: '10px 12px', fontSize: 12, color: '#1a2332', verticalAlign: 'middle' }
 
+  const FILTER_TABS = [
+    { id: 'all', label: 'Tất cả' },
+    { id: 'open', label: 'open' },
+    { id: 'in_progress', label: 'in_progress' },
+    { id: 'resolved', label: 'resolved' },
+    { id: 'closed', label: 'closed' },
+  ]
+
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+      {/* Toast */}
+      {toast && (
+        <div style={{
+          position: 'fixed', top: 20, right: 20, zIndex: 9999,
+          background: '#10b981', color: '#fff',
+          padding: '10px 20px', borderRadius: 8, fontWeight: 700, fontSize: 13,
+          boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+        }}>
+          {toast}
+        </div>
+      )}
+
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
         <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#1a2332' }}>🎫 Tickets hỗ trợ</h2>
-        <button onClick={load} style={{ padding: '8px 14px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', color: '#64748b', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+        <button
+          onClick={load}
+          style={{ padding: '8px 14px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', color: '#64748b', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
+        >
           🔄 Làm mới
         </button>
+      </div>
+
+      {/* Filter tabs */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
+        {FILTER_TABS.map(f => (
+          <button
+            key={f.id}
+            onClick={() => setStatusFilter(f.id)}
+            style={{
+              padding: '6px 14px',
+              border: statusFilter === f.id ? 'none' : '1px solid #e2e8f0',
+              borderRadius: 20,
+              background: statusFilter === f.id ? '#0c2a72' : '#fff',
+              color: statusFilter === f.id ? '#fff' : '#64748b',
+              fontSize: 12,
+              fontWeight: statusFilter === f.id ? 700 : 500,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
+            {f.label}
+            {f.id !== 'all' && (
+              <span style={{ marginLeft: 4, fontSize: 11, opacity: 0.8 }}>
+                ({tickets.filter(t => t.status === f.id).length})
+              </span>
+            )}
+            {f.id === 'all' && (
+              <span style={{ marginLeft: 4, fontSize: 11, opacity: 0.8 }}>({tickets.length})</span>
+            )}
+          </button>
+        ))}
       </div>
 
       <ErrorBox msg={error} />
 
       {loading ? <Spinner /> : (
         <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 1px 8px rgba(0,0,0,0.07)', overflow: 'hidden' }}>
-          {tickets.length === 0 ? <EmptyState icon="🎫" text="Chưa có ticket nào" /> : (
+          {filtered.length === 0 ? <EmptyState icon="🎫" text="Không có ticket nào" /> : (
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 800 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 960 }}>
                 <thead>
                   <tr style={{ background: '#0c2a72' }}>
-                    {['ID', 'Key', 'SĐT', 'Email', 'Loại', 'Mô tả', 'Trạng thái', 'Ngày', 'Hành động'].map(h => (
+                    {['ID', 'Key', 'SĐT', 'Email', 'Loại', 'Mô tả', 'Ảnh', 'Trạng thái', 'Ngày', 'Thao tác'].map(h => (
                       <th key={h} style={thStyle}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {tickets.map((t, i) => {
-                    const isExpanded = expandedRow === (t.id || i)
+                  {filtered.map((t, i) => {
+                    const isExpanded = expandedId === t.id
+                    const detail = details[t.id]
+                    const replies = detail?.replies || detail?.messages || []
+                    const isClosed = (detail?.status || t.status) === 'closed'
+                    const desc = t.description || t.message || ''
+                    const imgUrls = t.image_urls || []
+                    const curStatus = detail?.status || t.status || 'open'
+
                     return [
                       <tr
                         key={t.id || i}
-                        onClick={() => setExpandedRow(isExpanded ? null : (t.id || i))}
-                        style={{ background: i % 2 === 0 ? '#fff' : '#f8faff', cursor: 'pointer' }}
+                        onClick={() => handleExpand(t)}
+                        style={{
+                          background: i % 2 === 0 ? '#fff' : '#f8faff',
+                          cursor: 'pointer',
+                          borderBottom: isExpanded ? 'none' : undefined,
+                        }}
                         onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,199,222,0.04)'}
                         onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? '#fff' : '#f8faff'}
                       >
                         <td style={{ ...tdStyle, fontFamily: 'monospace', fontSize: 11, color: '#64748b' }}>
                           {(t.id || '').slice(0, 8)}
                         </td>
-                        <td style={{ ...tdStyle, color: '#00c7de', fontFamily: 'monospace', fontSize: 11 }}>{t.license_key || t.key || '—'}</td>
+                        <td style={{ ...tdStyle, color: '#00c7de', fontFamily: 'monospace', fontSize: 11 }}>
+                          {t.license_key || t.key || '—'}
+                        </td>
                         <td style={tdStyle}>{t.phone || '—'}</td>
                         <td style={{ ...tdStyle, fontSize: 11 }}>{t.email || '—'}</td>
-                        <td style={tdStyle}>{t.type || t.category || '—'}</td>
-                        <td style={{ ...tdStyle, maxWidth: 200 }}>
-                          <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 200 }}>
-                            {(t.description || t.message || '').slice(0, 80)}{(t.description || t.message || '').length > 80 ? '...' : ''}
+                        <td style={{ ...tdStyle, fontSize: 11 }}>{t.issue_type || t.type || t.category || '—'}</td>
+                        <td style={{ ...tdStyle, maxWidth: 180 }}>
+                          <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 180 }}>
+                            {desc.slice(0, 60)}{desc.length > 60 ? '...' : ''}
                           </span>
                         </td>
-                        <td style={tdStyle}><Badge status={t.status || 'open'} /></td>
+                        <td style={tdStyle}>
+                          {imgUrls.length > 0 ? (
+                            <span style={{ fontSize: 11, color: '#00c7de', fontWeight: 600 }}>
+                              🖼 {imgUrls.length}
+                            </span>
+                          ) : '—'}
+                        </td>
+                        <td style={tdStyle}><TicketStatusBadge status={curStatus} /></td>
                         <td style={{ ...tdStyle, fontSize: 11, color: '#94a3b8', whiteSpace: 'nowrap' }}>
                           {t.created_at ? new Date(t.created_at).toLocaleDateString('vi-VN') : '—'}
                         </td>
-                        <td style={tdStyle} onClick={e => e.stopPropagation()}>
-                          {nextStatus[t.status] && (
+                        <td style={{ ...tdStyle, whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()}>
+                          {/* Status dropdown */}
+                          <select
+                            value={curStatus}
+                            onChange={e => updateStatus(t.id, e.target.value)}
+                            style={{
+                              padding: '4px 6px',
+                              border: '1px solid #e2e8f0',
+                              borderRadius: 6,
+                              fontSize: 11,
+                              fontFamily: 'inherit',
+                              color: '#1a2332',
+                              background: '#fff',
+                              cursor: 'pointer',
+                              marginRight: 4,
+                            }}
+                          >
+                            <option value="open">open</option>
+                            <option value="in_progress">in_progress</option>
+                            <option value="resolved">resolved</option>
+                            <option value="closed">closed</option>
+                          </select>
+                          {/* Reply button */}
+                          <button
+                            onClick={() => handleExpand(t)}
+                            style={{
+                              padding: '4px 8px',
+                              border: 'none',
+                              borderRadius: 6,
+                              background: isExpanded ? '#e0f2fe' : '#0c2a72',
+                              color: isExpanded ? '#0c2a72' : '#fff',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              fontFamily: 'inherit',
+                              marginRight: 4,
+                            }}
+                          >
+                            💬
+                          </button>
+                          {/* Close shortcut */}
+                          {curStatus !== 'closed' && (
                             <button
-                              onClick={() => updateStatus(t.id, nextStatus[t.status])}
-                              disabled={updating === t.id}
+                              onClick={() => updateStatus(t.id, 'closed')}
+                              title="Đóng ticket"
                               style={{
-                                padding: '4px 10px',
+                                padding: '4px 8px',
                                 border: 'none',
                                 borderRadius: 6,
-                                background: t.status === 'open' ? '#0c2a72' : '#059669',
-                                color: '#fff',
+                                background: '#fee2e2',
+                                color: '#b91c1c',
                                 fontSize: 11,
                                 fontWeight: 600,
                                 cursor: 'pointer',
                                 fontFamily: 'inherit',
-                                whiteSpace: 'nowrap',
                               }}
                             >
-                              {updating === t.id ? '...' : nextLabel[t.status]}
+                              🗑
+                            </button>
+                          )}
+                          {/* Reopen */}
+                          {curStatus === 'closed' && (
+                            <button
+                              onClick={() => updateStatus(t.id, 'open')}
+                              title="Mở lại ticket"
+                              style={{
+                                padding: '4px 8px',
+                                border: 'none',
+                                borderRadius: 6,
+                                background: '#d1fae5',
+                                color: '#065f46',
+                                fontSize: 11,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                fontFamily: 'inherit',
+                              }}
+                            >
+                              ↩
                             </button>
                           )}
                         </td>
                       </tr>,
+
+                      /* ─── Expanded row ─── */
                       isExpanded && (
-                        <tr key={`${t.id || i}-expand`} style={{ background: '#f0fdfe' }}>
-                          <td colSpan={9} style={{ padding: '14px 20px', fontSize: 13, color: '#1a2332' }}>
-                            <b>Mô tả đầy đủ:</b> {t.description || t.message || '—'}
+                        <tr key={`${t.id}-expand`}>
+                          <td colSpan={10} style={{ padding: 0, background: '#f0fdfe', borderBottom: '2px solid rgba(0,199,222,0.2)' }}>
+                            <div style={{ padding: '20px 24px' }}>
+
+                              {/* Full description + images */}
+                              <div style={{ marginBottom: 16 }}>
+                                <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 6 }}>Mô tả đầy đủ</div>
+                                <div style={{
+                                  background: '#fff', border: '1px solid #e2e8f0',
+                                  borderRadius: 8, padding: '12px 16px',
+                                  fontSize: 13, color: '#1a2332', lineHeight: 1.7,
+                                }}>
+                                  {desc || '—'}
+                                </div>
+                                {imgUrls.length > 0 && (
+                                  <TicketImageGrid urls={imgUrls} />
+                                )}
+                              </div>
+
+                              {/* Replies thread */}
+                              {replies.length > 0 && (
+                                <div style={{ marginBottom: 16 }}>
+                                  <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 10 }}>
+                                    Lịch sử phản hồi ({replies.length})
+                                  </div>
+                                  <div style={{
+                                    maxHeight: 400, overflowY: 'auto',
+                                    display: 'flex', flexDirection: 'column', gap: 10,
+                                    padding: '4px 0',
+                                  }}>
+                                    {replies.map((r, ri) => {
+                                      const isAdmin = r.role === 'admin'
+                                      return (
+                                        <div key={ri} style={{ display: 'flex', justifyContent: isAdmin ? 'flex-start' : 'flex-end', gap: 8 }}>
+                                          {isAdmin && (
+                                            <div style={{
+                                              width: 28, height: 28, borderRadius: '50%',
+                                              background: '#0c2a72',
+                                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                              fontSize: 12, flexShrink: 0, alignSelf: 'flex-end',
+                                              color: '#fff', fontWeight: 700,
+                                            }}>A</div>
+                                          )}
+                                          <div style={{
+                                            maxWidth: '70%',
+                                            background: isAdmin ? '#e8f0fe' : '#e0f2fe',
+                                            border: isAdmin ? '1px solid #c7d7fd' : '1px solid #bae6fd',
+                                            color: '#1a2332',
+                                            padding: '10px 14px',
+                                            borderRadius: isAdmin ? '4px 14px 14px 14px' : '14px 4px 14px 14px',
+                                            fontSize: 13,
+                                            lineHeight: 1.6,
+                                          }}>
+                                            <div>{r.message || r.text || ''}</div>
+                                            {r.image_urls && r.image_urls.length > 0 && (
+                                              <TicketImageGrid urls={r.image_urls} />
+                                            )}
+                                            <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 6 }}>
+                                              {r.created_at ? new Date(r.created_at).toLocaleString('vi-VN') : ''}
+                                            </div>
+                                          </div>
+                                          {!isAdmin && (
+                                            <div style={{
+                                              width: 28, height: 28, borderRadius: '50%',
+                                              background: '#00c7de',
+                                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                              fontSize: 12, flexShrink: 0, alignSelf: 'flex-end',
+                                              color: '#fff', fontWeight: 700,
+                                            }}>U</div>
+                                          )}
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Admin reply form */}
+                              {!isClosed ? (
+                                <div style={{
+                                  background: '#fff',
+                                  border: '1px solid #e2e8f0',
+                                  borderRadius: 10, padding: '16px',
+                                }}>
+                                  <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 10 }}>
+                                    Ghi phản hồi admin
+                                  </div>
+                                  <textarea
+                                    rows={3}
+                                    value={replyText[t.id] || ''}
+                                    onChange={e => setReplyText(prev => ({ ...prev, [t.id]: e.target.value }))}
+                                    placeholder="Nhập nội dung phản hồi..."
+                                    style={{
+                                      width: '100%',
+                                      padding: '10px 13px',
+                                      border: '1px solid #e2e8f0',
+                                      borderRadius: 8,
+                                      fontSize: 13,
+                                      fontFamily: 'inherit',
+                                      color: '#1a2332',
+                                      resize: 'vertical',
+                                      minHeight: 80,
+                                      boxSizing: 'border-box',
+                                      outline: 'none',
+                                      marginBottom: 10,
+                                    }}
+                                  />
+                                  {/* Image upload */}
+                                  <div style={{ marginBottom: 10 }}>
+                                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 6 }}>
+                                      Đính kèm ảnh (tùy chọn)
+                                    </label>
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      multiple
+                                      onChange={e => handleImageUpload(t.id, e)}
+                                      disabled={replyUploading[t.id]}
+                                      style={{ fontSize: 12 }}
+                                    />
+                                    {replyUploading[t.id] && (
+                                      <div style={{ fontSize: 12, color: '#00c7de', marginTop: 6 }}>Đang upload...</div>
+                                    )}
+                                    {(replyImages[t.id] || []).length > 0 && (
+                                      <TicketImageGrid
+                                        urls={replyImages[t.id]}
+                                        onRemove={idx => setReplyImages(prev => ({
+                                          ...prev,
+                                          [t.id]: (prev[t.id] || []).filter((_, i) => i !== idx),
+                                        }))}
+                                      />
+                                    )}
+                                  </div>
+                                  <button
+                                    onClick={() => handleSendReply(t.id)}
+                                    disabled={replyLoading[t.id] || replyUploading[t.id] || (!(replyText[t.id] || '').trim() && !(replyImages[t.id] || []).length)}
+                                    style={{
+                                      padding: '9px 20px',
+                                      border: 'none',
+                                      borderRadius: 8,
+                                      background: '#0c2a72',
+                                      color: '#fff',
+                                      fontSize: 13,
+                                      fontWeight: 700,
+                                      cursor: 'pointer',
+                                      fontFamily: 'inherit',
+                                      opacity: replyLoading[t.id] ? 0.7 : 1,
+                                    }}
+                                  >
+                                    {replyLoading[t.id] ? '⏳ Đang gửi...' : '📤 Gửi phản hồi'}
+                                  </button>
+                                </div>
+                              ) : (
+                                <div style={{
+                                  padding: '10px 16px', borderRadius: 8,
+                                  background: '#f1f5f9',
+                                  border: '1px solid #e2e8f0',
+                                  color: '#64748b', fontSize: 13, textAlign: 'center',
+                                }}>
+                                  Ticket đã đóng
+                                </div>
+                              )}
+                            </div>
                           </td>
                         </tr>
-                      )
+                      ),
                     ]
                   })}
                 </tbody>
@@ -1675,6 +2130,242 @@ function PixelsTab() {
   )
 }
 
+// ─── SMTP TAB ─────────────────────────────────────────────────────────────────
+function SMTPTab() {
+  const [form, setForm] = useState({
+    host: '',
+    port: 587,
+    username: '',
+    password: '',
+    from_name: 'Go Meta Ads Pro',
+  })
+  const [showPass, setShowPass] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [status, setStatus] = useState(null) // 'active' | 'inactive' | null
+  const [error, setError] = useState('')
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    async function fetchSmtp() {
+      setLoading(true)
+      try {
+        const res = await apiPost('/api/ticket', { action: 'smtp_get' })
+        if (res?.smtp) {
+          setForm(prev => ({
+            ...prev,
+            host: res.smtp.host || '',
+            port: res.smtp.port || 587,
+            username: res.smtp.username || '',
+            password: res.smtp.password || '',
+            from_name: res.smtp.from_name || 'Go Meta Ads Pro',
+          }))
+          setStatus(res.smtp.active ? 'active' : 'inactive')
+        }
+      } catch {
+        // no smtp config yet, ignore
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchSmtp()
+  }, [])
+
+  function set(key, val) { setForm(f => ({ ...f, [key]: val })) }
+
+  async function handleSave() {
+    if (!form.host || !form.username || !form.password) {
+      setError('Vui lòng điền đầy đủ Host, Username và Password')
+      return
+    }
+    setSaving(true)
+    setError('')
+    setSaved(false)
+    try {
+      const res = await apiPost('/api/ticket', {
+        action: 'smtp_save',
+        host: form.host,
+        port: Number(form.port) || 587,
+        username: form.username,
+        password: form.password,
+        from_name: form.from_name,
+      })
+      if (res?.ok) {
+        setStatus('active')
+        setSaved(true)
+        setTimeout(() => setSaved(false), 3000)
+      } else {
+        setError(res?.error || 'Lưu thất bại')
+      }
+    } catch (e) {
+      setError('Lỗi: ' + e.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const inputStyle = {
+    width: '100%',
+    padding: '10px 13px',
+    border: '1px solid #e2e8f0',
+    borderRadius: 8,
+    fontSize: 13,
+    color: '#1a2332',
+    background: '#fff',
+    outline: 'none',
+    boxSizing: 'border-box',
+    fontFamily: 'inherit',
+  }
+  const labelStyle = { display: 'block', fontSize: 13, fontWeight: 600, color: '#1a2332', marginBottom: 6 }
+
+  return (
+    <div style={{ maxWidth: 600 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 10 }}>
+        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#1a2332' }}>📧 Cài đặt Email / SMTP</h2>
+        {status && (
+          <span style={{
+            display: 'inline-block',
+            padding: '4px 14px',
+            borderRadius: 999,
+            fontSize: 12,
+            fontWeight: 700,
+            background: status === 'active' ? '#d1fae5' : '#f1f5f9',
+            color: status === 'active' ? '#065f46' : '#475569',
+          }}>
+            {status === 'active' ? '● Đang hoạt động' : '○ Chưa cấu hình'}
+          </span>
+        )}
+      </div>
+
+      <ErrorBox msg={error} />
+
+      {loading ? <Spinner /> : (
+        <>
+          <div style={{ background: '#fff', borderRadius: 12, padding: 24, boxShadow: '0 1px 8px rgba(0,0,0,0.07)', marginBottom: 20 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: 14 }}>
+                <div>
+                  <label style={labelStyle}>SMTP Host</label>
+                  <input
+                    style={inputStyle}
+                    value={form.host}
+                    onChange={e => set('host', e.target.value)}
+                    placeholder="smtp.gmail.com"
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>Port</label>
+                  <input
+                    style={inputStyle}
+                    type="number"
+                    value={form.port}
+                    onChange={e => set('port', e.target.value)}
+                    placeholder="587"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={labelStyle}>Username / Email gửi</label>
+                <input
+                  style={inputStyle}
+                  type="email"
+                  value={form.username}
+                  onChange={e => set('username', e.target.value)}
+                  placeholder="youremail@gmail.com"
+                />
+              </div>
+
+              <div>
+                <label style={labelStyle}>Password / App Password</label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    style={{ ...inputStyle, paddingRight: 44 }}
+                    type={showPass ? 'text' : 'password'}
+                    value={form.password}
+                    onChange={e => set('password', e.target.value)}
+                    placeholder="••••••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPass(v => !v)}
+                    style={{
+                      position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      fontSize: 16, color: '#64748b', fontFamily: 'inherit',
+                    }}
+                  >
+                    {showPass ? '🙈' : '👁'}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label style={labelStyle}>Tên hiển thị (From Name)</label>
+                <input
+                  style={inputStyle}
+                  value={form.from_name}
+                  onChange={e => set('from_name', e.target.value)}
+                  placeholder="Go Meta Ads Pro"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Guide */}
+          <div style={{
+            background: '#fffbeb',
+            border: '1px solid #fde68a',
+            borderRadius: 10,
+            padding: '14px 18px',
+            fontSize: 13,
+            color: '#92400e',
+            marginBottom: 20,
+            lineHeight: 1.7,
+          }}>
+            <b>Với Gmail:</b> dùng App Password tại{' '}
+            <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer" style={{ color: '#0c2a72', fontWeight: 600 }}>
+              myaccount.google.com/apppasswords
+            </a>
+            {' '}(cần bật 2FA). Port: 587 (TLS) hoặc 465 (SSL).
+          </div>
+
+          {saved && (
+            <div style={{
+              padding: '10px 16px', borderRadius: 8,
+              background: '#d1fae5', border: '1px solid #6ee7b7',
+              color: '#065f46', fontSize: 13, fontWeight: 600,
+              marginBottom: 16,
+            }}>
+              ✅ Đã lưu cài đặt SMTP thành công!
+            </div>
+          )}
+
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            style={{
+              padding: '11px 28px',
+              border: 'none',
+              borderRadius: 8,
+              background: saving ? '#94a3b8' : '#0c2a72',
+              color: '#fff',
+              fontSize: 14,
+              fontWeight: 700,
+              cursor: saving ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit',
+              opacity: saving ? 0.8 : 1,
+            }}
+          >
+            {saving ? '⏳ Đang lưu...' : '💾 Lưu cài đặt'}
+          </button>
+        </>
+      )}
+    </div>
+  )
+}
+
 // ─── SIDEBAR ──────────────────────────────────────────────────────────────────
 const MENU = [
   { id: 'overview', icon: '📊', label: 'Tổng quan' },
@@ -1684,6 +2375,7 @@ const MENU = [
   { id: 'tickets', icon: '🎫', label: 'Tickets' },
   { id: 'downloads', icon: '📥', label: 'Yêu cầu tải' },
   { id: 'pixels', icon: '📈', label: 'Tracking Pixels' },
+  { id: 'smtp', icon: '📧', label: 'Email / SMTP' },
 ]
 
 function Sidebar({ activeTab, setActiveTab, onLogout }) {
@@ -1829,6 +2521,7 @@ export default function Dashboard() {
     'tickets': <TicketsTab />,
     'downloads': <DownloadsTab />,
     'pixels': <PixelsTab />,
+    'smtp': <SMTPTab />,
   }
 
   return (
