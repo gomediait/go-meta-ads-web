@@ -253,18 +253,39 @@ function EditModal({ order, onClose, onSaved }) {
   })()
   const isNoteJSON = order?.note && order.note.trim().startsWith('{')
 
+  // Tính ngày bắt đầu (lấy từ created_at của order)
+  const startDateStr = order?.created_at ? new Date(order.created_at).toISOString().slice(0,10) : new Date().toISOString().slice(0,10)
+
+  // Tính ngày kết thúc dự kiến từ billing_tab (nếu chưa có trong extraInfo)
+  const calcDefaultExpire = () => {
+    if (extraInfo.expire_date_estimate) {
+      // Chuyển DD/MM/YYYY → YYYY-MM-DD
+      const parts = extraInfo.expire_date_estimate.split('/')
+      if (parts.length === 3) return `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`
+    }
+    const d = new Date(startDateStr)
+    const bt = order?.billing_tab || 'thang'
+    if (bt === 'thang') d.setMonth(d.getMonth() + 1)
+    else if (bt === 'nam1') d.setFullYear(d.getFullYear() + 1)
+    else if (bt === 'nam3') d.setFullYear(d.getFullYear() + 3)
+    else if (bt === 'nam5') d.setFullYear(d.getFullYear() + 5)
+    else if (bt === 'trial') d.setDate(d.getDate() + 1)
+    return d.toISOString().slice(0,10)
+  }
+
   const [form, setForm] = useState({
     full_name:    order?.full_name  || '',
     phone:        order?.phone      || '',
     email:        order?.email      || '',
     shop_name:    order?.shop_name  || '',
     plan_id:      order?.plan_id    || 'ca-nhan',
-    billing_tab:  order?.billing_tab || 'thang',  // dùng đúng field name
+    billing_tab:  order?.billing_tab || 'thang',
     price_label:  order?.price_label || '',
     referral_code: order?.referral_code || '',
     status:       order?.status     || 'pending',
     license_key:  order?.license_key || '',
-    note:         isNoteJSON ? '' : (order?.note || ''), // ẩn JSON khỏi textarea
+    expire_date:  isNew ? '' : calcDefaultExpire(), // ngày kết thúc có thể chỉnh
+    note:         isNoteJSON ? '' : (order?.note || ''),
   })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -281,12 +302,20 @@ function EditModal({ order, onClose, onSaved }) {
         ...form,
         ck_content: ck,
         plan_name: PLAN_OPTIONS.find(p => p.value === form.plan_id)?.label || form.plan_id,
-        billing_tab: form.billing_tab,
       }
       if (isNew) {
         await apiPost('/api/order', { action: 'create', ...payload })
       } else {
         await apiPost('/api/order', { action: 'update', id: order.id, ...payload })
+
+        // Đồng bộ ngày kết thúc vào bảng licenses nếu có key và expire_date
+        if (form.license_key && form.expire_date) {
+          await apiPost('/api/license', {
+            action: 'update_expire',
+            key: form.license_key,
+            expire_at: form.expire_date,
+          }).catch(() => {}) // không block nếu lỗi
+        }
       }
       onSaved()
     } catch (e) {
@@ -382,6 +411,37 @@ function EditModal({ order, onClose, onSaved }) {
               <label style={labelStyle}>Key được cấp</label>
               <input style={inputStyle} value={form.license_key} onChange={e => set('license_key', e.target.value)} placeholder="GMAP-XXXX-XXXX-XXXX" />
             </div>
+            {/* Ngày bắt đầu & kết thúc */}
+            <div style={fieldWrap}>
+              <label style={labelStyle}>📅 Ngày bắt đầu kích hoạt</label>
+              <input
+                style={{ ...inputStyle, background: '#f8faff', color: '#64748b', cursor: 'default' }}
+                value={startDateStr ? new Date(startDateStr).toLocaleDateString('vi-VN') : '—'}
+                readOnly
+              />
+              <span style={{ fontSize: 11, color: '#94a3b8', marginTop: 3 }}>Tự động theo ngày tạo đơn</span>
+            </div>
+            <div style={fieldWrap}>
+              <label style={{ ...labelStyle, color: form.expire_date ? '#0c2a72' : '#64748b' }}>
+                🔚 Ngày kết thúc gói {form.license_key && <span style={{ color: '#10b981', fontWeight: 700 }}>← đồng bộ với extension</span>}
+              </label>
+              <input
+                style={{ ...inputStyle, borderColor: form.expire_date ? '#00c7de' : '#e2e8f0' }}
+                type="date"
+                value={form.expire_date || ''}
+                onChange={e => set('expire_date', e.target.value)}
+                min={startDateStr}
+              />
+              {form.expire_date && (
+                <span style={{ fontSize: 11, color: '#059669', marginTop: 3 }}>
+                  {(() => {
+                    const d = Math.ceil((new Date(form.expire_date) - new Date()) / 86400000)
+                    return d > 0 ? `Còn ${d} ngày` : `Đã hết hạn ${Math.abs(d)} ngày`
+                  })()}
+                  {form.license_key ? ' — Sẽ cập nhật vào extension khi lưu' : ' — Cấp key để đồng bộ với extension'}
+                </span>
+              )}
+            </div>
             <div style={{ ...fieldWrap, gridColumn: '1 / -1' }}>
               <label style={labelStyle}>Ghi chú</label>
               <textarea
@@ -466,6 +526,20 @@ function CreateKeyModal({ order, onClose, onDone }) {
     else if (duration === 'nam5') now.setFullYear(now.getFullYear() + 5)
     return now.toISOString().slice(0, 10)
   }
+
+  // Tính và hiển thị ngày hết hạn preview
+  function formatExpirePreview() {
+    const iso = getExpireAt()
+    if (!iso) return null
+    const d = new Date(iso)
+    const today = new Date()
+    const diffDays = Math.ceil((d - today) / (1000 * 60 * 60 * 24))
+    return {
+      dateStr: d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+      daysLeft: diffDays,
+    }
+  }
+  const expirePreview = (duration !== 'custom' || customDate) ? formatExpirePreview() : null
 
   // Tạo random key local (chưa lưu DB)
   function generatePreview() {
@@ -605,10 +679,24 @@ function CreateKeyModal({ order, onClose, onDone }) {
               </div>
               {duration === 'custom' && (
                 <div>
-                  <label style={labelStyle}>Ngày hết hạn</label>
-                  <input style={inputStyle} type="date" value={customDate} onChange={e => setCustomDate(e.target.value)} />
+                  <label style={labelStyle}>Ngày hết hạn tùy chọn</label>
+                  <input style={inputStyle} type="date" value={customDate} onChange={e => setCustomDate(e.target.value)} min={new Date().toISOString().slice(0,10)} />
                 </div>
               )}
+
+              {/* Hiển thị ngày hết hạn dự kiến */}
+              {expirePreview && (
+                <div style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: 8, padding: '10px 14px' }}>
+                  <div style={{ fontSize: 11, color: '#64748b', marginBottom: 3 }}>📅 Ngày kích hoạt hôm nay → Hết hạn:</div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: '#065f46' }}>
+                    {new Date().toLocaleDateString('vi-VN')} → <span style={{ color: '#10b981' }}>{expirePreview.dateStr}</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: '#059669', marginTop: 2 }}>
+                    ({expirePreview.daysLeft} ngày sử dụng) — Đồng bộ ngay với extension sau khi lưu
+                  </div>
+                </div>
+              )}
+
               {/* BƯỚC 2: Random key */}
               <div>
                 <label style={labelStyle}>🎲 Tạo key preview (chưa lưu)</label>
