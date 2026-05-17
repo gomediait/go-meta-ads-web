@@ -2137,6 +2137,7 @@ function SMTPTab() {
     port: 587,
     username: '',
     password: '',
+    from_email: '',
     from_name: 'Go Meta Ads Pro',
   })
   const [showPass, setShowPass] = useState(false)
@@ -2158,9 +2159,10 @@ function SMTPTab() {
             port: res.smtp.port || 587,
             username: res.smtp.username || '',
             password: res.smtp.password || '',
+            from_email: res.smtp.from_email || '',
             from_name: res.smtp.from_name || 'Go Meta Ads Pro',
           }))
-          setStatus(res.smtp.active ? 'active' : 'inactive')
+          setStatus(res.smtp.is_active ? 'active' : (res.smtp.host ? 'inactive' : null))
         }
       } catch {
         // no smtp config yet, ignore
@@ -2188,6 +2190,7 @@ function SMTPTab() {
         port: Number(form.port) || 587,
         username: form.username,
         password: form.password,
+        from_email: form.from_email || form.username,
         from_name: form.from_name,
       })
       if (res?.ok) {
