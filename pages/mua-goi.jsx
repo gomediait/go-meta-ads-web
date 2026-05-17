@@ -555,8 +555,33 @@ export default function MuaGoi() {
       </Head>
       <Navbar />
 
-      <main style={{
-        background: 'linear-gradient(180deg, var(--navy) 0%, var(--navy2) 200px, var(--gray) 200px)',
+      {/* ─── Override CSS vars cho context sáng ─── */}
+      <style>{`
+        .mua-goi-light .form-label { color: #0c2a72 !important; }
+        .mua-goi-light .form-input {
+          color: #1a2332 !important;
+          background: #f8faff !important;
+          border: 1.5px solid #e2e8f0 !important;
+        }
+        .mua-goi-light .form-input:focus {
+          border-color: #0c2a72 !important;
+          box-shadow: 0 0 0 3px rgba(12,42,114,0.08) !important;
+        }
+        .mua-goi-light .form-input::placeholder { color: #94a3b8 !important; }
+        .mua-goi-light .form-error { color: #dc2626 !important; }
+        .mua-goi-light .accordion { border-bottom: 1px solid #e2e8f0 !important; }
+        .mua-goi-light .accordion-trigger { color: #1a2332 !important; }
+        .mua-goi-light .accordion-trigger:hover { background: #f8faff !important; color: #0c2a72 !important; }
+        .mua-goi-light .accordion-body { color: #64748b !important; }
+        .mua-goi-light .alert-warning { background: #fffbeb !important; border-color: rgba(245,158,11,0.3) !important; color: #78350f !important; }
+        .mua-goi-light .btn-outline-navy { color: #0c2a72 !important; border-color: #0c2a72 !important; }
+        .mua-goi-light .btn-outline-navy:hover { background: #0c2a72 !important; color: #fff !important; }
+        @media (max-width: 640px) { .plan-grid { grid-template-columns: 1fr !important; } }
+        @media (max-width: 900px) { .summary-grid { grid-template-columns: 1fr !important; } }
+      `}</style>
+
+      <main className="mua-goi-light" style={{
+        background: 'linear-gradient(180deg, var(--navy) 0%, var(--navy2) 200px, #f1f5f9 200px)',
         minHeight: '100vh',
         paddingTop: 'calc(var(--header-h) + 4px)',
       }}>
@@ -647,7 +672,7 @@ export default function MuaGoi() {
                 <div className="form-group" style={{ marginBottom: 32 }}>
                   <label className="form-label">
                     {isEN ? 'Referral Code' : 'Mã giới thiệu'}{' '}
-                    <span style={{ color: 'var(--text3)', fontWeight: 400 }}>
+                    <span style={{ color: '#94a3b8', fontWeight: 400 }}>
                       {isEN ? '(optional)' : '(tùy chọn)'}
                     </span>
                   </label>
@@ -662,7 +687,7 @@ export default function MuaGoi() {
 
                 {/* Billing tabs */}
                 <div style={{ marginBottom: 20 }}>
-                  <div style={{ display: 'flex', background: 'var(--gray)', borderRadius: 12, padding: 4, gap: 4, marginBottom: 20, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', background: '#e2e8f0', borderRadius: 12, padding: 4, gap: 4, marginBottom: 20, flexWrap: 'wrap' }}>
                     {billingTabs.map(tab => (
                       <button
                         key={tab.key}
@@ -694,7 +719,7 @@ export default function MuaGoi() {
                         key={plan.id}
                         onClick={() => setSelectedPlan(plan.id)}
                         style={{
-                          border: `2px solid ${selectedPlan === plan.id ? 'var(--orange)' : 'var(--gray2)'}`,
+                          border: `2px solid ${selectedPlan === plan.id ? '#fe5f01' : '#e2e8f0'}`,
                           borderRadius: 'var(--radius)',
                           padding: '20px 16px',
                           cursor: 'pointer',
@@ -717,7 +742,7 @@ export default function MuaGoi() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                           <div style={{
                             width: 18, height: 18, borderRadius: '50%',
-                            border: `2px solid ${selectedPlan === plan.id ? 'var(--orange)' : 'var(--gray2)'}`,
+                            border: `2px solid ${selectedPlan === plan.id ? '#fe5f01' : '#e2e8f0'}`,
                             background: selectedPlan === plan.id ? 'var(--orange)' : '#fff',
                             flexShrink: 0,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -854,7 +879,7 @@ export default function MuaGoi() {
                       <div key={row.label} style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                         padding: '12px 16px',
-                        background: row.highlight ? '#fff7f3' : 'var(--gray)',
+                        background: row.highlight ? '#fff7f3' : '#f1f5f9',
                         borderRadius: 10, gap: 12, flexWrap: 'wrap',
                       }}>
                         <div>
@@ -894,10 +919,10 @@ export default function MuaGoi() {
                   <div
                     onClick={() => fileInputRef.current?.click()}
                     style={{
-                      border: `2px dashed ${previewImg ? 'var(--orange)' : 'var(--gray2)'}`,
+                      border: `2px dashed ${previewImg ? '#fe5f01' : '#e2e8f0'}`,
                       borderRadius: 'var(--radius)', padding: '32px 20px',
                       textAlign: 'center', cursor: 'pointer',
-                      background: previewImg ? '#fff7f3' : 'var(--gray)',
+                      background: previewImg ? '#fff7f3' : '#f1f5f9',
                       transition: 'all 0.2s',
                     }}
                   >
@@ -914,7 +939,7 @@ export default function MuaGoi() {
                         <div style={{ fontWeight: 700, color: 'var(--navy)', marginBottom: 4 }}>
                           {isEN ? 'Click to select image' : 'Nhấn để chọn ảnh'}
                         </div>
-                        <div style={{ fontSize: 13, color: 'var(--text3)' }}>
+                        <div style={{ fontSize: 13, color: '#94a3b8' }}>
                           {isEN ? 'PNG, JPG, HEIC — max 10MB' : 'PNG, JPG, HEIC — tối đa 10MB'}
                         </div>
                       </div>
@@ -972,7 +997,7 @@ export default function MuaGoi() {
           {step < 3 && (
             <Reveal delay={100}>
               <div style={{ marginTop: 52 }}>
-                <h3 style={{ color: 'var(--navy)', fontWeight: 800, fontSize: 20, marginBottom: 20, textAlign: 'center' }}>
+                <h3 style={{ color: '#0c2a72', fontWeight: 800, fontSize: 20, marginBottom: 20, textAlign: 'center' }}>
                   {isEN ? 'Frequently Asked Questions' : 'Câu hỏi thường gặp'}
                 </h3>
                 {FAQS.map((faq, i) => (
