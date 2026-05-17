@@ -1306,81 +1306,179 @@ function TicketsTab() {
 }
 
 // ─── DOWNLOADS TAB ────────────────────────────────────────────────────────────
+// Label mapping cho user_type
+const USER_TYPE_MAP = {
+  individual:  '👤 Cá nhân chạy ads',
+  small_biz:   '🏪 Doanh nghiệp nhỏ',
+  medium_biz:  '🏢 Doanh nghiệp vừa/lớn',
+  agency:      '🏬 Agency',
+  other:       '❓ Khác',
+}
+
+// Trạng thái hành trình tiếp nhận
+const DL_STATUS = [
+  { value: 'new',          label: 'Chưa tiếp nhận',      color: '#94a3b8', bg: '#f1f5f9' },
+  { value: 'contacted',    label: 'Đã liên hệ',           color: '#f59e0b', bg: '#fffbeb' },
+  { value: 'trial_given',  label: 'Đã cấp key dùng thử', color: '#3b82f6', bg: '#eff6ff' },
+  { value: 'negotiating',  label: 'Đang tư vấn',          color: '#8b5cf6', bg: '#f5f3ff' },
+  { value: 'purchased',    label: 'Đã mua gói',           color: '#10b981', bg: '#f0fdf4' },
+  { value: 'not_interested', label: 'Không quan tâm',     color: '#ef4444', bg: '#fef2f2' },
+]
+
+function DlStatusBadge({ status }) {
+  const s = DL_STATUS.find(x => x.value === status) || DL_STATUS[0]
+  return (
+    <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, color: s.color, background: s.bg }}>
+      {s.label}
+    </span>
+  )
+}
+
 function DownloadsTab() {
   const [downloads, setDownloads] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [expandedId, setExpandedId] = useState(null)
+  const [editNotes, setEditNotes] = useState({}) // id → note text
+  const [saving, setSaving] = useState({})
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true)
-      try {
-        const res = await apiPost('/api/download', { action: 'list', limit: 200 })
-        setDownloads(res?.downloads || res?.data || [])
-      } catch (e) {
-        setError('Không thể tải dữ liệu: ' + e.message)
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [])
+  async function load() {
+    setLoading(true)
+    try {
+      const res = await apiPost('/api/download', { action: 'list', limit: 200 })
+      setDownloads(res?.data || [])
+    } catch (e) { setError(e.message) } finally { setLoading(false) }
+  }
+
+  useEffect(() => { load() }, [])
+
+  async function updateStatus(id, status) {
+    setSaving(s => ({ ...s, [id]: true }))
+    try {
+      await apiPost('/api/download', { action: 'update', id, status })
+      setDownloads(list => list.map(d => d.id === id ? { ...d, status } : d))
+    } catch (e) { alert('Lỗi: ' + e.message) } finally { setSaving(s => ({ ...s, [id]: false })) }
+  }
+
+  async function saveNote(id) {
+    const note = editNotes[id] ?? downloads.find(d => d.id === id)?.admin_note ?? ''
+    setSaving(s => ({ ...s, [id + '_note']: true }))
+    try {
+      await apiPost('/api/download', { action: 'update', id, admin_note: note })
+      setDownloads(list => list.map(d => d.id === id ? { ...d, admin_note: note } : d))
+      setExpandedId(null)
+    } catch (e) { alert('Lỗi: ' + e.message) } finally { setSaving(s => ({ ...s, [id + '_note']: false })) }
+  }
 
   function exportCSV() {
-    const headers = ['STT', 'Họ tên', 'SĐT/Zalo', 'Email', 'Loại người dùng', 'Ngày']
+    const headers = ['STT', 'Họ tên', 'SĐT/Zalo', 'Email', 'Loại người dùng', 'Trạng thái', 'Ghi chú', 'Ngày']
     const rows = downloads.map((d, i) => [
-      i + 1, d.full_name || d.name || '', d.phone || d.zalo || '',
-      d.email || '', d.user_type || d.type || '',
+      i + 1, d.full_name || '', d.contact || '', d.email || '',
+      USER_TYPE_MAP[d.user_type] || d.user_type || '',
+      DL_STATUS.find(s => s.value === d.status)?.label || 'Chưa tiếp nhận',
+      d.admin_note || '',
       d.created_at ? new Date(d.created_at).toLocaleDateString('vi-VN') : '',
     ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
     const csv = [headers.join(','), ...rows].join('\n')
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = `downloads_${new Date().toISOString().slice(0, 10)}.csv`
-    link.click()
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob)
+    a.download = `download_leads_${new Date().toISOString().slice(0,10)}.csv`; a.click()
   }
 
-  const thStyle = { padding: '10px 12px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#fff' }
-  const tdStyle = { padding: '10px 12px', fontSize: 12, color: '#1a2332' }
+  const th = { padding: '10px 12px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap' }
+  const td = { padding: '10px 12px', fontSize: 12.5, color: '#1a2332', verticalAlign: 'middle' }
 
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#1a2332' }}>📥 Yêu cầu tải</h2>
-        <button
-          onClick={exportCSV}
-          style={{ padding: '9px 18px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', color: '#1a2332', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
-        >
+        <div>
+          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#1a2332' }}>📥 Yêu cầu tải Extension</h2>
+          <p style={{ margin: '4px 0 0', fontSize: 13, color: '#64748b' }}>Danh sách khách hàng tiềm năng — click vào dòng để cập nhật ghi chú</p>
+        </div>
+        <button onClick={exportCSV} style={{ padding: '9px 18px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', color: '#1a2332', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
           ⬇ Export CSV
         </button>
       </div>
-
       <ErrorBox msg={error} />
-
       {loading ? <Spinner /> : (
         <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 1px 8px rgba(0,0,0,0.07)', overflow: 'hidden' }}>
           {downloads.length === 0 ? <EmptyState icon="📥" text="Chưa có yêu cầu tải nào" /> : (
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: '#0c2a72' }}>
-                  {['STT', 'Họ tên', 'SĐT/Zalo', 'Email', 'Loại người dùng', 'Ngày'].map(h => (
-                    <th key={h} style={thStyle}>{h}</th>
+                  {['#', 'Họ tên', 'SĐT/Zalo', 'Email', 'Nhóm khách', 'Trạng thái', 'Ghi chú NV', 'Ngày', 'Cập nhật'].map(h => (
+                    <th key={h} style={th}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {downloads.map((d, i) => (
-                  <tr key={d.id || i} style={{ background: i % 2 === 0 ? '#fff' : '#f8faff' }}>
-                    <td style={{ ...tdStyle, color: '#94a3b8' }}>{i + 1}</td>
-                    <td style={{ ...tdStyle, fontWeight: 600 }}>{d.full_name || d.name || '—'}</td>
-                    <td style={tdStyle}>{d.phone || d.zalo || '—'}</td>
-                    <td style={tdStyle}>{d.email || '—'}</td>
-                    <td style={tdStyle}>{d.user_type || d.type || '—'}</td>
-                    <td style={{ ...tdStyle, fontSize: 11, color: '#94a3b8' }}>
-                      {d.created_at ? new Date(d.created_at).toLocaleDateString('vi-VN') : '—'}
-                    </td>
-                  </tr>
+                  <>
+                    <tr
+                      key={d.id || i}
+                      style={{ background: i % 2 === 0 ? '#fff' : '#f8faff', cursor: 'pointer' }}
+                      onClick={() => setExpandedId(expandedId === d.id ? null : d.id)}
+                    >
+                      <td style={{ ...td, color: '#94a3b8', width: 36 }}>{i + 1}</td>
+                      <td style={{ ...td, fontWeight: 600 }}>{d.full_name || '—'}</td>
+                      <td style={td}>{d.contact || '—'}</td>
+                      <td style={{ ...td, color: '#0c2a72' }}>{d.email || '—'}</td>
+                      <td style={td}>{USER_TYPE_MAP[d.user_type] || d.user_type || '—'}</td>
+                      <td style={td}><DlStatusBadge status={d.status || 'new'} /></td>
+                      <td style={{ ...td, color: '#64748b', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {d.admin_note || <span style={{ color: '#e2e8f0' }}>—</span>}
+                      </td>
+                      <td style={{ ...td, fontSize: 11, color: '#94a3b8', whiteSpace: 'nowrap' }}>
+                        {d.created_at ? new Date(d.created_at).toLocaleDateString('vi-VN') : '—'}
+                      </td>
+                      <td style={td} onClick={e => e.stopPropagation()}>
+                        <select
+                          value={d.status || 'new'}
+                          onChange={e => updateStatus(d.id, e.target.value)}
+                          disabled={saving[d.id]}
+                          style={{ padding: '5px 8px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 11, fontFamily: 'inherit', color: '#1a2332', cursor: 'pointer', background: '#fff' }}
+                        >
+                          {DL_STATUS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                        </select>
+                      </td>
+                    </tr>
+                    {/* Expand row for note editing */}
+                    {expandedId === d.id && (
+                      <tr key={`${d.id}-expand`} style={{ background: '#f8faff' }}>
+                        <td colSpan={9} style={{ padding: '12px 16px' }}>
+                          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
+                            <div style={{ flex: 1 }}>
+                              <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#64748b', marginBottom: 5 }}>
+                                📝 Ghi chú nội bộ (nhân viên tiếp nhận)
+                              </label>
+                              <textarea
+                                style={{ width: '100%', padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 13, fontFamily: 'inherit', resize: 'vertical', minHeight: 70, color: '#1a2332', boxSizing: 'border-box' }}
+                                value={editNotes[d.id] !== undefined ? editNotes[d.id] : (d.admin_note || '')}
+                                onChange={e => setEditNotes(n => ({ ...n, [d.id]: e.target.value }))}
+                                placeholder="Ghi chú về khách hàng này, lịch sử liên hệ..."
+                              />
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              <button onClick={() => saveNote(d.id)} disabled={saving[d.id + '_note']} style={{ padding: '8px 16px', border: 'none', borderRadius: 8, background: '#10b981', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+                                {saving[d.id + '_note'] ? '...' : '💾 Lưu ghi chú'}
+                              </button>
+                              <button onClick={() => setExpandedId(null)} style={{ padding: '8px 16px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', color: '#64748b', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                                Đóng
+                              </button>
+                            </div>
+                          </div>
+                          {/* Thông tin đầy đủ */}
+                          <div style={{ marginTop: 10, padding: '10px 12px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 12, color: '#64748b', display: 'flex', flexWrap: 'wrap', gap: '6px 20px' }}>
+                            <span>👤 <b style={{ color: '#1a2332' }}>{d.full_name}</b></span>
+                            <span>📞 <b style={{ color: '#1a2332' }}>{d.contact || '—'}</b></span>
+                            <span>📧 {d.email}</span>
+                            <span>🏢 {USER_TYPE_MAP[d.user_type] || d.user_type}</span>
+                            <span>📅 {d.created_at ? new Date(d.created_at).toLocaleString('vi-VN') : '—'}</span>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
                 ))}
               </tbody>
             </table>
