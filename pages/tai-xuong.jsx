@@ -164,7 +164,7 @@ export default function TaiXuong() {
           </a>
 
           <div style={{ marginTop: 16, color: 'rgba(255,255,255,0.45)', fontSize: 13 }}>
-            {isEN ? 'Chrome Extension · 7-day free trial' : 'Chrome Extension · Miễn phí dùng thử 7 ngày'}
+            {isEN ? 'Chrome Extension · 1-day free trial' : 'Chrome Extension · Miễn phí dùng thử 1 ngày'}
           </div>
         </div>
       </section>
@@ -360,8 +360,8 @@ export default function TaiXuong() {
               </h3>
               <p style={{ color: 'rgba(255,255,255,0.72)', fontSize: 16, margin: '0 0 28px', lineHeight: 1.6 }}>
                 {isEN
-                  ? 'Start your free 7-day trial or choose the plan that fits your team.'
-                  : 'Bắt đầu dùng thử miễn phí 7 ngày hoặc chọn gói phù hợp với team của bạn.'}
+                  ? 'Start your free 1-day trial or choose the plan that fits your team.'
+                  : 'Bắt đầu dùng thử miễn phí 1 ngày hoặc chọn gói phù hợp với team của bạn.'}
               </p>
               <a href="/mua-goi" className="btn btn-primary btn-lg" style={{ fontFamily: 'inherit' }}>
                 {isEN ? 'Get a plan now →' : 'Mua gói ngay →'}
