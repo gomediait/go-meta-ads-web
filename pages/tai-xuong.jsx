@@ -469,7 +469,7 @@ export default function TaiXuong() {
                 </div>
                 <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', marginTop: 4 }}>
                   {isEN
-                    ? 'Fill in your info and we'll send the link via Zalo/Email'
+                    ? "Fill in your info and we'll send the link via Zalo/Email"
                     : 'Điền thông tin để chúng tôi gửi link download qua Zalo/Email'}
                 </div>
               </div>
