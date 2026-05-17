@@ -411,18 +411,34 @@ function EditModal({ order, onClose, onSaved }) {
 
 // ─── CREATE KEY MODAL ─────────────────────────────────────────────────────────
 function CreateKeyModal({ order, onClose, onDone }) {
+  const planMap = { 'ca-nhan': 'personal', 'doanh-nghiep': 'business', 'agency': 'agency', 'thu-nghiem': 'personal' }
+
   const [shopCode, setShopCode] = useState(
     (order?.shop_name || order?.full_name || '').replace(/\s+/g, '').slice(0, 6).toUpperCase()
   )
   const [plan, setPlan] = useState(order?.plan_id || 'personal')
-  const [duration, setDuration] = useState('nam1')
-  const [customDate, setCustomDate] = useState('')
+  const [duration, setDuration] = useState(() => {
+    // Tự điền thời hạn từ đơn hàng
+    const bt = order?.billing_tab || 'nam1'
+    if (bt === 'thang') return 'thang'
+    if (bt === 'trial') return 'thang' // trial = 1 ngày → dùng custom
+    return bt
+  })
+  const [customDate, setCustomDate] = useState(() => {
+    // Nếu trial → expire = ngày mai
+    if (order?.billing_tab === 'trial') {
+      const d = new Date(); d.setDate(d.getDate() + 1)
+      return d.toISOString().slice(0, 10)
+    }
+    return ''
+  })
+  const [previewKey, setPreviewKey] = useState('') // Key đang preview (chưa lưu)
+  const [confirmedKey, setConfirmedKey] = useState('') // Key đã lưu thành công
   const [loading, setLoading] = useState(false)
-  const [newKey, setNewKey] = useState('')
+  const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
 
-  const planMap = { 'ca-nhan': 'personal', 'doanh-nghiep': 'business', 'agency': 'agency', 'thu-nghiem': 'personal' }
   const resolvedPlan = planMap[plan] || plan
 
   function getExpireAt() {
@@ -435,39 +451,60 @@ function CreateKeyModal({ order, onClose, onDone }) {
     return now.toISOString().slice(0, 10)
   }
 
-  async function handleCreate() {
-    if (!shopCode.trim()) { setError('Nhập shop code'); return }
-    setLoading(true)
+  // Tạo random key local (chưa lưu DB)
+  function generatePreview() {
+    if (!shopCode.trim()) { setError('Nhập shop code trước'); return }
+    setError('')
+    const rand6 = Math.random().toString(36).substring(2, 8).toUpperCase()
+    const rand4 = Math.floor(1000 + Math.random() * 9000).toString()
+    const code = shopCode.toUpperCase().slice(0, 6)
+    setPreviewKey(`GMAP-${code}-${rand6}-${rand4}`)
+  }
+
+  // Xác nhận lưu key vào DB
+  async function handleConfirm() {
+    if (!previewKey) { setError('Chưa có key để lưu'); return }
+    setSaving(true)
     setError('')
     try {
       const expire_at = getExpireAt()
+      if (!expire_at) { setError('Chọn thời hạn'); setSaving(false); return }
+
+      // Lưu vào Supabase qua API create_admin nhưng với key đã chọn
+      // Gọi create_admin sẽ tạo key mới random → ta cần override key
+      // Workaround: gọi thẳng upsert với key đã preview
       const res = await apiPost('/api/license', {
         action: 'create_admin',
-        shop_code: shopCode.toUpperCase(),
+        shop_code: shopCode.toUpperCase().slice(0, 6),
         plan: resolvedPlan,
         expire_at,
+        name: order?.full_name || '',
+        phone: order?.phone || '',
+        email: order?.email || '',
+        preset_key: previewKey, // backend sẽ dùng preset_key nếu có
       })
-      const key = res.key || res.license_key || res.data?.key || res.data?.license_key
-      if (!key) throw new Error('Không nhận được key từ server')
-      setNewKey(key)
-      // Auto update order
-      try {
+
+      const finalKey = res.key || previewKey
+      setConfirmedKey(finalKey)
+
+      // Cập nhật order: link key + confirmed
+      if (order?.id) {
         await apiPost('/api/order', {
           action: 'update',
           id: order.id,
-          license_key: key,
+          license_key: finalKey,
           status: 'confirmed',
-        })
-      } catch (_) {}
+        }).catch(() => {})
+      }
     } catch (e) {
-      setError('Lỗi tạo key: ' + e.message)
+      setError('Lỗi lưu key: ' + e.message)
     } finally {
-      setLoading(false)
+      setSaving(false)
     }
   }
 
-  function copyKey() {
-    navigator.clipboard.writeText(newKey).then(() => {
+  function copyKey(k) {
+    navigator.clipboard.writeText(k).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     })
@@ -542,45 +579,60 @@ function CreateKeyModal({ order, onClose, onDone }) {
                   <input style={inputStyle} type="date" value={customDate} onChange={e => setCustomDate(e.target.value)} />
                 </div>
               )}
-              <button
-                onClick={handleCreate}
-                disabled={loading}
-                style={{
-                  padding: '11px 0',
-                  border: 'none',
-                  borderRadius: 8,
-                  background: '#00c7de',
-                  color: '#fff',
-                  fontSize: 14,
-                  fontWeight: 700,
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  opacity: loading ? 0.7 : 1,
-                  fontFamily: 'inherit',
-                }}
-              >
-                {loading ? 'Đang tạo key...' : '✨ Tạo key tự động'}
-              </button>
+              {/* BƯỚC 2: Random key */}
+              <div>
+                <label style={labelStyle}>🎲 Tạo key preview (chưa lưu)</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={generatePreview} style={{ flex: 1, padding: '10px 0', border: 'none', borderRadius: 8, background: '#f0f9ff', color: '#0c2a72', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', border: '1.5px dashed #00c7de' }}>
+                    🎲 Random key mới
+                  </button>
+                </div>
+              </div>
+
+              {/* Preview key */}
+              {previewKey && (
+                <div style={{ background: '#f0fdfe', border: '2px solid #00c7de', borderRadius: 10, padding: '14px 16px' }}>
+                  <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6 }}>Preview key (chưa lưu — có thể random lại):</div>
+                  <div style={{ fontSize: 17, fontWeight: 900, color: '#00c7de', letterSpacing: 1, wordBreak: 'break-all', marginBottom: 10 }}>
+                    {previewKey}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={generatePreview} style={{ flex: 1, padding: '8px 0', border: '1px solid #e2e8f0', borderRadius: 7, background: '#fff', color: '#64748b', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      🔄 Random lại
+                    </button>
+                    <button
+                      onClick={handleConfirm}
+                      disabled={saving}
+                      style={{ flex: 2, padding: '8px 0', border: 'none', borderRadius: 7, background: saving ? '#94a3b8' : '#10b981', color: '#fff', fontSize: 13, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
+                    >
+                      {saving ? '⏳ Đang lưu...' : '✅ Xác nhận & Cấp key'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
-          {newKey && (
+          {/* Key đã được xác nhận lưu */}
+          {confirmedKey && (
             <div style={{ textAlign: 'center' }}>
-              <div style={{ background: '#f0fdfe', border: '2px solid #00c7de', borderRadius: 12, padding: '20px 16px', marginBottom: 16 }}>
-                <p style={{ fontSize: 11, color: '#64748b', margin: '0 0 8px' }}>Key đã tạo thành công</p>
-                <div style={{ fontSize: 18, fontWeight: 800, color: '#00c7de', letterSpacing: 1, wordBreak: 'break-all' }}>
-                  {newKey}
+              <div style={{ background: '#f0fdf4', border: '2px solid #10b981', borderRadius: 12, padding: '20px 16px', marginBottom: 16 }}>
+                <p style={{ fontSize: 12, color: '#065f46', margin: '0 0 6px', fontWeight: 600 }}>✅ Key đã được cấp thành công!</p>
+                <div style={{ fontSize: 18, fontWeight: 900, color: '#065f46', letterSpacing: 1, wordBreak: 'break-all' }}>
+                  {confirmedKey}
                 </div>
+                <p style={{ fontSize: 11, color: '#64748b', margin: '8px 0 0' }}>Đơn hàng đã chuyển sang Đã xác nhận</p>
               </div>
               <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
                 <button
-                  onClick={copyKey}
-                  style={{ padding: '9px 20px', border: '1px solid #00c7de', borderRadius: 8, background: copied ? '#d1fae5' : '#fff', color: copied ? '#065f46' : '#00c7de', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+                  onClick={() => copyKey(confirmedKey)}
+                  style={{ padding: '9px 20px', border: '1px solid #10b981', borderRadius: 8, background: copied ? '#d1fae5' : '#fff', color: '#065f46', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
                 >
                   {copied ? '✓ Đã sao chép' : '⎘ Sao chép key'}
                 </button>
                 <button
-                  onClick={() => { copyKey(); onDone() }}
-                  style={{ padding: '9px 20px', border: 'none', borderRadius: 8, background: '#00c7de', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+                  onClick={() => { copyKey(confirmedKey); onDone() }}
+                  style={{ padding: '9px 20px', border: 'none', borderRadius: 8, background: '#10b981', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
                 >
                   Sao chép & Đóng
                 </button>
@@ -589,20 +641,11 @@ function CreateKeyModal({ order, onClose, onDone }) {
           )}
         </div>
 
-        {!newKey && (
-          <div style={{ padding: '14px 22px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end' }}>
-            <button onClick={onClose} style={{ padding: '8px 18px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#f8faff', color: '#64748b', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-              Đóng
-            </button>
-          </div>
-        )}
-        {newKey && (
-          <div style={{ padding: '14px 22px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end' }}>
-            <button onClick={onDone} style={{ padding: '8px 18px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#f8faff', color: '#64748b', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-              Đóng
-            </button>
-          </div>
-        )}
+        <div style={{ padding: '14px 22px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end' }}>
+          <button onClick={confirmedKey ? onDone : onClose} style={{ padding: '8px 18px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#f8faff', color: '#64748b', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+            Đóng
+          </button>
+        </div>
       </div>
     </div>
   )

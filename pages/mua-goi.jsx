@@ -497,6 +497,20 @@ export default function MuaGoi() {
     setStep(3)
     window.scrollTo({ top: 0, behavior: 'smooth' })
 
+    // Tính thời hạn theo billing
+    const periodMap = {
+      thang: { label: '1 tháng', days: 30 },
+      nam1:  { label: '1 năm (-20%)', days: 365 },
+      nam3:  { label: '3 năm (-30%)', days: 1095 },
+      nam5:  { label: '5 năm (-40%)', days: 1825 },
+      trial: { label: 'Dùng thử 1 ngày', days: 1 },
+    }
+    const period = periodMap[billingTab] || { label: billingTab, days: 30 }
+    // Tính ngày hết hạn dự kiến
+    const expireDate = new Date()
+    expireDate.setDate(expireDate.getDate() + period.days)
+    const expireDateStr = expireDate.toLocaleDateString('vi-VN')
+
     // Gửi Lark + lưu Supabase khi người dùng xác nhận đã thanh toán
     fetch('https://go-meta-ads-backend.vercel.app/api/order', {
       method: 'POST',
@@ -506,11 +520,15 @@ export default function MuaGoi() {
         full_name: form.hoTen,
         phone: form.sdt,
         email: form.email,
-        shop_name: form.tenShop,
+        shop_name: form.tenShop || null,
         plan_id: selectedPlan,
         plan_name: planObj?.name || selectedPlan,
         billing_tab: billingTab,
+        period_label: period.label,
+        expire_days: period.days,
+        expire_date_estimate: expireDateStr,
         price_label: planObj?.priceLabel || '',
+        price_total: planObj?.price || 0,
         ck_content: ckContent,
         referral_code: form.maGioiThieu || null,
       }),
