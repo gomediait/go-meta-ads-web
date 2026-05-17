@@ -385,30 +385,44 @@ function TicketLookupTab({ isEN }) {
   const [ticketId, setTicketId] = useState('')
   const [loading, setLoading] = useState(false)
   const [ticket, setTicket] = useState(null)
+  const [replies, setReplies] = useState([]) // Lưu replies riêng
   const [error, setError] = useState('')
 
   // Reply form
   const [replyText, setReplyText] = useState('')
-  const [replyImages, setReplyImages] = useState([]) // [{url, thumbnail}]
+  const [replyImages, setReplyImages] = useState([])
   const [replyUploading, setReplyUploading] = useState(false)
   const [replySending, setReplySending] = useState(false)
   const [replySuccess, setReplySuccess] = useState(false)
 
-  const handleLookup = async () => {
-    const id = ticketId.trim()
-    if (!id) return
+  // Auto-load ticket từ URL query ?ticket=XXXXXX (link từ email admin)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const tid = params.get('ticket')
+    if (tid) {
+      setTicketId(tid)
+      // Tự động search
+      setTimeout(() => doLookup(tid), 200)
+    }
+  }, [])
+
+  const doLookup = async (id) => {
+    const lookupId = id || ticketId.trim()
+    if (!lookupId) return
     setLoading(true)
     setError('')
     setTicket(null)
+    setReplies([])
     try {
       const res = await fetch(`${API_BASE}/ticket`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'get', ticket_id: id }),
+        body: JSON.stringify({ action: 'get', ticket_id: lookupId }),
       })
       const data = await res.json()
-      if (data.ok && (data.ticket || data.data)) {
-        setTicket(data.ticket || data.data)
+      if (data.ok && data.ticket) {
+        setTicket(data.ticket)
+        setReplies(data.replies || []) // Lưu replies riêng
         setReplyText('')
         setReplyImages([])
         setReplySuccess(false)
@@ -421,6 +435,8 @@ function TicketLookupTab({ isEN }) {
       setLoading(false)
     }
   }
+
+  const handleLookup = () => doLookup(ticketId)
 
   const handleReplyImageUpload = async (e) => {
     const files = Array.from(e.target.files || [])
@@ -457,15 +473,16 @@ function TicketLookupTab({ isEN }) {
         setReplySuccess(true)
         setReplyText('')
         setReplyImages([])
-        // Reload ticket to get new replies
+        // Reload replies sau khi gửi
         const res2 = await fetch(`${API_BASE}/ticket`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'get', ticket_id: ticket.id }),
         })
         const data2 = await res2.json()
-        if (data2.ok && (data2.ticket || data2.data)) {
-          setTicket(data2.ticket || data2.data)
+        if (data2.ok) {
+          if (data2.ticket) setTicket(data2.ticket)
+          setReplies(data2.replies || []) // Cập nhật replies mới nhất
         }
         setTimeout(() => setReplySuccess(false), 3000)
       } else {
@@ -478,7 +495,7 @@ function TicketLookupTab({ isEN }) {
     }
   }
 
-  const replies = ticket?.replies || ticket?.messages || []
+  // replies đã được lưu riêng trong state — không dùng ticket.replies
   const isClosed = ticket?.status === 'closed'
 
   return (

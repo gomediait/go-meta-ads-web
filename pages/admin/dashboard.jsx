@@ -1386,9 +1386,17 @@ function TicketsTab() {
   async function fetchDetail(id) {
     try {
       const res = await apiPost('/api/ticket', { action: 'get', ticket_id: id })
-      const t = res?.ticket || res?.data
-      if (t) setDetails(prev => ({ ...prev, [id]: t }))
-    } catch {}
+      if (res?.ok) {
+        // Lưu cả ticket lẫn replies riêng
+        setDetails(prev => ({
+          ...prev,
+          [id]: {
+            ...(res.ticket || {}),
+            replies: res.replies || []
+          }
+        }))
+      }
+    } catch (e) { console.warn('fetchDetail error:', e.message) }
   }
 
   async function handleExpand(t) {
