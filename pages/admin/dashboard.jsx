@@ -246,37 +246,47 @@ function computeCK(name, plan, billing) {
 
 function EditModal({ order, onClose, onSaved }) {
   const isNew = !order
+
+  // Parse extra info từ note JSON (tách khỏi ghi chú thật)
+  const extraInfo = (() => {
+    try { return order?.note ? JSON.parse(order.note) : {} } catch { return {} }
+  })()
+  const isNoteJSON = order?.note && order.note.trim().startsWith('{')
+
   const [form, setForm] = useState({
-    full_name: order?.full_name || order?.name || '',
-    phone: order?.phone || '',
-    email: order?.email || '',
-    shop_name: order?.shop_name || order?.company || '',
-    plan_id: order?.plan_id || order?.plan || 'ca-nhan',
-    billing: order?.billing || 'thang',
-    price: order?.price || '',
+    full_name:    order?.full_name  || '',
+    phone:        order?.phone      || '',
+    email:        order?.email      || '',
+    shop_name:    order?.shop_name  || '',
+    plan_id:      order?.plan_id    || 'ca-nhan',
+    billing_tab:  order?.billing_tab || 'thang',  // dùng đúng field name
+    price_label:  order?.price_label || '',
     referral_code: order?.referral_code || '',
-    status: order?.status || 'pending',
-    license_key: order?.license_key || order?.key || '',
-    note: order?.note || '',
+    status:       order?.status     || 'pending',
+    license_key:  order?.license_key || '',
+    note:         isNoteJSON ? '' : (order?.note || ''), // ẩn JSON khỏi textarea
   })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
-  const ck = computeCK(form.full_name, form.plan_id, form.billing)
+  const ck = computeCK(form.full_name, form.plan_id, form.billing_tab)
 
-  function set(key, val) {
-    setForm(f => ({ ...f, [key]: val }))
-  }
+  function set(key, val) { setForm(f => ({ ...f, [key]: val })) }
 
   async function handleSave() {
-    if (!form.full_name.trim()) { setError('Vui lòng nhập họ tên'); return }
-    setSaving(true)
-    setError('')
+    if (!form.phone && !form.email) { setError('Cần có SĐT hoặc Email'); return }
+    setSaving(true); setError('')
     try {
+      const payload = {
+        ...form,
+        ck_content: ck,
+        plan_name: PLAN_OPTIONS.find(p => p.value === form.plan_id)?.label || form.plan_id,
+        billing_tab: form.billing_tab,
+      }
       if (isNew) {
-        await apiPost('/api/order', { action: 'create', ...form, transfer_content: ck })
+        await apiPost('/api/order', { action: 'create', ...payload })
       } else {
-        await apiPost('/api/order', { action: 'update', id: order.id, ...form, transfer_content: ck })
+        await apiPost('/api/order', { action: 'update', id: order.id, ...payload })
       }
       onSaved()
     } catch (e) {
@@ -337,15 +347,21 @@ function EditModal({ order, onClose, onSaved }) {
               </select>
             </div>
             <div style={fieldWrap}>
-              <label style={labelStyle}>Billing</label>
-              <select style={inputStyle} value={form.billing} onChange={e => set('billing', e.target.value)}>
+              <label style={labelStyle}>Thời hạn</label>
+              <select style={inputStyle} value={form.billing_tab} onChange={e => set('billing_tab', e.target.value)}>
                 {BILLING_OPTIONS.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
               </select>
             </div>
             <div style={fieldWrap}>
-              <label style={labelStyle}>Giá (VNĐ)</label>
-              <input style={inputStyle} value={form.price} onChange={e => set('price', e.target.value)} placeholder="299000" />
+              <label style={labelStyle}>Giá (VD: 390.000đ)</label>
+              <input style={inputStyle} value={form.price_label} onChange={e => set('price_label', e.target.value)} placeholder="390.000đ" />
             </div>
+            {/* Hiển thị extra info từ đơn hàng nếu có */}
+            {!isNew && extraInfo.period_label && (
+              <div style={{ gridColumn: '1/-1', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#065f46' }}>
+                ℹ️ <b>Thông tin gói:</b> {extraInfo.period_label} · Tổng: {extraInfo.price_total?.toLocaleString('vi-VN')}đ · HH dự kiến: {extraInfo.expire_date_estimate}
+              </div>
+            )}
             <div style={fieldWrap}>
               <label style={labelStyle}>Nội dung CK (tự tính)</label>
               <input style={{ ...inputStyle, background: '#f8faff', color: '#64748b' }} value={ck} readOnly />
@@ -535,16 +551,30 @@ function CreateKeyModal({ order, onClose, onDone }) {
 
         <div style={{ padding: '18px 22px' }}>
           {/* Info */}
-          <div style={{ background: '#f8faff', borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: '#1a2332', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 12px' }}>
-            <span><b>Tên:</b> {order?.full_name || order?.name}</span>
-            <span><b>SĐT:</b> {order?.phone || '—'}</span>
-            <span><b>Gói:</b> {order?.plan_id || '—'}</span>
-            <span><b>Billing:</b> {order?.billing || '—'}</span>
-          </div>
+          {(() => {
+            // Parse extra info từ note JSON
+            let extra = {}
+            try { extra = order?.note ? JSON.parse(order.note) : {} } catch(e) { extra = {} }
+            return (
+              <div style={{ background: '#f8faff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: '#1a2332' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px' }}>
+                  <span>👤 <b>Tên:</b> {order?.full_name || '—'}</span>
+                  <span>📞 <b>SĐT:</b> {order?.phone || '—'}</span>
+                  <span>📧 <b>Email:</b> {order?.email || '—'}</span>
+                  <span>🏪 <b>Shop:</b> {order?.shop_name || '—'}</span>
+                  <span>📦 <b>Gói:</b> {order?.plan_name || order?.plan_id || '—'}</span>
+                  <span>⏱ <b>Thời hạn:</b> {extra.period_label || order?.billing_tab || '—'}</span>
+                  <span>💰 <b>Tổng tiền:</b> {order?.price_label || (extra.price_total ? extra.price_total.toLocaleString('vi-VN') + 'đ' : '—')}</span>
+                  <span>📅 <b>HH dự kiến:</b> {extra.expire_date_estimate || '—'}</span>
+                  <span style={{ gridColumn: '1/-1' }}>💳 <b>Nội dung CK:</b> <code style={{ background: '#e2e8f0', padding: '2px 6px', borderRadius: 4 }}>{order?.ck_content || '—'}</code></span>
+                </div>
+              </div>
+            )
+          })()}
 
           {error && <ErrorBox msg={error} />}
 
-          {!newKey && (
+          {!confirmedKey && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
                 <label style={labelStyle}>Shop Code (max 6 ký tự, viết hoa)</label>
