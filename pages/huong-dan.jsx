@@ -48,9 +48,9 @@ function SectionCard({ id, title, badge, children }) {
           }}>{title}</h2>
           {badge && (
             <span style={{
-              background: 'var(--orange)', color: '#fff',
+              background: '#fe5f01', color: '#fff',
               fontSize: 11, fontWeight: 700,
-              padding: '3px 12px', borderRadius: 'var(--radius-full)',
+              padding: '3px 12px', borderRadius: '999px',
               letterSpacing: '0.3px', flexShrink: 0,
             }}>{badge}</span>
           )}
@@ -66,7 +66,7 @@ function Step({ num, text }) {
     <div style={{ display: 'flex', gap: 14, marginBottom: 14 }}>
       <div style={{
         flexShrink: 0, width: 30, height: 30,
-        background: 'var(--navy)', color: '#fff', borderRadius: '50%',
+        background: '#0c2a72', color: '#fff', borderRadius: '50%',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontWeight: 800, fontSize: 13,
       }}>{num}</div>
@@ -80,7 +80,7 @@ function Tip({ children }) {
     <div style={{
       background: '#fffbf5',
       border: '1px solid rgba(254,95,1,0.3)',
-      borderRadius: 'var(--radius-sm)',
+      borderRadius: '8px',
       padding: '12px 16px',
       display: 'flex', gap: 10, alignItems: 'flex-start',
       marginTop: 18,
@@ -93,9 +93,13 @@ function Tip({ children }) {
 
 function Note({ children }) {
   return (
-    <div className="alert alert-info" style={{ marginTop: 14, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+    <div style={{
+      marginTop: 14, display: 'flex', gap: 10, alignItems: 'flex-start',
+      background: 'rgba(12,42,114,0.06)', border: '1px solid rgba(12,42,114,0.15)',
+      borderRadius: 8, padding: '13px 18px',
+    }}>
       <span style={{ fontSize: 16, flexShrink: 0 }}>ℹ️</span>
-      <span style={{ fontSize: 14, lineHeight: 1.7 }}>{children}</span>
+      <span style={{ fontSize: 14, lineHeight: 1.7, color: '#1a2332' }}>{children}</span>
     </div>
   )
 }
@@ -115,13 +119,13 @@ function BulletList({ items }) {
 function SubHeading({ children }) {
   return (
     <div style={{
-      fontWeight: 700, color: 'var(--navy)',
+      fontWeight: 700, color: '#0c2a72',
       fontSize: 14, marginBottom: 10, marginTop: 18,
       display: 'flex', alignItems: 'center', gap: 8,
     }}>
       <span style={{
         display: 'inline-block', width: 4, height: 14,
-        background: 'var(--orange)', borderRadius: 2, flexShrink: 0,
+        background: '#fe5f01', borderRadius: 2, flexShrink: 0,
       }} />
       {children}
     </div>
@@ -129,7 +133,7 @@ function SubHeading({ children }) {
 }
 
 function Tag({ children, color }) {
-  const c = color || 'var(--navy)'
+  const c = color || '#0c2a72'
   return (
     <span style={{
       display: 'inline-block',
@@ -137,7 +141,7 @@ function Tag({ children, color }) {
       color: c,
       border: `1px solid ${c}30`,
       fontSize: 12, fontWeight: 600,
-      padding: '3px 11px', borderRadius: 'var(--radius-full)',
+      padding: '3px 11px', borderRadius: '999px',
       marginRight: 6, marginBottom: 6,
     }}>{children}</span>
   )
@@ -147,14 +151,14 @@ function InfoBox({ icon, title, sub, accent }) {
   return (
     <div style={{
       background: accent ? 'rgba(254,95,1,0.1)' : 'rgba(12,42,114,0.08)',
-      borderRadius: 'var(--radius-sm)',
+      borderRadius: '8px',
       padding: '14px 18px',
       border: `1px solid ${accent ? 'rgba(254,95,1,0.2)' : 'rgba(12,42,114,0.15)'}`,
       flex: '1 1 200px',
     }}>
       <div style={{
         fontWeight: 700, fontSize: 14,
-        color: accent ? 'var(--orange)' : 'var(--navy)',
+        color: accent ? '#fe5f01' : '#0c2a72',
         marginBottom: 4,
       }}>{icon} {title}</div>
       <div style={{ fontSize: 13, color: '#64748b' }}>{sub}</div>
@@ -165,13 +169,13 @@ function InfoBox({ icon, title, sub, accent }) {
 function FaqItem({ q, a }) {
   return (
     <div style={{
-      background: 'var(--off-white)',
-      borderRadius: 'var(--radius-sm)',
+      background: '#f8faff',
+      borderRadius: '8px',
       padding: '18px 22px',
       marginBottom: 12,
-      border: '1px solid var(--gray2)',
+      border: '1px solid #e2e8f0',
     }}>
-      <div style={{ fontWeight: 700, color: 'var(--navy)', marginBottom: 8, fontSize: 15 }}>
+      <div style={{ fontWeight: 700, color: '#0c2a72', marginBottom: 8, fontSize: 15 }}>
         ❓ {q}
       </div>
       <div style={{ color: '#64748b', lineHeight: 1.75, fontSize: 14 }}>
@@ -236,7 +240,7 @@ export default function HuongDan() {
 
       {/* ── Hero ─────────────────────────────────────────────────────── */}
       <div style={{
-        background: 'linear-gradient(135deg, var(--navy) 0%, var(--navy2) 100%)',
+        background: 'linear-gradient(135deg, #0c2a72 0%, #1a3a8f 100%)',
         paddingTop: 'calc(var(--header-h) + 16px)',
         paddingBottom: 60,
         textAlign: 'center',
@@ -261,7 +265,7 @@ export default function HuongDan() {
       </div>
 
       {/* ── Body ─────────────────────────────────────────────────────── */}
-      <div style={{ background: 'var(--off-white)', minHeight: '100vh', paddingTop: 0 }}>
+      <div style={{ background: '#f8faff', minHeight: '100vh', paddingTop: 0 }}>
 
         {/* Mobile dropdown */}
         <div className="hd-mobile-nav" style={{
@@ -269,7 +273,7 @@ export default function HuongDan() {
           top: 'var(--nav-h)',
           zIndex: 100,
           background: '#fff',
-          borderBottom: '1px solid var(--gray2)',
+          borderBottom: '1px solid #e2e8f0',
           padding: '10px 16px',
         }}>
           <button
@@ -277,10 +281,10 @@ export default function HuongDan() {
             style={{
               width: '100%', display: 'flex', alignItems: 'center',
               justifyContent: 'space-between',
-              padding: '10px 16px', border: '1.5px solid var(--gray2)',
-              borderRadius: 'var(--radius-sm)', background: '#fff',
+              padding: '10px 16px', border: '1.5px solid #e2e8f0',
+              borderRadius: '8px', background: '#fff',
               fontFamily: 'inherit', fontWeight: 600, fontSize: 14,
-              color: 'var(--navy)', cursor: 'pointer',
+              color: '#0c2a72', cursor: 'pointer',
             }}
           >
             <span>{isEN ? 'Section:' : 'Mục:'} {activeLabel}</span>
@@ -290,9 +294,9 @@ export default function HuongDan() {
             <div style={{
               position: 'absolute', left: 0, right: 0,
               top: '100%', background: '#fff',
-              border: '1px solid var(--gray2)',
+              border: '1px solid #e2e8f0',
               borderTop: 'none', zIndex: 200,
-              boxShadow: 'var(--shadow)',
+              boxShadow: '0 4px 20px rgba(12,42,114,0.10)',
             }}>
               {SECTIONS.map(s => (
                 <button
@@ -304,15 +308,15 @@ export default function HuongDan() {
                     border: 'none', background: active === s.id ? 'rgba(12,42,114,0.08)' : 'transparent',
                     fontFamily: 'inherit', fontSize: 14,
                     fontWeight: active === s.id ? 700 : 500,
-                    color: active === s.id ? 'var(--navy)' : '#64748b',
+                    color: active === s.id ? '#0c2a72' : '#64748b',
                     cursor: 'pointer', textAlign: 'left',
-                    borderLeft: active === s.id ? '3px solid var(--orange)' : '3px solid transparent',
+                    borderLeft: active === s.id ? '3px solid #0c2a72' : '3px solid transparent',
                   }}
                 >
                   <span style={{
                     width: 22, height: 22, borderRadius: '50%',
-                    background: active === s.id ? 'var(--orange)' : 'var(--gray2)',
-                    color: active === s.id ? '#fff' : 'var(--text3)',
+                    background: active === s.id ? '#0c2a72' : '#e2e8f0',
+                    color: active === s.id ? '#fff' : '#94a3b8',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 11, fontWeight: 800, flexShrink: 0,
                   }}>{s.num}</span>
@@ -336,9 +340,9 @@ export default function HuongDan() {
             position: 'sticky',
             top: 'calc(var(--header-h) + 4px)',
             background: '#fff',
-            borderRadius: 'var(--radius)',
+            borderRadius: '14px',
             padding: '20px 0',
-            boxShadow: 'var(--shadow-sm)',
+            boxShadow: '0 2px 8px rgba(12,42,114,0.08)',
           }}>
             <div style={{
               fontSize: 11, fontWeight: 800,
@@ -403,11 +407,11 @@ export default function HuongDan() {
                 <Tip>
                   {isEN ? (
                     <>Forgot your key? Go to the{' '}
-                      <a href="/quan-ly" style={{ color: 'var(--orange)', fontWeight: 700, textDecoration: 'none' }}>Account Lookup</a>
+                      <a href="/quan-ly" style={{ color: '#fe5f01', fontWeight: 700, textDecoration: 'none' }}>Account Lookup</a>
                       {' '}page to find your key using your registered phone number or email.</>
                   ) : (
                     <>Quên key? Vào trang{' '}
-                      <a href="/quan-ly" style={{ color: 'var(--orange)', fontWeight: 700, textDecoration: 'none' }}>Tra cứu</a>
+                      <a href="/quan-ly" style={{ color: '#fe5f01', fontWeight: 700, textDecoration: 'none' }}>Tra cứu</a>
                       {' '}để tìm lại key theo SĐT hoặc Email đã đăng ký.</>
                   )}
                 </Tip>
