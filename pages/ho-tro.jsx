@@ -580,29 +580,6 @@ export default function HoTro() {
             </div>
           </div>
 
-          {/* Quick contact strip */}
-          <div style={{
-            marginTop: 32,
-            display: 'flex',
-            gap: 12,
-            flexWrap: 'wrap',
-            justifyContent: 'center',
-          }}>
-            <a
-              href="https://zalo.me/gonetwork"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-navy btn-sm"
-            >
-              💬 {isEN ? 'Contact Zalo' : 'Liên hệ Zalo'}
-            </a>
-            <a
-              href="mailto:admin@gonetwork.vn"
-              className="btn btn-outline-navy btn-sm"
-            >
-              ✉️ admin@gonetwork.vn
-            </a>
-          </div>
 
         </div>
       </div>

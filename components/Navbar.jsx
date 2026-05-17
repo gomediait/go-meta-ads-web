@@ -47,9 +47,9 @@ export default function Navbar() {
           </a>
 
           {/* Desktop links */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 40, flex: 1 }} className="hide-mobile">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginLeft: 20, flex: 1 }} className="hide-mobile">
             {links.map(([label, href]) => (
-              <a key={label} href={href} className="nav-link">{label}</a>
+              <a key={label} href={href} className="nav-link" style={{ fontSize: 13, padding: '6px 10px', whiteSpace: 'nowrap' }}>{label}</a>
             ))}
           </div>
 
