@@ -26,10 +26,12 @@ export default function Navbar() {
         position: 'fixed', top: 'var(--counter-h, 40px)', left: 0, right: 0, zIndex: 1001,
         height: 'var(--nav-h)',
         display: 'flex', alignItems: 'center', padding: '0 24px',
-        background: scrolled ? 'rgba(0,13,26,0.97)' : 'transparent',
-        backdropFilter: scrolled ? 'blur(20px)' : 'none',
-        borderBottom: scrolled ? '1px solid rgba(0,199,222,0.08)' : 'none',
-        transition: 'background 0.35s ease, border-color 0.35s ease',
+        /* Luôn có dark bg tối thiểu để text trắng luôn đọc được trên mọi nền */
+        background: scrolled ? 'rgba(0,13,26,0.97)' : 'rgba(0,13,26,0.75)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderBottom: scrolled ? '1px solid rgba(0,199,222,0.08)' : '1px solid rgba(255,255,255,0.04)',
+        transition: 'background 0.35s ease',
         boxShadow: scrolled ? '0 2px 24px rgba(0,0,0,0.4)' : 'none',
       }}>
         <div style={{ maxWidth: 'var(--max-w)', margin: '0 auto', width: '100%', display: 'flex', alignItems: 'center', gap: 8 }}>

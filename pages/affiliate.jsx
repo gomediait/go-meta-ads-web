@@ -103,7 +103,7 @@ function RegisterForm({ isEN }) {
                 </div>
               </div>
 
-              <form onSubmit={handleSubmit}>
+              <form onSubmit={handleSubmit} className="affiliate-form">
                 {/* Personal info section */}
                 <div style={{ fontSize: 12, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid #e2e8f0' }}>
                   {isEN ? 'Personal Information' : 'Thông tin cá nhân'}
@@ -597,6 +597,20 @@ export default function Affiliate() {
       <Footer />
 
       <style>{`
+        /* Fix form input borders - .form-input dùng var(--border2) = nearly invisible */
+        .form-input {
+          border: 1.5px solid #d1d5db !important;
+          background: #ffffff !important;
+          color: #1a2332 !important;
+        }
+        .form-input:focus {
+          border-color: #0c2a72 !important;
+          box-shadow: 0 0 0 3px rgba(12,42,114,0.08) !important;
+          outline: none;
+        }
+        .form-input::placeholder { color: #94a3b8 !important; }
+        /* Form labels */
+        .affiliate-form .form-label { color: #0c2a72 !important; }
         .commission-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-lg); }
         @media (max-width: 900px) {
           .commission-grid { grid-template-columns: 1fr 1fr !important; }

@@ -35,16 +35,16 @@ function SectionCard({ id, title, badge, children }) {
   return (
     <div id={id} style={{ marginBottom: 32 }}>
       <div style={{
-        borderLeft: '4px solid var(--navy)',
-        background: '#fff',
+        borderLeft: '4px solid #0c2a72',
+        background: '#ffffff',
         borderRadius: '0 14px 14px 0',
         padding: '28px 32px',
-        boxShadow: 'var(--shadow)',
+        boxShadow: '0 4px 20px rgba(12,42,114,0.10)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
           <h2 style={{
             fontSize: '1.15rem', fontWeight: 800,
-            color: 'var(--navy)', margin: 0, lineHeight: 1.3,
+            color: '#0c2a72', margin: 0, lineHeight: 1.3,
           }}>{title}</h2>
           {badge && (
             <span style={{

@@ -504,8 +504,17 @@ export default function MuaGoi() {
     setTimeout(() => setCopiedField(null), 1800)
   }
 
-  const ckContent = `GMAP ${form.sdt} ${planObj?.name?.toUpperCase().replace(/\s/g, '') || 'BUSINESS'}`
-  const bankAccount = '[SỐ TÀI KHOẢN - ANH TỰ ĐIỀN]' // placeholder
+  // Nội dung CK không dấu (ngân hàng không hỗ trợ dấu)
+  const planNameNoAccent = (planObj?.name || 'BUSINESS')
+    .toUpperCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/Đ/g, 'D').replace(/đ/g, 'd')
+    .replace(/\s/g, '')
+  const ckContent = `GMAP ${form.sdt || '0900000000'} ${planNameNoAccent}`
+  const bankAccount = '78789999979'
+  const bankName = 'VPBANK'
+  // VietQR URL cho VPBANK
+  const qrUrl = `https://img.vietqr.io/image/vpbank-${bankAccount}-compact2.png?amount=${planObj?.price || ''}&addInfo=${encodeURIComponent(ckContent)}&accountName=DOAN%20VAN%20HIEN`
 
   const billingTabs = isEN
     ? [
@@ -534,10 +543,15 @@ export default function MuaGoi() {
           : (isEN ? 'Trial' : 'Dùng thử')
 
   const bankRows = [
-    { label: isEN ? 'Bank' : 'Ngân hàng', value: 'MB Bank (Ngân hàng Quân đội)', highlight: false },
+    {
+      label: isEN ? 'Bank' : 'Ngân hàng',
+      value: 'VPBANK',
+      subValue: isEN ? 'Vietnam Prosperity Joint Stock Commercial Bank' : 'Ngân hàng Việt Nam Thịnh Vượng',
+      highlight: false,
+    },
     { label: isEN ? 'Account Number' : 'Số tài khoản', value: bankAccount, highlight: true, copy: 'stk' },
-    { label: isEN ? 'Account Name' : 'Tên tài khoản', value: 'GO MEDIA VIETNAM', highlight: false },
-    { label: isEN ? 'Transfer Content' : 'Nội dung CK', value: ckContent, highlight: true, copy: 'ck' },
+    { label: isEN ? 'Account Name' : 'Tên tài khoản', value: 'DOAN VAN HIEN', highlight: false },
+    { label: isEN ? 'Transfer Content (no accents)' : 'Nội dung CK (không dấu)', value: ckContent, highlight: true, copy: 'ck' },
   ]
 
   const summaryKeys = isEN
@@ -585,13 +599,16 @@ export default function MuaGoi() {
       <main style={{
         background: '#f1f5f9',
         minHeight: '100vh',
-        paddingTop: 'calc(var(--header-h) + 4px)',
       }}>
 
-        {/* Hero strip - dark navy bg */}
+        {/* Hero strip - dark navy bg, includes header offset */}
         <div style={{
           background: 'linear-gradient(135deg, #0c2a72 0%, #1a3a8f 100%)',
-          textAlign: 'center', padding: '40px 20px 48px',
+          textAlign: 'center',
+          paddingTop: 'calc(var(--header-h) + 40px)',
+          paddingBottom: 48,
+          paddingLeft: 20,
+          paddingRight: 20,
         }}>
           <h1 style={{ color: '#fff', fontSize: 'clamp(22px,4vw,34px)', fontWeight: 800, margin: '0 0 8px' }}>
             {isEN ? 'Subscribe to Go Meta Ads Pro' : 'Đăng ký Go Meta Ads Pro'}
@@ -879,37 +896,65 @@ export default function MuaGoi() {
                     </div>
                   </div>
 
-                  <div style={{ display: 'grid', gap: 10 }}>
-                    {bankRows.map(row => (
-                      <div key={row.label} style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        padding: '12px 16px',
-                        background: row.highlight ? '#fff7f3' : '#f1f5f9',
-                        borderRadius: 10, gap: 12, flexWrap: 'wrap',
-                      }}>
-                        <div>
-                          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: 2 }}>
-                            {row.label}
+                  <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                    {/* Info rows */}
+                    <div style={{ flex: 1, minWidth: 240, display: 'grid', gap: 10 }}>
+                      {bankRows.map(row => (
+                        <div key={row.label} style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                          padding: '12px 16px',
+                          background: row.highlight ? '#fff7f3' : '#f8faff',
+                          border: `1px solid ${row.highlight ? '#fde8d8' : '#e2e8f0'}`,
+                          borderRadius: 10, gap: 12, flexWrap: 'wrap',
+                        }}>
+                          <div>
+                            <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: 2 }}>
+                              {row.label}
+                            </div>
+                            <div style={{ fontSize: 15, fontWeight: 800, color: row.highlight ? '#fe5f01' : '#0c2a72' }}>
+                              {row.value}
+                            </div>
+                            {row.subValue && (
+                              <div style={{ fontSize: 12, color: '#0c2a72', fontWeight: 600, marginTop: 2 }}>
+                                {row.subValue}
+                              </div>
+                            )}
                           </div>
-                          <div style={{ fontSize: 15, fontWeight: 800, color: row.highlight ? 'var(--orange)' : 'var(--navy)' }}>
-                            {row.value}
-                          </div>
+                          {row.copy && (
+                            <button
+                              onClick={() => copyField(row.value, row.copy)}
+                              style={{
+                                background: '#0c2a72', color: '#fff', border: 'none',
+                                borderRadius: 8, padding: '6px 14px', fontSize: 13,
+                                fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+                              }}
+                            >
+                              {copiedField === row.copy ? (isEN ? '✓ Copied' : '✓ Đã copy') : 'Copy'}
+                            </button>
+                          )}
                         </div>
-                        {row.copy && (
-                          <button
-                            onClick={() => copyField(row.value, row.copy)}
-                            className="btn btn-navy btn-sm"
-                            style={{ fontFamily: 'inherit' }}
-                          >
-                            {copiedField === row.copy ? (isEN ? '✓ Copied' : '✓ Đã copy') : 'Copy'}
-                          </button>
-                        )}
+                      ))}
+                    </div>
+
+                    {/* QR Code VietQR */}
+                    <div style={{ textAlign: 'center', flexShrink: 0 }}>
+                      <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                        {isEN ? 'Scan QR to pay' : 'Quét QR để chuyển tiền'}
                       </div>
-                    ))}
+                      <div style={{ background: '#fff', border: '2px solid #e2e8f0', borderRadius: 12, padding: 8, display: 'inline-block' }}>
+                        <img
+                          src={qrUrl}
+                          alt="QR VPBANK"
+                          style={{ width: 160, height: 'auto', display: 'block', borderRadius: 8 }}
+                          onError={e => { e.target.parentElement.style.display = 'none' }}
+                        />
+                      </div>
+                      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 6 }}>VPBANK · {bankAccount}</div>
+                    </div>
                   </div>
 
-                  <div className="alert alert-warning" style={{ marginTop: 14 }}>
-                    <strong>{isEN ? 'Example content:' : 'VD nội dung:'}</strong> GMAP 0912345678 BUSINESS
+                  <div style={{ marginTop: 14, background: '#fffbeb', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 8, padding: '10px 16px', fontSize: 13, color: '#78350f' }}>
+                    <strong>{isEN ? 'Note:' : 'Lưu ý:'}</strong> {isEN ? 'Transfer content must not have accents (auto-generated above).' : 'Nội dung chuyển khoản không dấu — hệ thống đã tạo sẵn ở trên.'}
                   </div>
                 </div>
 
