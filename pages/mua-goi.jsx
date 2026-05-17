@@ -496,6 +496,25 @@ export default function MuaGoi() {
     setSubmitting(false)
     setStep(3)
     window.scrollTo({ top: 0, behavior: 'smooth' })
+
+    // Gửi Lark + lưu Supabase khi người dùng xác nhận đã thanh toán
+    fetch('https://go-meta-ads-backend.vercel.app/api/order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'create',
+        full_name: form.hoTen,
+        phone: form.sdt,
+        email: form.email,
+        shop_name: form.tenShop,
+        plan_id: selectedPlan,
+        plan_name: planObj?.name || selectedPlan,
+        billing_tab: billingTab,
+        price_label: planObj?.priceLabel || '',
+        ck_content: ckContent,
+        referral_code: form.maGioiThieu || null,
+      }),
+    }).catch(() => {})  // fire-and-forget, không block UX
   }
 
   function copyField(text, fieldName) {

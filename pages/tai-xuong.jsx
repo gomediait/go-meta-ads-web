@@ -35,6 +35,15 @@ function formatDate(str, isEN) {
   } catch { return str }
 }
 
+const USER_TYPE_OPTIONS = [
+  { label: 'Cá nhân chạy ads', value: 'individual' },
+  { label: 'Doanh nghiệp nhỏ', value: 'small_biz' },
+  { label: 'Doanh nghiệp vừa/lớn', value: 'medium_biz' },
+  { label: 'Agency', value: 'agency' },
+  { label: 'Nhà phát triển', value: 'other' },
+  { label: 'Khác', value: 'other' },
+]
+
 export default function TaiXuong() {
   const { lang } = useLang()
   const isEN = lang === 'en'
@@ -42,6 +51,13 @@ export default function TaiXuong() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
+
+  // Download popup state
+  const [popupOpen, setPopupOpen] = useState(false)
+  const [dlForm, setDlForm] = useState({ full_name: '', contact: '', email: '', user_type: '' })
+  const [dlLoading, setDlLoading] = useState(false)
+  const [dlSuccess, setDlSuccess] = useState(false)
+  const [dlError, setDlError] = useState('')
 
   useEffect(() => {
     fetch('https://go-meta-ads-backend.vercel.app/api/version')
@@ -59,6 +75,37 @@ export default function TaiXuong() {
       ? notesRaw.split(/[.\n]/).map(s => s.trim()).filter(Boolean)
       : (isEN ? FALLBACK_NOTES_EN : FALLBACK_NOTES_VI))
   const downloadUrl = data?.download_url || FALLBACK.download_url
+
+  async function handleDlSubmit(e) {
+    e.preventDefault()
+    if (!dlForm.full_name.trim() || !dlForm.contact.trim() || !dlForm.email.trim() || !dlForm.user_type) {
+      setDlError(isEN ? 'Please fill in all required fields.' : 'Vui lòng điền đầy đủ thông tin.')
+      return
+    }
+    setDlError('')
+    setDlLoading(true)
+    try {
+      const res = await fetch('https://go-meta-ads-backend.vercel.app/api/download', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'request',
+          full_name: dlForm.full_name,
+          contact: dlForm.contact,
+          email: dlForm.email,
+          user_type: dlForm.user_type,
+        }),
+      })
+      if (!res.ok) throw new Error('Server error')
+      setDlLoading(false)
+      setPopupOpen(false)
+      setDlSuccess(true)
+      setDlForm({ full_name: '', contact: '', email: '', user_type: '' })
+    } catch {
+      setDlLoading(false)
+      setDlError(isEN ? 'An error occurred. Please try again.' : 'Có lỗi xảy ra. Vui lòng thử lại.')
+    }
+  }
 
   const STEPS = [
     {
@@ -142,13 +189,12 @@ export default function TaiXuong() {
           </p>
 
           {/* Big download button with pulse */}
-          <a
-            href={downloadUrl}
-            download
+          <button
+            onClick={() => setPopupOpen(true)}
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 14,
               background: 'linear-gradient(135deg, var(--orange) 0%, #ff8c00 100%)',
-              color: '#fff', textDecoration: 'none',
+              color: '#fff', border: 'none', cursor: 'pointer',
               borderRadius: 'var(--radius-xl)',
               padding: 'clamp(16px,3vw,22px) clamp(32px,6vw,56px)',
               fontSize: 'clamp(17px,3vw,21px)', fontWeight: 900,
@@ -161,7 +207,7 @@ export default function TaiXuong() {
             {loading
               ? (isEN ? 'Download' : 'Tải xuống')
               : (isEN ? `Download ${version}` : `Tải xuống ${version}`)}
-          </a>
+          </button>
 
           <div style={{ marginTop: 16, color: 'rgba(255,255,255,0.45)', fontSize: 13 }}>
             {isEN ? 'Chrome Extension · 1-day free trial' : 'Chrome Extension · Miễn phí dùng thử 1 ngày'}
@@ -371,6 +417,191 @@ export default function TaiXuong() {
         </div>
       </main>
 
+      {/* ─── SUCCESS TOAST ─── */}
+      {dlSuccess && (
+        <div style={{
+          position: 'fixed', bottom: 28, left: '50%', transform: 'translateX(-50%)',
+          background: '#052e16', border: '1.5px solid #22c55e',
+          color: '#86efac', borderRadius: 12, padding: '16px 28px',
+          fontWeight: 700, fontSize: 15, zIndex: 9999,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', gap: 12, whiteSpace: 'nowrap',
+          maxWidth: 'calc(100vw - 40px)',
+        }}>
+          <span style={{ fontSize: 20 }}>✅</span>
+          <span style={{ whiteSpace: 'normal' }}>
+            {isEN
+              ? 'Sent! We will contact you via Zalo/Email in a few minutes.'
+              : 'Đã gửi! Chúng tôi sẽ liên hệ qua Zalo/Email trong vài phút.'}
+          </span>
+          <button onClick={() => setDlSuccess(false)} style={{
+            background: 'none', border: 'none', color: '#86efac',
+            fontSize: 18, cursor: 'pointer', padding: '0 0 0 8px', fontFamily: 'inherit',
+          }}>✕</button>
+        </div>
+      )}
+
+      {/* ─── DOWNLOAD POPUP ─── */}
+      {popupOpen && (
+        <div
+          onClick={e => { if (e.target === e.currentTarget) setPopupOpen(false) }}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
+            zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '16px',
+          }}
+        >
+          <div style={{
+            background: '#0a1535', border: '1.5px solid rgba(0,199,222,0.4)',
+            borderRadius: 20, width: '100%', maxWidth: 480,
+            boxShadow: '0 24px 80px rgba(0,0,0,0.7)',
+            overflow: 'hidden',
+          }}>
+            {/* Popup header */}
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '22px 28px 18px',
+              borderBottom: '1px solid rgba(0,199,222,0.15)',
+            }}>
+              <div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: '#fff' }}>
+                  📥 {isEN ? 'Get Download Link' : 'Nhận link tải xuống'}
+                </div>
+                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', marginTop: 4 }}>
+                  {isEN
+                    ? 'Fill in your info and we'll send the link via Zalo/Email'
+                    : 'Điền thông tin để chúng tôi gửi link download qua Zalo/Email'}
+                </div>
+              </div>
+              <button
+                onClick={() => setPopupOpen(false)}
+                style={{
+                  background: 'rgba(255,255,255,0.08)', border: 'none',
+                  color: '#fff', width: 34, height: 34, borderRadius: 8,
+                  fontSize: 18, cursor: 'pointer', flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontFamily: 'inherit',
+                }}
+              >✕</button>
+            </div>
+
+            {/* Popup form */}
+            <form onSubmit={handleDlSubmit} style={{ padding: '24px 28px 28px' }}>
+              {/* Full name */}
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.7)', marginBottom: 6 }}>
+                  {isEN ? 'Full Name' : 'Họ và tên'} <span style={{ color: '#fe5f01' }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  value={dlForm.full_name}
+                  onChange={e => setDlForm(p => ({ ...p, full_name: e.target.value }))}
+                  placeholder={isEN ? 'John Doe' : 'Nguyễn Văn A'}
+                  style={{
+                    width: '100%', boxSizing: 'border-box',
+                    background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(0,199,222,0.2)',
+                    color: '#fff', borderRadius: 10, padding: '11px 14px',
+                    fontSize: 15, outline: 'none', fontFamily: 'inherit',
+                  }}
+                />
+              </div>
+
+              {/* SDT Zalo */}
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.7)', marginBottom: 6 }}>
+                  {isEN ? 'Phone / Zalo' : 'SĐT / Zalo'} <span style={{ color: '#fe5f01' }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  value={dlForm.contact}
+                  onChange={e => setDlForm(p => ({ ...p, contact: e.target.value }))}
+                  placeholder="0912 345 678"
+                  style={{
+                    width: '100%', boxSizing: 'border-box',
+                    background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(0,199,222,0.2)',
+                    color: '#fff', borderRadius: 10, padding: '11px 14px',
+                    fontSize: 15, outline: 'none', fontFamily: 'inherit',
+                  }}
+                />
+              </div>
+
+              {/* Email */}
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.7)', marginBottom: 6 }}>
+                  {isEN ? 'Email to receive link' : 'Email nhận link'} <span style={{ color: '#fe5f01' }}>*</span>
+                </label>
+                <input
+                  type="email"
+                  value={dlForm.email}
+                  onChange={e => setDlForm(p => ({ ...p, email: e.target.value }))}
+                  placeholder={isEN ? 'you@email.com' : 'ban@email.com'}
+                  style={{
+                    width: '100%', boxSizing: 'border-box',
+                    background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(0,199,222,0.2)',
+                    color: '#fff', borderRadius: 10, padding: '11px 14px',
+                    fontSize: 15, outline: 'none', fontFamily: 'inherit',
+                  }}
+                />
+              </div>
+
+              {/* User type */}
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.7)', marginBottom: 8 }}>
+                  {isEN ? 'You are:' : 'Bạn là:'} <span style={{ color: '#fe5f01' }}>*</span>
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  {USER_TYPE_OPTIONS.map((opt, idx) => {
+                    const selected = dlForm.user_type === opt.value && dlForm._userTypeLabel === opt.label
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setDlForm(p => ({ ...p, user_type: opt.value, _userTypeLabel: opt.label }))}
+                        style={{
+                          padding: '9px 10px', borderRadius: 10, cursor: 'pointer',
+                          fontSize: 13, fontWeight: 600, textAlign: 'center',
+                          fontFamily: 'inherit',
+                          background: selected ? 'rgba(0,199,222,0.15)' : 'rgba(255,255,255,0.04)',
+                          border: selected ? '1.5px solid rgba(0,199,222,0.7)' : '1.5px solid rgba(255,255,255,0.12)',
+                          color: selected ? '#00c7de' : 'rgba(255,255,255,0.7)',
+                          transition: 'all 0.15s',
+                        }}
+                      >
+                        {opt.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {dlError && (
+                <div style={{ color: '#fca5a5', fontSize: 13, fontWeight: 600, marginBottom: 14 }}>
+                  ⚠ {dlError}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={dlLoading}
+                style={{
+                  width: '100%', padding: '14px', borderRadius: 12, border: 'none',
+                  background: dlLoading ? 'rgba(0,199,222,0.4)' : 'linear-gradient(135deg, #00c7de, #0094aa)',
+                  color: '#fff', fontSize: 16, fontWeight: 800, cursor: dlLoading ? 'not-allowed' : 'pointer',
+                  fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                  transition: 'opacity 0.2s',
+                }}
+              >
+                {dlLoading ? (
+                  <>{isEN ? 'Sending...' : 'Đang gửi...'}</>
+                ) : (
+                  <>🚀 {isEN ? 'Send Request' : 'Gửi yêu cầu'}</>
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
       <Footer />
 
       <style>{`
@@ -384,6 +615,7 @@ export default function TaiXuong() {
         }
         @media (max-width: 640px) {
           .tai-xuong-steps-grid { grid-template-columns: 1fr !important; }
+          .dl-popup-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
     </>
