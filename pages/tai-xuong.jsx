@@ -96,14 +96,15 @@ export default function TaiXuong() {
           user_type: dlForm.user_type,
         }),
       })
-      if (!res.ok) throw new Error('Server error')
+      const data = await res.json()
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Server error ' + res.status)
       setDlLoading(false)
       setPopupOpen(false)
       setDlSuccess(true)
       setDlForm({ full_name: '', contact: '', email: '', user_type: '' })
-    } catch {
+    } catch (err) {
       setDlLoading(false)
-      setDlError(isEN ? 'An error occurred. Please try again.' : 'Có lỗi xảy ra. Vui lòng thử lại.')
+      setDlError((isEN ? 'Error: ' : 'Lỗi: ') + (err.message || 'Vui lòng thử lại.'))
     }
   }
 
