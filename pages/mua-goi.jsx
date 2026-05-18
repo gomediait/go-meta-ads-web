@@ -4,6 +4,7 @@ import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import Reveal from '../components/Reveal'
 import { useLang } from '../lib/LangContext'
+import { getReferralCode, attributeConversion } from '../lib/affiliateTrack'
 
 const PLANS_VI = {
   thang: [
@@ -532,7 +533,21 @@ export default function MuaGoi() {
         ck_content: ckContent,
         referral_code: form.maGioiThieu || null,
       }),
-    }).catch(() => {})  // fire-and-forget, không block UX
+    }).then(async r => {
+      // Affiliate attribution — ghi nhận nếu có referral code
+      try {
+        const refCode = getReferralCode()
+        const data = await r.json().catch(() => ({}))
+        if (refCode && data.order_id) {
+          attributeConversion({
+            referral_code: refCode,
+            order_id: data.order_id,
+            plan_id: selectedPlan,
+            price: planObj?.price || 0
+          })
+        }
+      } catch (_) {}
+    }).catch(() => {})
   }
 
   function copyField(text, fieldName) {

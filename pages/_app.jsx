@@ -3,6 +3,7 @@ import { LangProvider } from '../lib/LangContext'
 import { useEffect } from 'react'
 import { useRouter } from 'next/router'
 import dynamic from 'next/dynamic'
+import { saveReferralCode, trackReferralClick } from '../lib/affiliateTrack'
 
 const LoadingScreen   = dynamic(() => import('../components/LoadingScreen'),   { ssr: false })
 const FomoPopup       = dynamic(() => import('../components/FomoPopup'),       { ssr: false })
@@ -48,6 +49,16 @@ function GlobalEffects() {
 export default function App({ Component, pageProps }) {
   const router = useRouter()
   const isAdmin = router.pathname.startsWith('/admin')
+
+  // Đọc ?ref= từ URL và lưu cookie affiliate 30 ngày
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const ref = params.get('ref')
+    if (ref) {
+      saveReferralCode(ref)
+      trackReferralClick(ref)
+    }
+  }, [])
 
   return (
     <LangProvider>

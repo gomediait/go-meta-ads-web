@@ -171,11 +171,12 @@ function ChatTab({ isEN }) {
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const bottomRef = useRef(null)
+  const chatAreaRef = useRef(null) // ref vào container chat, không dùng scrollIntoView (cuộn cả trang)
 
   useEffect(() => {
-    if (bottomRef.current) {
-      bottomRef.current.scrollIntoView({ behavior: 'smooth' })
+    // Chỉ cuộn BÊN TRONG khung chat, không ảnh hưởng trang
+    if (chatAreaRef.current) {
+      chatAreaRef.current.scrollTop = chatAreaRef.current.scrollHeight
     }
   }, [messages, loading])
 
@@ -218,13 +219,17 @@ function ChatTab({ isEN }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: 480 }}>
-      <div style={{
-        flex: 1,
-        overflowY: 'auto',
-        background: '#001428',
-        borderRadius: '10px 10px 0 0',
-        padding: '20px 16px',
-      }}>
+      <div
+        ref={chatAreaRef}
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          background: '#001428',
+          borderRadius: '10px 10px 0 0',
+          padding: '20px 16px',
+          scrollBehavior: 'smooth',
+        }}
+      >
         {messages.map((m, i) => (
           <ChatMessage key={i} role={m.role} text={m.text} />
         ))}
@@ -254,7 +259,6 @@ function ChatTab({ isEN }) {
             </div>
           </div>
         )}
-        <div ref={bottomRef} />
       </div>
 
       <div style={{
