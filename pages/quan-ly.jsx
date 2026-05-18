@@ -372,48 +372,54 @@ function UpgradeSection({ isEN }) {
     ? [
         {
           name: 'Personal',
-          price: '200.000đ',
+          price: '180.000đ',
           period: '/month',
-          features: ['1 Admin + 1 Staff', '3 Products', 'Basic CPA tracking', 'Zalo support'],
+          note: '144K/month — 1 year (-20%)',
+          features: ['1 Admin + 1 Staff', 'Unlimited ad accounts', 'Basic CPA sync', 'Zalo support'],
           highlight: false,
         },
         {
           name: 'Business',
-          price: '500.000đ',
+          price: '390.000đ',
           period: '/month',
-          features: ['2 Admin + 5 Staff', 'Unlimited products', 'Advanced reports', 'Auto alerts'],
+          note: '312K/month — 1 year (-20%)',
+          features: ['2 Admin + 5 Staff', 'Unlimited products', 'Advanced reports', 'Auto alerts', 'Zalo support'],
           highlight: true,
           badge: 'MOST POPULAR',
         },
         {
           name: 'Agency',
-          price: '1.200.000đ',
+          price: '890.000đ',
           period: '/month',
-          features: ['6 Admin unlimited staff', 'Unlimited products', 'Agency reports', 'SLA 24/7'],
+          note: '712K/month — 1 year (-20%)',
+          features: ['6 Admin + Unlimited staff', 'Unlimited products', 'Agency reports', '1-1 Zalo/Call', 'SLA 24/7'],
           highlight: false,
         },
       ]
     : [
         {
-          name: 'Personal',
-          price: '200.000đ',
+          name: 'Cá nhân',
+          price: '180.000đ',
           period: '/tháng',
-          features: ['1 Admin + 1 Nhân viên', '3 Sản phẩm', 'CPA tracking cơ bản', 'Hỗ trợ Zalo'],
+          note: '144K/tháng khi mua 1 năm (-20%)',
+          features: ['1 Admin + 1 Nhân viên', 'Không giới hạn tài khoản ads', 'Đồng bộ CPA cơ bản', 'Hỗ trợ Zalo'],
           highlight: false,
         },
         {
-          name: 'Business',
-          price: '500.000đ',
+          name: 'Doanh nghiệp',
+          price: '390.000đ',
           period: '/tháng',
-          features: ['2 Admin + 5 Nhân viên', 'Không giới hạn SP', 'Báo cáo nâng cao', 'Cảnh báo tự động'],
+          note: '312K/tháng khi mua 1 năm (-20%)',
+          features: ['2 Admin + 5 Nhân viên', 'Không giới hạn sản phẩm', 'Báo cáo nâng cao', 'Cảnh báo tự động', 'Hỗ trợ Zalo'],
           highlight: true,
           badge: 'PHỔ BIẾN NHẤT',
         },
         {
           name: 'Agency',
-          price: '1.200.000đ',
+          price: '890.000đ',
           period: '/tháng',
-          features: ['6 Admin không giới hạn NV', 'Không giới hạn SP', 'Báo cáo agency', 'SLA 24/7'],
+          note: '712K/tháng khi mua 1 năm (-20%)',
+          features: ['6 Admin + Không giới hạn NV', 'Không giới hạn sản phẩm', 'Báo cáo agency', 'Hỗ trợ 1-1 Zalo/Call', 'SLA 24/7'],
           highlight: false,
         },
       ]
@@ -460,9 +466,14 @@ function UpgradeSection({ isEN }) {
                 }}>{p.badge}</div>
               )}
               <div style={{ fontWeight: 900, fontSize: 17, marginBottom: 4 }}>{p.name}</div>
-              <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 16 }}>
+              <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 4 }}>
                 {p.price}<span style={{ fontSize: 13, opacity: 0.8 }}>{p.period}</span>
               </div>
+              {p.note && (
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginBottom: 14, fontStyle: 'italic' }}>
+                  💡 {p.note}
+                </div>
+              )}
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 {p.features.map((f, i) => (
                   <li key={i} style={{ fontSize: 13, marginBottom: 7, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
