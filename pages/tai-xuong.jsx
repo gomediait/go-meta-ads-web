@@ -6,26 +6,28 @@ import Reveal from '../components/Reveal'
 import { useLang } from '../lib/LangContext'
 
 const FALLBACK_NOTES_VI = [
+  '[MỚI] AI Kiểm tra Vi phạm Chính sách Meta — phân tích nội dung quảng cáo tức thì (Business+)',
+  'Sidebar mới: nhóm tính năng rõ ràng, đổi tên các mục trực quan hơn',
   'Theo dõi CPA realtime theo từng sản phẩm',
   'Đồng bộ mục tiêu CPA cho cả team',
   'Cảnh báo camp vượt CPA qua Telegram',
   'Báo cáo doanh thu / lãi lỗ tổng hợp',
-  'Hỗ trợ nhiều tài khoản quảng cáo',
 ]
 
 const FALLBACK_NOTES_EN = [
+  '[NEW] AI Meta Policy Checker — instant ad content analysis (Business+)',
+  'New sidebar: clearer feature grouping and renamed menu items',
   'Real-time CPA tracking per product',
   'Sync CPA targets across the entire team',
   'Campaign CPA alert via Telegram',
   'Revenue / profit & loss summary reports',
-  'Multiple ad account support',
 ]
 
 const FALLBACK = {
-  version: 'v1.0.0',
-  release_date: '2026-05-15',
+  version: 'v1.0.1',
+  release_date: '2026-05-19',
   notes: FALLBACK_NOTES_VI,
-  download_url: '#',
+  download_url: 'https://adsmeta.gonetwork.vn/tai-xuong',
 }
 
 function formatDate(str, isEN) {
