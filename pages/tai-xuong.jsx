@@ -6,25 +6,21 @@ import Reveal from '../components/Reveal'
 import { useLang } from '../lib/LangContext'
 
 const FALLBACK_NOTES_VI = [
+  '[CẢI TIẾN] Kiểm soát Lãi/Lỗ: giao diện mới gọn gàng, bố cục rõ ràng hơn, hướng dẫn dễ đọc hơn',
   '[MỚI] AI Kiểm tra Vi phạm Chính sách Meta — phân tích nội dung quảng cáo tức thì (Business+)',
   'Sidebar mới: nhóm tính năng rõ ràng, đổi tên các mục trực quan hơn',
-  'Theo dõi CPA realtime theo từng sản phẩm',
-  'Đồng bộ mục tiêu CPA cho cả team',
-  'Cảnh báo camp vượt CPA qua Telegram',
-  'Báo cáo doanh thu / lãi lỗ tổng hợp',
+  'Đổi tên mục: Thông báo tự động, Nhân viên và Hướng dẫn về nhóm riêng',
 ]
 
 const FALLBACK_NOTES_EN = [
+  '[IMPROVED] Profit/Loss Control: cleaner new layout, clearer structure, easier to read guidance',
   '[NEW] AI Meta Policy Checker — instant ad content analysis (Business+)',
   'New sidebar: clearer feature grouping and renamed menu items',
-  'Real-time CPA tracking per product',
-  'Sync CPA targets across the entire team',
-  'Campaign CPA alert via Telegram',
-  'Revenue / profit & loss summary reports',
+  'Renamed sections: Automated Alerts, Staff, and Guide moved to separate group',
 ]
 
 const FALLBACK = {
-  version: 'v1.0.1',
+  version: 'v1.1.2',
   release_date: '2026-05-19',
   notes: FALLBACK_NOTES_VI,
   download_url: 'https://adsmeta.gonetwork.vn/tai-xuong',
