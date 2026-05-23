@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   const sb = getSupabase()
 
   if (req.method === 'GET') {
-    const { data } = await sb.from('support_tickets')
+    const { data } = await sb.from('web_tickets')
       .select('id, subject, status, priority, created_at, updated_at, replies')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
@@ -23,7 +23,7 @@ export default async function handler(req, res) {
       if (!subject?.trim()) return res.status(400).json({ error: 'Vui lòng nhập tiêu đề' })
       if (!message?.trim()) return res.status(400).json({ error: 'Vui lòng nhập nội dung' })
 
-      const { data, error } = await sb.from('support_tickets').insert({
+      const { data, error } = await sb.from('web_tickets').insert({
         user_id: user.id,
         user_email: user.email,
         subject: subject.trim(),
@@ -41,7 +41,7 @@ export default async function handler(req, res) {
       const { ticket_id, message } = body
       if (!message?.trim()) return res.status(400).json({ error: 'Vui lòng nhập nội dung' })
 
-      const { data: ticket } = await sb.from('support_tickets')
+      const { data: ticket } = await sb.from('web_tickets')
         .select('replies, user_id')
         .eq('id', ticket_id)
         .single()
@@ -53,7 +53,7 @@ export default async function handler(req, res) {
       const replies = Array.isArray(ticket.replies) ? ticket.replies : []
       replies.push({ from: 'user', message: message.trim(), created_at: new Date().toISOString() })
 
-      const { error } = await sb.from('support_tickets').update({
+      const { error } = await sb.from('web_tickets').update({
         replies,
         status: 'open',
         updated_at: new Date().toISOString()
