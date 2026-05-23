@@ -2877,9 +2877,292 @@ function PolicyConfigSubTab({ cardStyle }) {
 }
 
 // ─── SIDEBAR ──────────────────────────────────────────────────────────────────
+// ─── WEB USERS TAB ────────────────────────────────────────────────────────────
+const ADMIN_TOKEN = typeof window !== 'undefined' ? atob(localStorage.getItem('gmap_admin_token') || '') : ''
+
+async function adminApi(action, extra = {}) {
+  const res = await fetch('/api/admin/web-users', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-admin-token': ADMIN_TOKEN,
+    },
+    body: JSON.stringify({ action, ...extra }),
+  })
+  return res.json()
+}
+
+const PLAN_LABELS = { trial: 'Dùng thử', personal: 'Personal', business: 'Business', agency: 'Agency' }
+const PLAN_COLORS = {
+  trial:    { bg: '#f1f5f9', color: '#475569' },
+  personal: { bg: '#dbeafe', color: '#1e40af' },
+  business: { bg: '#d1fae5', color: '#065f46' },
+  agency:   { bg: '#fef3c7', color: '#92400e' },
+}
+
+function WebUsersTab() {
+  const [stats, setStats] = useState(null)
+  const [users, setUsers] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [filterPlan, setFilterPlan] = useState('all')
+  const [editing, setEditing] = useState(null) // { id, email, plan, expire_at }
+  const [editForm, setEditForm] = useState({})
+  const [saving, setSaving] = useState(false)
+  const [toast, setToast] = useState(null)
+  const [page] = useState(1)
+
+  const adminToken = typeof window !== 'undefined' ? atob(localStorage.getItem('gmap_admin_token') || '') : ''
+
+  async function callApi(action, extra = {}) {
+    const res = await fetch('/api/admin/web-users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-token': adminToken },
+      body: JSON.stringify({ action, ...extra }),
+    })
+    return res.json()
+  }
+
+  const showToast = (msg, type = 'ok') => {
+    setToast({ msg, type })
+    setTimeout(() => setToast(null), 3000)
+  }
+
+  async function load() {
+    setLoading(true)
+    try {
+      const [statsRes, usersRes] = await Promise.all([
+        callApi('stats'),
+        callApi('list', { search, plan: filterPlan, page, limit: 100 }),
+      ])
+      if (statsRes.ok) setStats(statsRes)
+      if (usersRes.ok) setUsers(usersRes.users || [])
+    } catch (e) {
+      showToast('Lỗi tải dữ liệu: ' + e.message, 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { load() }, [search, filterPlan])
+
+  async function handleSavePlan() {
+    setSaving(true)
+    try {
+      const d = await callApi('update_plan', {
+        user_id: editing.id,
+        plan: editForm.plan,
+        expire_at: editForm.expire_at || null,
+      })
+      if (!d.ok) return showToast(d.error || 'Lỗi', 'error')
+      showToast('Đã cập nhật thành công')
+      setEditing(null)
+      load()
+    } catch { showToast('Lỗi kết nối', 'error') }
+    finally { setSaving(false) }
+  }
+
+  async function handleResetFb(user) {
+    if (!confirm(`Xoá kết nối Facebook của "${user.email}"?`)) return
+    const d = await callApi('reset_fb', { user_id: user.id })
+    if (d.ok) { showToast('Đã reset FB'); load() }
+    else showToast(d.error || 'Lỗi', 'error')
+  }
+
+  async function handleDelete(user) {
+    if (!confirm(`XOÁ tài khoản "${user.email}"? Không thể hoàn tác!`)) return
+    const d = await callApi('delete', { user_id: user.id })
+    if (d.ok) { showToast('Đã xoá tài khoản'); load() }
+    else showToast(d.error || 'Lỗi', 'error')
+  }
+
+  const card = { background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '20px 24px', marginBottom: 20 }
+  const inp = {
+    padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 13,
+    fontFamily: 'inherit', outline: 'none', background: '#fff', color: '#1a2332',
+  }
+
+  return (
+    <div>
+      {toast && (
+        <div style={{
+          position: 'fixed', top: 20, right: 20, zIndex: 9999,
+          background: toast.type === 'error' ? '#ef4444' : '#10b981',
+          color: '#fff', borderRadius: 10, padding: '12px 20px',
+          fontSize: 13, fontWeight: 600, boxShadow: '0 4px 20px rgba(0,0,0,.25)',
+        }}>{toast.msg}</div>
+      )}
+
+      <h2 style={{ fontSize: 20, fontWeight: 700, color: '#1a2332', marginBottom: 24 }}>
+        🌐 Quản lý Web Users (SaaS)
+      </h2>
+
+      {/* Stats */}
+      {stats && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 14, marginBottom: 24 }}>
+          {[
+            { label: 'Tổng users', value: stats.total, color: '#0c2a72', icon: '👤' },
+            { label: 'Dùng thử', value: stats.plan_counts?.trial || 0, color: '#475569', icon: '⏱' },
+            { label: 'Personal', value: stats.plan_counts?.personal || 0, color: '#1e40af', icon: '👤' },
+            { label: 'Business', value: stats.plan_counts?.business || 0, color: '#065f46', icon: '💼' },
+            { label: 'Đăng ký hôm nay', value: stats.today_new || 0, color: '#7c3aed', icon: '✨' },
+          ].map(s => (
+            <div key={s.label} style={{ ...card, padding: '16px 18px', marginBottom: 0 }}>
+              <div style={{ fontSize: 22, marginBottom: 6 }}>{s.icon}</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: s.color }}>{s.value}</div>
+              <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Filter */}
+      <div style={{ ...card, padding: '14px 20px', marginBottom: 16, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+        <input
+          style={{ ...inp, flex: 1, minWidth: 200 }}
+          placeholder="Tìm theo email..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+        <select style={inp} value={filterPlan} onChange={e => setFilterPlan(e.target.value)}>
+          <option value="all">Tất cả gói</option>
+          <option value="trial">Dùng thử</option>
+          <option value="personal">Personal</option>
+          <option value="business">Business</option>
+          <option value="agency">Agency</option>
+        </select>
+        <button onClick={load} style={{ ...inp, background: '#00c7de', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600, padding: '8px 18px' }}>
+          🔄 Làm mới
+        </button>
+        <span style={{ fontSize: 13, color: '#94a3b8' }}>{users.length} users</span>
+      </div>
+
+      {/* Table */}
+      <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
+        {loading ? <Spinner /> : users.length === 0 ? <EmptyState icon="👤" text="Không có user nào" /> : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
+              <thead>
+                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                  {['Email', 'Tên', 'Gói', 'Hết hạn', 'Facebook', 'Tài khoản Ads', 'Đăng ký', 'Thao tác'].map(h => (
+                    <th key={h} style={{ padding: '10px 14px', fontSize: 11, fontWeight: 700, color: '#64748b', textAlign: 'left', textTransform: 'uppercase', letterSpacing: '0.4px', whiteSpace: 'nowrap' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((u, i) => {
+                  const pc = PLAN_COLORS[u.plan] || PLAN_COLORS.trial
+                  const rowBg = i % 2 === 0 ? '#fff' : '#fafbfc'
+                  return (
+                    <tr key={u.id} style={{ borderBottom: '1px solid #f1f5f9', background: rowBg }}>
+                      <td style={{ padding: '10px 14px', fontSize: 13 }}>
+                        <div style={{ fontWeight: 600, color: '#1a2332' }}>{u.email}</div>
+                      </td>
+                      <td style={{ padding: '10px 14px', fontSize: 13, color: '#475569' }}>{u.name || '—'}</td>
+                      <td style={{ padding: '10px 14px' }}>
+                        <span style={{ background: pc.bg, color: pc.color, borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 700 }}>
+                          {PLAN_LABELS[u.plan] || u.plan}
+                        </span>
+                      </td>
+                      <td style={{ padding: '10px 14px', fontSize: 12, color: u.is_expired ? '#ef4444' : u.days_left != null && u.days_left <= 7 ? '#f59e0b' : '#475569' }}>
+                        {u.expire_at
+                          ? <>{new Date(u.expire_at).toLocaleDateString('vi-VN')}{u.days_left != null && <span style={{ marginLeft: 4 }}>({u.days_left > 0 ? `còn ${u.days_left}d` : 'HẾT HẠN'})</span>}</>
+                          : <span style={{ color: '#94a3b8' }}>Không giới hạn</span>}
+                      </td>
+                      <td style={{ padding: '10px 14px', fontSize: 12 }}>
+                        {u.fb_connected
+                          ? <span style={{ color: '#059669', fontWeight: 600 }}>✅ Đã kết nối</span>
+                          : <span style={{ color: '#94a3b8' }}>Chưa kết nối</span>}
+                      </td>
+                      <td style={{ padding: '10px 14px', fontSize: 12, color: '#475569' }}>
+                        {u.ad_account_count > 0 ? `${u.ad_account_count} TK` : '—'}
+                      </td>
+                      <td style={{ padding: '10px 14px', fontSize: 12, color: '#94a3b8', whiteSpace: 'nowrap' }}>
+                        {u.created_at ? new Date(u.created_at).toLocaleDateString('vi-VN') : '—'}
+                      </td>
+                      <td style={{ padding: '10px 14px' }}>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button
+                            onClick={() => { setEditing(u); setEditForm({ plan: u.plan, expire_at: u.expire_at ? u.expire_at.slice(0, 10) : '' }) }}
+                            style={{ background: 'rgba(0,199,222,0.1)', color: '#00c7de', border: '1px solid rgba(0,199,222,0.3)', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+                          >✏️ Sửa</button>
+                          {u.fb_connected && (
+                            <button
+                              onClick={() => handleResetFb(u)}
+                              style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+                            >🔗 Reset FB</button>
+                          )}
+                          <button
+                            onClick={() => handleDelete(u)}
+                            style={{ background: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+                          >🗑</button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Edit Modal */}
+      {editing && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#fff', borderRadius: 16, padding: 32, width: 420, boxShadow: '0 20px 60px rgba(0,0,0,.3)' }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: '#1a2332', marginBottom: 6 }}>Cập nhật tài khoản</h3>
+            <p style={{ fontSize: 13, color: '#64748b', marginBottom: 20 }}>{editing.email}</p>
+
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Gói dịch vụ</label>
+              <select
+                style={{ ...inp, width: '100%' }}
+                value={editForm.plan}
+                onChange={e => setEditForm(p => ({ ...p, plan: e.target.value }))}
+              >
+                <option value="trial">Dùng thử</option>
+                <option value="personal">Personal</option>
+                <option value="business">Business</option>
+                <option value="agency">Agency</option>
+              </select>
+            </div>
+
+            <div style={{ marginBottom: 24 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                Ngày hết hạn <span style={{ fontWeight: 400, textTransform: 'none', color: '#94a3b8' }}>(để trống = không giới hạn)</span>
+              </label>
+              <input
+                type="date"
+                style={{ ...inp, width: '100%' }}
+                value={editForm.expire_at || ''}
+                onChange={e => setEditForm(p => ({ ...p, expire_at: e.target.value }))}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button onClick={() => setEditing(null)} style={{ ...inp, cursor: 'pointer', background: '#f1f5f9', color: '#475569', border: 'none', padding: '10px 20px', fontWeight: 600 }}>
+                Huỷ
+              </button>
+              <button
+                onClick={handleSavePlan}
+                disabled={saving}
+                style={{ ...inp, cursor: 'pointer', background: '#00c7de', color: '#fff', border: 'none', padding: '10px 20px', fontWeight: 700 }}
+              >
+                {saving ? 'Đang lưu...' : '💾 Lưu thay đổi'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 const MENU = [
   { id: 'overview', icon: '📊', label: 'Tổng quan' },
-  { id: 'customers', icon: '👥', label: 'Khách hàng' },
+  { id: 'web_users', icon: '🌐', label: 'Web Users (SaaS)' },
+  { id: 'customers', icon: '👥', label: 'Khách hàng (Key)' },
   { id: 'check-key', icon: '🔑', label: 'Kiểm tra Key' },
   { id: 'affiliate', icon: '🤝', label: 'Affiliate' },
   { id: 'tickets', icon: '🎫', label: 'Tickets' },
@@ -2986,7 +3269,7 @@ function Sidebar({ activeTab, setActiveTab, onLogout }) {
 // ─── MAIN DASHBOARD ───────────────────────────────────────────────────────────
 export default function Dashboard() {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState('customers')
+  const [activeTab, setActiveTab] = useState('web_users')
   const [authChecked, setAuthChecked] = useState(false)
 
   useEffect(() => {
@@ -3027,6 +3310,7 @@ export default function Dashboard() {
 
   const tabContent = {
     'overview': <OverviewTab />,
+    'web_users': <WebUsersTab />,
     'customers': <CustomersTab />,
     'check-key': <CheckKeyTab />,
     'affiliate': <AffiliateTab />,
