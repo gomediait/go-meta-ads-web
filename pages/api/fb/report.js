@@ -33,7 +33,7 @@ export default async function handler(req, res) {
   for (const account of accounts) {
     try {
       const insightsRes = await callMeta(
-        `act_${account.account_id}/insights`,
+        `${account.account_id}/insights`,
         token,
         {
           fields: 'spend,impressions,clicks,ctr,cpc,cpm,reach,frequency,actions,campaign_name,campaign_id',

@@ -1,8 +1,11 @@
 import { getUserFromReq } from '../../../lib/auth'
 import { getSupabase } from '../../../lib/supabase'
 
-async function sendTelegram(botToken, chatId, text) {
-  const url = `https://api.telegram.org/bot${botToken}/sendMessage`
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
+
+async function sendTelegram(chatId, text) {
+  if (!BOT_TOKEN) return { ok: false, description: 'TELEGRAM_BOT_TOKEN chưa được cấu hình' }
+  const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -27,32 +30,26 @@ export default async function handler(req, res) {
   const sb = getSupabase()
 
   if (req.method === 'GET') {
-    const { data, error } = await sb
+    const { data } = await sb
       .from('user_notifications')
       .select('*')
       .eq('user_id', user.id)
       .single()
 
-    if (error || !data) {
-      return res.json({
-        ok: true,
-        settings: {
-          master_enabled: false,
-          tg_enabled: false,
-          tg_bot_token: '',
-          tg_chat_id: '',
-          lark_enabled: false,
-          lark_url: '',
-          noti_report: true,
-          noti_audit: false,
-          noti_critical: false,
-          schedule_type: 'hours',
-          schedule_value: '8,12,18'
-        }
-      })
+    const defaults = {
+      master_enabled: false,
+      tg_enabled: false,
+      tg_chat_id: '',
+      lark_enabled: false,
+      lark_url: '',
+      noti_report: true,
+      noti_audit: false,
+      noti_critical: false,
+      schedule_type: 'hours',
+      schedule_value: '8,12,18'
     }
 
-    return res.json({ ok: true, settings: data })
+    return res.json({ ok: true, settings: data ? { ...defaults, ...data } : defaults })
   }
 
   if (req.method === 'POST') {
@@ -60,8 +57,7 @@ export default async function handler(req, res) {
 
     if (action === 'save') {
       const {
-        master_enabled,
-        tg_enabled, tg_bot_token, tg_chat_id,
+        master_enabled, tg_enabled, tg_chat_id,
         lark_enabled, lark_url,
         noti_report, noti_audit, noti_critical,
         schedule_type, schedule_value
@@ -73,7 +69,6 @@ export default async function handler(req, res) {
           user_id: user.id,
           master_enabled: Boolean(master_enabled),
           tg_enabled: Boolean(tg_enabled),
-          tg_bot_token: tg_bot_token || '',
           tg_chat_id: tg_chat_id || '',
           lark_enabled: Boolean(lark_enabled),
           lark_url: lark_url || '',
@@ -86,38 +81,29 @@ export default async function handler(req, res) {
         }, { onConflict: 'user_id' })
 
       if (error) {
-        console.error('[notifications save] Error:', error)
-        return res.status(500).json({ error: 'Lỗi lưu cài đặt' })
+        console.error('[notifications save]', error)
+        return res.status(500).json({ error: 'Lỗi lưu cài đặt: ' + error.message })
       }
-
       return res.json({ ok: true })
     }
 
     if (action === 'test') {
-      const { tg_enabled, tg_bot_token, tg_chat_id, lark_enabled, lark_url } = req.body
-
-      const testMessage = `Go Meta Ads Pro — Test notification\nTai khoan: ${user.email}\nThoi gian: ${new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}`
-
+      const { tg_enabled, tg_chat_id, lark_enabled, lark_url } = req.body
+      const testMsg = `✅ <b>Go Meta Ads Pro — Test thành công</b>\n\nTài khoản: ${user.email}\nThời gian: ${new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}`
       const results = {}
 
-      if (tg_enabled && tg_bot_token && tg_chat_id) {
+      if (tg_enabled && tg_chat_id) {
         try {
-          const tgRes = await sendTelegram(tg_bot_token, tg_chat_id, testMessage)
-          results.telegram = tgRes.ok ? 'success' : tgRes.description || 'error'
-        } catch (err) {
-          console.error('[notifications test] Telegram error:', err)
-          results.telegram = 'error: ' + err.message
-        }
+          const r = await sendTelegram(tg_chat_id, testMsg)
+          results.telegram = r.ok ? 'success' : (r.description || 'error')
+        } catch (e) { results.telegram = 'error: ' + e.message }
       }
 
       if (lark_enabled && lark_url) {
         try {
-          await sendLark(lark_url, testMessage)
+          await sendLark(lark_url, testMsg.replace(/<[^>]+>/g, ''))
           results.lark = 'success'
-        } catch (err) {
-          console.error('[notifications test] Lark error:', err)
-          results.lark = 'error: ' + err.message
-        }
+        } catch (e) { results.lark = 'error: ' + e.message }
       }
 
       return res.json({ ok: true, results })

@@ -78,7 +78,7 @@ export default async function handler(req, res) {
           ])
 
           const campRes = await callMeta(
-            `act_${account.account_id}/campaigns`,
+            `${account.account_id}/campaigns`,
             token,
             { fields: 'id,name,status', limit: '200', filtering }
           )

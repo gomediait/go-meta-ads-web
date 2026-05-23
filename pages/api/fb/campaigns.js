@@ -26,7 +26,7 @@ export default async function handler(req, res) {
       ])
 
       const campaignsRes = await callMeta(
-        `act_${account.account_id}/campaigns`,
+        `${account.account_id}/campaigns`,
         token,
         {
           fields: 'id,name,status,objective,daily_budget,lifetime_budget',
@@ -39,7 +39,7 @@ export default async function handler(req, res) {
 
       // Get insights for today
       const insightsRes = await callMeta(
-        `act_${account.account_id}/insights`,
+        `${account.account_id}/insights`,
         token,
         {
           fields: 'spend,impressions,clicks,ctr,reach,campaign_id',

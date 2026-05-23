@@ -7,7 +7,9 @@ function getVietnamTime() {
   return new Date(now.getTime() + vnOffset)
 }
 
-async function sendTelegram(botToken, chatId, text) {
+async function sendTelegram(chatId, text) {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN
+  if (!botToken) return
   const url = `https://api.telegram.org/bot${botToken}/sendMessage`
   const res = await fetch(url, {
     method: 'POST',
@@ -86,7 +88,7 @@ export default async function handler(req, res) {
       for (const account of accounts) {
         try {
           const insightsRes = await callMeta(
-            `act_${account.account_id}/insights`,
+            `${account.account_id}/insights`,
             token,
             {
               fields: 'spend,impressions,clicks,actions',
@@ -111,7 +113,7 @@ export default async function handler(req, res) {
 
           // Count active campaigns
           const campRes = await callMeta(
-            `act_${account.account_id}/campaigns`,
+            `${account.account_id}/campaigns`,
             token,
             {
               fields: 'id',
@@ -144,9 +146,9 @@ export default async function handler(req, res) {
 
       let sent = false
 
-      if (notif.tg_enabled && notif.tg_bot_token && notif.tg_chat_id) {
+      if (notif.tg_enabled && notif.tg_chat_id) {
         try {
-          await sendTelegram(notif.tg_bot_token, notif.tg_chat_id, message)
+          await sendTelegram(notif.tg_chat_id, message)
           sent = true
         } catch (err) {
           console.error('[cron/notify] Telegram error:', err)
