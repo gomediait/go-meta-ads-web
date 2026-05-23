@@ -1,6 +1,28 @@
 import { getUserFromReq } from '../../../lib/auth'
 import { getSupabase } from '../../../lib/supabase'
 
+const LARK_WEBHOOK = 'https://open.larksuite.com/open-apis/bot/v2/hook/23c53186-2208-4c29-9985-4a6bd836c88a'
+
+async function sendLark(title, fields, color = 'blue') {
+  const elements = fields.map(([label, value]) => ({
+    tag: 'div',
+    text: { tag: 'lark_md', content: `**${label}:** ${value || '—'}` },
+  }))
+  const body = {
+    msg_type: 'interactive',
+    card: {
+      header: { title: { tag: 'plain_text', content: title }, template: color },
+      elements: [
+        ...elements,
+        { tag: 'div', text: { tag: 'lark_md', content: `🕐 ${new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}` } },
+      ],
+    },
+  }
+  try {
+    await fetch(LARK_WEBHOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+  } catch {}
+}
+
 export default async function handler(req, res) {
   const user = getUserFromReq(req)
   if (!user) return res.status(401).json({ error: 'Chưa đăng nhập' })
@@ -9,7 +31,7 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     const { data } = await sb.from('web_tickets')
-      .select('id, subject, status, priority, created_at, updated_at, replies')
+      .select('id, subject, status, priority, message, created_at, updated_at, replies')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
     return res.json({ ok: true, tickets: data || [] })
@@ -19,7 +41,7 @@ export default async function handler(req, res) {
     const { action, ...body } = req.body || {}
 
     if (action === 'create') {
-      const { subject, message, priority = 'normal' } = body
+      const { subject, message, priority = 'normal', issue_type = 'Khác' } = body
       if (!subject?.trim()) return res.status(400).json({ error: 'Vui lòng nhập tiêu đề' })
       if (!message?.trim()) return res.status(400).json({ error: 'Vui lòng nhập nội dung' })
 
@@ -29,11 +51,23 @@ export default async function handler(req, res) {
         subject: subject.trim(),
         message: message.trim(),
         priority,
+        issue_type,
         status: 'open',
-        replies: []
+        replies: [],
       }).select().single()
 
       if (error) return res.status(500).json({ error: error.message })
+
+      // Lark notification — fire and forget
+      sendLark('🎫 Ticket hỗ trợ mới (Web)', [
+        ['Email', user.email],
+        ['Tên', user.name || '—'],
+        ['Tiêu đề', subject.trim()],
+        ['Loại', issue_type],
+        ['Ưu tiên', priority],
+        ['Nội dung', message.trim().slice(0, 200) + (message.length > 200 ? '...' : '')],
+      ], 'orange')
+
       return res.json({ ok: true, ticket: data })
     }
 
@@ -56,7 +90,7 @@ export default async function handler(req, res) {
       const { error } = await sb.from('web_tickets').update({
         replies,
         status: 'open',
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       }).eq('id', ticket_id)
 
       if (error) return res.status(500).json({ error: error.message })
