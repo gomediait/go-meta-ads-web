@@ -105,7 +105,7 @@ export default async function handler(req, res) {
     const params = new URLSearchParams({
       client_id: appId,
       redirect_uri: `${siteUrl}/api/auth/callback`,
-      scope: 'ads_read,ads_management,read_insights,public_profile,email',
+      scope: 'ads_read,ads_management,public_profile',
       response_type: 'code',
       state,
     })
