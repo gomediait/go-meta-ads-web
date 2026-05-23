@@ -117,27 +117,32 @@ Trả lời CHÍNH XÁC theo format JSON sau, KHÔNG thêm bất kỳ text nào 
 }`
 
   try {
-    const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
+    // shopaikey.com uses OpenAI-compatible format
+    const aiRes = await fetch('https://api.shopaikey.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': anthropicKey,
-        'anthropic-version': '2023-06-01'
+        'Authorization': `Bearer ${anthropicKey}`
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 1024,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: `Kiểm tra nội dung quảng cáo sau:\n\n${contentText}` }]
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `Kiểm tra nội dung quảng cáo sau:\n\n${contentText}` }
+        ]
       })
     })
 
     if (!aiRes.ok) {
+      const errText = await aiRes.text()
+      console.error('[policycheck] ShopAIKey error:', aiRes.status, errText.slice(0, 200))
       return res.json({ ok: false, error: `AI lỗi HTTP ${aiRes.status}. Vui lòng thử lại.` })
     }
 
     const aiData = await aiRes.json()
-    const responseText = aiData.content?.[0]?.text || '{}'
+    // OpenAI-compatible response: choices[0].message.content
+    const responseText = aiData.choices?.[0]?.message?.content || '{}'
     const cleanJson = responseText.replace(/```json\n?|```\n?/g, '').trim()
 
     let result
