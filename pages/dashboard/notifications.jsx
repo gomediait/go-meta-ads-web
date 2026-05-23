@@ -1,19 +1,158 @@
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import DashboardLayout from '../../components/DashboardLayout'
 import { useAuth } from '../../lib/AuthContext'
-import Link from 'next/link'
+
+const HOUR_OPTIONS = [
+  { value: 8,  label: '8:00 sáng' },
+  { value: 12, label: '12:00 trưa' },
+  { value: 16, label: '16:00 chiều' },
+  { value: 18, label: '18:00 tối' },
+  { value: 22, label: '22:00 khuya' },
+]
+
+const DEFAULTS = {
+  master_enabled: false,
+  tg_enabled: false,
+  tg_bot_token: '',
+  tg_chat_id: '',
+  lark_enabled: false,
+  lark_url: '',
+  noti_report: true,
+  noti_audit: false,
+  noti_critical: false,
+  schedule_type: 'hours',
+  schedule_value: '8,12,18'
+}
 
 export default function Notifications() {
   const { user } = useAuth()
   const fbConnected = user?.fb_connected
 
+  const [settings, setSettings] = useState(DEFAULTS)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [testingTg, setTestingTg] = useState(false)
+  const [testingLark, setTestingLark] = useState(false)
+  const [toast, setToast] = useState(null)
+
+  useEffect(() => {
+    if (!fbConnected) { setLoading(false); return }
+    fetch('/api/fb/notifications')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.ok) setSettings({ ...DEFAULTS, ...d.settings }) })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [fbConnected])
+
+  function showToast(msg, type = 'success') {
+    setToast({ msg, type })
+    setTimeout(() => setToast(null), 4000)
+  }
+
+  function set(key, val) {
+    setSettings(s => ({ ...s, [key]: val }))
+  }
+
+  function toggleHour(hour) {
+    const current = (settings.schedule_value || '').split(',').map(h => h.trim()).filter(Boolean).map(Number)
+    const next = current.includes(hour)
+      ? current.filter(h => h !== hour)
+      : [...current, hour].sort((a, b) => a - b)
+    set('schedule_value', next.join(','))
+  }
+
+  function isHourActive(hour) {
+    return (settings.schedule_value || '').split(',').map(h => parseInt(h.trim())).includes(hour)
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    try {
+      const res = await fetch('/api/fb/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'save', ...settings })
+      })
+      const d = await res.json()
+      if (d.ok) showToast('Đã lưu cài đặt thông báo')
+      else showToast(d.error || 'Lỗi lưu cài đặt', 'error')
+    } catch {
+      showToast('Lỗi kết nối', 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleTestTelegram() {
+    if (!settings.tg_bot_token || !settings.tg_chat_id) {
+      showToast('Vui lòng nhập Bot Token và Chat ID', 'error')
+      return
+    }
+    setTestingTg(true)
+    try {
+      const res = await fetch('/api/fb/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'test',
+          tg_enabled: true,
+          tg_bot_token: settings.tg_bot_token,
+          tg_chat_id: settings.tg_chat_id,
+          lark_enabled: false
+        })
+      })
+      const d = await res.json()
+      if (d?.results?.telegram === 'success') showToast('Đã gửi tin nhắn test tới Telegram!')
+      else showToast('Lỗi Telegram: ' + (d?.results?.telegram || 'unknown'), 'error')
+    } catch {
+      showToast('Lỗi kết nối', 'error')
+    } finally {
+      setTestingTg(false)
+    }
+  }
+
+  async function handleTestLark() {
+    if (!settings.lark_url) {
+      showToast('Vui lòng nhập Webhook URL', 'error')
+      return
+    }
+    setTestingLark(true)
+    try {
+      const res = await fetch('/api/fb/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'test',
+          tg_enabled: false,
+          lark_enabled: true,
+          lark_url: settings.lark_url
+        })
+      })
+      const d = await res.json()
+      if (d?.results?.lark === 'success') showToast('Đã gửi tin nhắn test tới Lark/Feishu!')
+      else showToast('Lỗi Lark: ' + (d?.results?.lark || 'unknown'), 'error')
+    } catch {
+      showToast('Lỗi kết nối', 'error')
+    } finally {
+      setTestingLark(false)
+    }
+  }
+
   return (
     <DashboardLayout title="Thông báo tự động">
       <div className="page-wrap">
+
+        {/* Toast */}
+        {toast && (
+          <div className={`toast toast-${toast.type}`}>{toast.msg}</div>
+        )}
+
         <div className="page-header">
           <span className="page-icon">🔔</span>
           <div>
             <h1>Thông báo tự động</h1>
-            <p>Nhận cảnh báo khi chiến dịch vượt ngưỡng hoặc có bất thường</p>
+            <p>Nhận báo cáo và cảnh báo qua Telegram hoặc Lark/Feishu</p>
           </div>
         </div>
 
@@ -21,38 +160,300 @@ export default function Notifications() {
           <div className="fb-required">
             <div className="fbr-icon">🔗</div>
             <div className="fbr-title">Cần kết nối Facebook Ads</div>
-            <div className="fbr-desc">Tính năng thông báo yêu cầu kết nối Facebook Ads để theo dõi và cảnh báo real-time.</div>
+            <div className="fbr-desc">Tính năng thông báo yêu cầu kết nối Facebook Ads để theo dõi và gửi báo cáo real-time.</div>
             <Link href="/settings/connect-facebook" className="fbr-btn">Kết nối ngay →</Link>
           </div>
+        ) : loading ? (
+          <div className="skel-block" />
         ) : (
-          <div className="coming-soon">
-            <div className="cs-icon">🚧</div>
-            <div className="cs-title">Đang phát triển</div>
-            <div className="cs-desc">Tính năng Thông báo tự động đang được xây dựng và sẽ ra mắt sớm.</div>
+          <div className="content">
+
+            {/* Master toggle */}
+            <div className="card">
+              <div className="field-row">
+                <div className="field-info">
+                  <div className="field-label">Bật hệ thống thông báo</div>
+                  <div className="field-desc">Khi tắt, tất cả thông báo sẽ không được gửi dù đã cài đặt</div>
+                </div>
+                <label className="toggle">
+                  <input type="checkbox" checked={settings.master_enabled} onChange={e => set('master_enabled', e.target.checked)} />
+                  <span className="slider" />
+                </label>
+              </div>
+            </div>
+
+            {/* Telegram section */}
+            <div className="card">
+              <div className="section-header">
+                <div className="section-icon tg-icon">✈️</div>
+                <div className="section-title">Telegram</div>
+                <label className="toggle ml-auto">
+                  <input type="checkbox" checked={settings.tg_enabled} onChange={e => set('tg_enabled', e.target.checked)} />
+                  <span className="slider" />
+                </label>
+              </div>
+
+              <div className={`section-body${!settings.tg_enabled ? ' disabled-area' : ''}`}>
+                <div className="field-group">
+                  <label className="label">Bot Token</label>
+                  <input
+                    type="text"
+                    className="text-input"
+                    placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
+                    value={settings.tg_bot_token}
+                    onChange={e => set('tg_bot_token', e.target.value)}
+                  />
+                  <div className="field-hint">Tạo bot tại @BotFather trên Telegram</div>
+                </div>
+
+                <div className="field-group">
+                  <label className="label">Chat ID</label>
+                  <input
+                    type="text"
+                    className="text-input"
+                    placeholder="-1001234567890"
+                    value={settings.tg_chat_id}
+                    onChange={e => set('tg_chat_id', e.target.value)}
+                  />
+                  <div className="field-hint">ID của group/channel hoặc ID cá nhân (lấy từ @userinfobot)</div>
+                </div>
+
+                <div className="test-row">
+                  <button className="btn-test" onClick={handleTestTelegram} disabled={testingTg}>
+                    {testingTg ? 'Đang gửi…' : 'Gửi tin test'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Lark section */}
+            <div className="card">
+              <div className="section-header">
+                <div className="section-icon lk-icon">🐦</div>
+                <div className="section-title">Lark / Feishu</div>
+                <label className="toggle ml-auto">
+                  <input type="checkbox" checked={settings.lark_enabled} onChange={e => set('lark_enabled', e.target.checked)} />
+                  <span className="slider" />
+                </label>
+              </div>
+
+              <div className={`section-body${!settings.lark_enabled ? ' disabled-area' : ''}`}>
+                <div className="field-group">
+                  <label className="label">Webhook URL</label>
+                  <input
+                    type="text"
+                    className="text-input"
+                    placeholder="https://open.larksuite.com/open-apis/bot/v2/hook/..."
+                    value={settings.lark_url}
+                    onChange={e => set('lark_url', e.target.value)}
+                  />
+                  <div className="field-hint">Lấy từ Lark Workspace → Custom Bot → Webhook URL</div>
+                </div>
+
+                <div className="test-row">
+                  <button className="btn-test" onClick={handleTestLark} disabled={testingLark}>
+                    {testingLark ? 'Đang gửi…' : 'Gửi tin test'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Schedule section */}
+            <div className="card">
+              <div className="card-title">Lịch gửi báo cáo</div>
+              <div className="field-desc" style={{ marginBottom: 14 }}>Chọn các khung giờ muốn nhận báo cáo mỗi ngày (giờ Việt Nam)</div>
+
+              <div className="hours-row">
+                {HOUR_OPTIONS.map(h => (
+                  <button
+                    key={h.value}
+                    className={`hour-btn${isHourActive(h.value) ? ' active' : ''}`}
+                    onClick={() => toggleHour(h.value)}
+                  >
+                    {h.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Alerts section */}
+            <div className="card">
+              <div className="card-title">Loại thông báo</div>
+
+              <div className="alert-list">
+                <div className="field-row">
+                  <div className="field-info">
+                    <div className="field-label">Báo cáo định kỳ</div>
+                    <div className="field-desc">Gửi tổng kết chi phí, clicks, impressions theo lịch đã cài</div>
+                  </div>
+                  <label className="toggle">
+                    <input type="checkbox" checked={settings.noti_report} onChange={e => set('noti_report', e.target.checked)} />
+                    <span className="slider" />
+                  </label>
+                </div>
+
+                <div className="field-row">
+                  <div className="field-info">
+                    <div className="field-label">Cảnh báo thay đổi trạng thái</div>
+                    <div className="field-desc">Thông báo khi chiến dịch bị tắt/bật hoặc bị từ chối</div>
+                  </div>
+                  <label className="toggle">
+                    <input type="checkbox" checked={settings.noti_audit} onChange={e => set('noti_audit', e.target.checked)} />
+                    <span className="slider" />
+                  </label>
+                </div>
+
+                <div className="field-row" style={{ borderBottom: 'none' }}>
+                  <div className="field-info">
+                    <div className="field-label">Cảnh báo khẩn cấp</div>
+                    <div className="field-desc">Thông báo khi ngân sách gần cạn hoặc CPM tăng đột biến</div>
+                  </div>
+                  <label className="toggle">
+                    <input type="checkbox" checked={settings.noti_critical} onChange={e => set('noti_critical', e.target.checked)} />
+                    <span className="slider" />
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Save button */}
+            <div className="save-row">
+              <button className="btn-save" onClick={handleSave} disabled={saving}>
+                {saving ? 'Đang lưu…' : 'Lưu tất cả cài đặt'}
+              </button>
+            </div>
+
           </div>
         )}
       </div>
 
       <style jsx>{`
-        .page-wrap { padding: 24px; max-width: 900px; }
-        .page-header { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
+        .page-wrap { padding: 24px; max-width: 720px; position: relative; }
+        .page-header { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
         .page-icon { font-size: 32px; }
         h1 { font-size: 20px; font-weight: 700; color: var(--txt); margin-bottom: 4px; }
         p  { font-size: 13px; color: var(--mut); }
-        .fb-required, .coming-soon {
-          display: flex; flex-direction: column; align-items: center; justify-content: center;
+
+        /* Toast */
+        .toast {
+          position: fixed; top: 20px; right: 20px; z-index: 9999;
+          padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 600;
+          box-shadow: 0 4px 20px rgba(0,0,0,.2); animation: slideIn .25s ease;
+          max-width: 320px;
+        }
+        .toast-success { background: var(--grn); color: #fff; }
+        .toast-error   { background: var(--red); color: #fff; }
+        @keyframes slideIn { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }
+
+        /* FB Required */
+        .fb-required {
+          display: flex; flex-direction: column; align-items: center;
           background: var(--s1); border: 1px solid var(--bd); border-radius: 16px;
           padding: 48px 32px; text-align: center; gap: 12px;
         }
-        .fbr-icon, .cs-icon { font-size: 40px; }
-        .fbr-title, .cs-title { font-size: 16px; font-weight: 700; color: var(--txt); }
-        .fbr-desc, .cs-desc   { font-size: 13px; color: var(--mut); max-width: 380px; line-height: 1.6; }
+        .fbr-icon  { font-size: 40px; }
+        .fbr-title { font-size: 16px; font-weight: 700; color: var(--txt); }
+        .fbr-desc  { font-size: 13px; color: var(--mut); max-width: 380px; line-height: 1.6; }
         .fbr-btn {
           background: #1877f2; color: #fff; border-radius: 9px;
           padding: 10px 20px; font-size: 13px; font-weight: 700;
           text-decoration: none; margin-top: 8px; transition: opacity .15s;
         }
         .fbr-btn:hover { opacity: .88; }
+
+        .skel-block {
+          height: 400px; border-radius: 14px;
+          background: linear-gradient(90deg, var(--s2) 25%, var(--s3) 50%, var(--s2) 75%);
+          background-size: 200% 100%; animation: shimmer 1.2s infinite;
+        }
+        @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+        .content { display: flex; flex-direction: column; gap: 14px; }
+
+        .card {
+          background: var(--s1); border: 1px solid var(--bd); border-radius: 14px; padding: 22px;
+        }
+        .card-title {
+          font-size: 15px; font-weight: 700; color: var(--txt); margin-bottom: 14px;
+        }
+
+        /* Toggle */
+        .toggle { position: relative; display: inline-block; width: 48px; height: 26px; flex-shrink: 0; }
+        .toggle input { opacity: 0; width: 0; height: 0; }
+        .slider {
+          position: absolute; cursor: pointer; inset: 0;
+          background: var(--s3); border-radius: 26px; transition: .25s;
+        }
+        .slider::before {
+          content: ''; position: absolute;
+          width: 20px; height: 20px; border-radius: 50%;
+          left: 3px; bottom: 3px; background: #fff; transition: .25s;
+        }
+        input:checked + .slider { background: var(--grn); }
+        input:checked + .slider::before { transform: translateX(22px); }
+        .ml-auto { margin-left: auto; }
+
+        .field-row {
+          display: flex; align-items: center; justify-content: space-between;
+          gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--bd);
+        }
+        .field-row:first-of-type { padding-top: 0; }
+        .field-info { flex: 1; }
+        .field-label { font-size: 14px; font-weight: 600; color: var(--txt); margin-bottom: 3px; }
+        .field-desc  { font-size: 12px; color: var(--mut); line-height: 1.5; }
+
+        /* Section header */
+        .section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+        .section-icon { font-size: 22px; }
+        .section-title { font-size: 15px; font-weight: 700; color: var(--txt); }
+
+        .section-body { display: flex; flex-direction: column; gap: 16px; transition: opacity .2s; }
+        .section-body.disabled-area { opacity: .45; pointer-events: none; }
+
+        .field-group { display: flex; flex-direction: column; gap: 6px; }
+        .label { font-size: 13px; font-weight: 600; color: var(--txt); }
+        .field-hint { font-size: 11px; color: var(--mut); }
+
+        .text-input {
+          padding: 10px 14px; border-radius: 9px; border: 1px solid var(--bd);
+          background: var(--s2); color: var(--txt); font-size: 14px; width: 100%;
+          transition: border-color .15s;
+        }
+        .text-input:focus { outline: none; border-color: var(--primary); }
+
+        .test-row { display: flex; margin-top: 4px; }
+        .btn-test {
+          background: var(--s2); border: 1px solid var(--bd); border-radius: 9px;
+          padding: 9px 18px; font-size: 13px; font-weight: 600; color: var(--txt);
+          cursor: pointer; transition: background .15s;
+        }
+        .btn-test:hover:not(:disabled) { background: var(--s3); }
+        .btn-test:disabled { opacity: .6; cursor: default; }
+
+        /* Hours */
+        .hours-row { display: flex; flex-wrap: wrap; gap: 8px; }
+        .hour-btn {
+          padding: 8px 16px; border-radius: 9px; border: 1px solid var(--bd);
+          background: var(--s2); color: var(--txt); font-size: 13px; font-weight: 500;
+          cursor: pointer; transition: all .15s;
+        }
+        .hour-btn:hover { background: var(--s3); }
+        .hour-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 700; }
+
+        /* Alert list */
+        .alert-list { display: flex; flex-direction: column; }
+        .alert-list .field-row { border-bottom: 1px solid var(--bd); }
+        .alert-list .field-row:last-child { border-bottom: none !important; }
+
+        /* Save */
+        .save-row { display: flex; justify-content: flex-end; padding-top: 4px; }
+        .btn-save {
+          background: var(--primary); color: #fff; border: none; border-radius: 9px;
+          padding: 11px 28px; font-size: 14px; font-weight: 700; cursor: pointer;
+          transition: opacity .15s;
+        }
+        .btn-save:hover:not(:disabled) { opacity: .88; }
+        .btn-save:disabled { opacity: .6; cursor: default; }
       `}</style>
     </DashboardLayout>
   )

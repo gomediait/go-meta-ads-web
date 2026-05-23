@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import DashboardLayout from '../../components/DashboardLayout'
 import { useAuth } from '../../lib/AuthContext'
@@ -20,6 +20,9 @@ const QUICK_ACTIONS = [
 export default function DashboardHome() {
   const { user, planName, isExpired } = useAuth()
   const [stats, setStats] = useState(null)
+  const [campaigns, setCampaigns] = useState([])
+  const [campLoading, setCampLoading] = useState(false)
+  const [toggling, setToggling] = useState({})
   const fbConnected = user?.fb_connected
 
   useEffect(() => {
@@ -30,9 +33,51 @@ export default function DashboardHome() {
       .catch(() => {})
   }, [fbConnected])
 
+  const loadCampaigns = useCallback(() => {
+    if (!fbConnected) return
+    setCampLoading(true)
+    fetch('/api/fb/campaigns')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d?.ok) setCampaigns(d.campaigns || [])
+      })
+      .catch(() => {})
+      .finally(() => setCampLoading(false))
+  }, [fbConnected])
+
+  useEffect(() => {
+    loadCampaigns()
+  }, [loadCampaigns])
+
+  async function toggleCampaign(campId, currentStatus) {
+    const newStatus = currentStatus === 'ACTIVE' ? 'PAUSED' : 'ACTIVE'
+    setToggling(t => ({ ...t, [campId]: true }))
+    try {
+      const res = await fetch('/api/fb/campaign-toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ campaign_id: campId, status: newStatus })
+      })
+      if (res.ok) {
+        setCampaigns(prev => prev.map(c =>
+          c.id === campId ? { ...c, status: newStatus } : c
+        ))
+      }
+    } catch (err) {
+      console.error('Toggle error:', err)
+    } finally {
+      setToggling(t => ({ ...t, [campId]: false }))
+    }
+  }
+
   function fmt(v) {
     if (v == null) return '—'
     return Number(v).toLocaleString('vi-VN')
+  }
+
+  function fmtCTR(v) {
+    if (!v) return '0.00%'
+    return Number(v).toFixed(2) + '%'
   }
 
   const expireDate = user?.expire_at ? new Date(user.expire_at).toLocaleDateString('vi-VN') : null
@@ -94,6 +139,74 @@ export default function DashboardHome() {
           })}
         </div>
 
+        {/* Campaigns section */}
+        {fbConnected && (
+          <div className="camp-section">
+            <div className="camp-header">
+              <div className="section-title" style={{ marginBottom: 0 }}>Chiến dịch hôm nay</div>
+              <button className="refresh-btn" onClick={loadCampaigns} disabled={campLoading}>
+                {campLoading ? '…' : '↻ Làm mới'}
+              </button>
+            </div>
+
+            {campLoading && campaigns.length === 0 ? (
+              <div className="camp-skeleton">
+                {[1,2,3].map(i => <div key={i} className="skel-row" />)}
+              </div>
+            ) : campaigns.length === 0 ? (
+              <div className="camp-empty">
+                <div className="empty-icon">📭</div>
+                <div className="empty-text">Không có chiến dịch nào</div>
+                <div className="empty-sub">Chưa có chiến dịch ACTIVE hoặc PAUSED trong tài khoản được chọn</div>
+              </div>
+            ) : (
+              <div className="camp-table-wrap">
+                <table className="camp-table">
+                  <thead>
+                    <tr>
+                      <th>Tên chiến dịch</th>
+                      <th>Tài khoản</th>
+                      <th>Trạng thái</th>
+                      <th className="num">Chi phí hôm nay</th>
+                      <th className="num">Impressions</th>
+                      <th className="num">Clicks</th>
+                      <th className="num">CTR</th>
+                      <th className="center">Bật/Tắt</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {campaigns.map(camp => (
+                      <tr key={camp.id}>
+                        <td className="camp-name" title={camp.name}>{camp.name}</td>
+                        <td className="camp-account">{camp.account_name}</td>
+                        <td>
+                          <span className={`status-badge ${camp.status === 'ACTIVE' ? 'status-active' : 'status-paused'}`}>
+                            {camp.status === 'ACTIVE' ? 'Đang chạy' : 'Tạm dừng'}
+                          </span>
+                        </td>
+                        <td className="num">₫{fmt(camp.spend)}</td>
+                        <td className="num">{fmt(camp.impressions)}</td>
+                        <td className="num">{fmt(camp.clicks)}</td>
+                        <td className="num">{fmtCTR(camp.ctr)}</td>
+                        <td className="center">
+                          <button
+                            className={`toggle-btn ${camp.status === 'ACTIVE' ? 'toggle-on' : 'toggle-off'}`}
+                            onClick={() => toggleCampaign(camp.id, camp.status)}
+                            disabled={toggling[camp.id]}
+                            title={camp.status === 'ACTIVE' ? 'Tạm dừng chiến dịch' : 'Bật chiến dịch'}
+                          >
+                            {toggling[camp.id] ? '…' : camp.status === 'ACTIVE' ? '⏸' : '▶'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Quick actions */}
         <div className="section-title">Truy cập nhanh</div>
         <div className="quick-grid">
@@ -112,7 +225,7 @@ export default function DashboardHome() {
       </div>
 
       <style jsx>{`
-        .dash-home { padding: 24px; max-width: 1100px; }
+        .dash-home { padding: 24px; max-width: 1200px; }
 
         /* Welcome */
         .welcome-banner {
@@ -172,6 +285,83 @@ export default function DashboardHome() {
         .stat-value { font-size: 18px; font-weight: 700; color: var(--txt); }
         .stat-lock   { font-size: 12px; color: var(--mut); font-weight: 400; }
         .stat-loading { font-size: 14px; color: var(--mut); }
+
+        /* Campaigns section */
+        .camp-section {
+          background: var(--s1); border: 1px solid var(--bd); border-radius: 14px;
+          padding: 18px 22px; margin-bottom: 28px;
+        }
+        .camp-header {
+          display: flex; align-items: center; justify-content: space-between;
+          margin-bottom: 16px;
+        }
+        .refresh-btn {
+          background: var(--s2); border: 1px solid var(--bd); border-radius: 8px;
+          padding: 6px 12px; font-size: 12px; color: var(--txt); cursor: pointer;
+          transition: background .15s;
+        }
+        .refresh-btn:hover:not(:disabled) { background: var(--s3); }
+        .refresh-btn:disabled { opacity: .6; cursor: default; }
+
+        .camp-skeleton { display: flex; flex-direction: column; gap: 10px; }
+        .skel-row {
+          height: 44px; border-radius: 8px;
+          background: linear-gradient(90deg, var(--s2) 25%, var(--s3) 50%, var(--s2) 75%);
+          background-size: 200% 100%;
+          animation: shimmer 1.2s infinite;
+        }
+        @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+        .camp-empty {
+          display: flex; flex-direction: column; align-items: center;
+          padding: 40px 20px; gap: 8px; text-align: center;
+        }
+        .empty-icon { font-size: 32px; }
+        .empty-text { font-size: 15px; font-weight: 600; color: var(--txt); }
+        .empty-sub  { font-size: 13px; color: var(--mut); max-width: 340px; line-height: 1.5; }
+
+        .camp-table-wrap { overflow-x: auto; }
+        .camp-table {
+          width: 100%; border-collapse: collapse; font-size: 13px;
+        }
+        .camp-table th {
+          text-align: left; font-size: 11px; font-weight: 700; color: var(--mut);
+          text-transform: uppercase; letter-spacing: .4px;
+          padding: 8px 10px; border-bottom: 1px solid var(--bd); white-space: nowrap;
+        }
+        .camp-table td {
+          padding: 10px 10px; border-bottom: 1px solid var(--bd);
+          color: var(--txt); vertical-align: middle;
+        }
+        .camp-table tr:last-child td { border-bottom: none; }
+        .camp-table tr:hover td { background: var(--s2); }
+        .camp-table th.num, .camp-table td.num { text-align: right; }
+        .camp-table th.center, .camp-table td.center { text-align: center; }
+
+        .camp-name {
+          max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+          font-weight: 500;
+        }
+        .camp-account { color: var(--mut); font-size: 12px; white-space: nowrap; }
+
+        .status-badge {
+          display: inline-block; padding: 3px 9px; border-radius: 20px;
+          font-size: 11px; font-weight: 700; white-space: nowrap;
+        }
+        .status-active { background: rgba(16,185,129,.15); color: var(--grn); }
+        .status-paused { background: var(--s3); color: var(--mut); }
+
+        .toggle-btn {
+          width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--bd);
+          background: var(--s2); cursor: pointer; font-size: 14px;
+          transition: all .15s; display: inline-flex; align-items: center; justify-content: center;
+        }
+        .toggle-btn:hover:not(:disabled) { background: var(--s3); }
+        .toggle-btn:disabled { opacity: .6; cursor: default; }
+        .toggle-on { border-color: rgba(239,68,68,.4); color: var(--red); }
+        .toggle-on:hover:not(:disabled) { background: rgba(239,68,68,.1); }
+        .toggle-off { border-color: rgba(16,185,129,.4); color: var(--grn); }
+        .toggle-off:hover:not(:disabled) { background: rgba(16,185,129,.1); }
 
         /* Quick actions */
         .section-title { font-size: 13px; font-weight: 700; color: var(--mut); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 12px; }
