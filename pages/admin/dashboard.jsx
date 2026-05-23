@@ -180,7 +180,7 @@ function OverviewTab() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14, marginBottom: 28 }}>
             {[
               { label: 'Tổng users', value: webStats?.total ?? '—', color: '#0c2a72', icon: '👤' },
-              { label: 'Dùng thử', value: webStats?.plan_counts?.trial ?? 0, color: '#64748b', icon: '⏱' },
+              { label: 'Dùng thử', value: webStats?.plan_counts?.trial ?? 0, color: '#64748b', icon: '🔓' },
               { label: 'Personal', value: webStats?.plan_counts?.personal ?? 0, color: '#2563eb', icon: '💳' },
               { label: 'Business', value: webStats?.plan_counts?.business ?? 0, color: '#059669', icon: '💼' },
               { label: 'Agency', value: webStats?.plan_counts?.agency ?? 0, color: '#d97706', icon: '🏢' },
@@ -3030,7 +3030,7 @@ function WebUsersTab() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 14, marginBottom: 24 }}>
           {[
             { label: 'Tổng users', value: stats.total, color: '#0c2a72', icon: '👤' },
-            { label: 'Dùng thử', value: stats.plan_counts?.trial || 0, color: '#475569', icon: '⏱' },
+            { label: 'Dùng thử', value: stats.plan_counts?.trial || 0, color: '#475569', icon: '🔓' },
             { label: 'Personal', value: stats.plan_counts?.personal || 0, color: '#1e40af', icon: '👤' },
             { label: 'Business', value: stats.plan_counts?.business || 0, color: '#065f46', icon: '💼' },
             { label: 'Đăng ký hôm nay', value: stats.today_new || 0, color: '#7c3aed', icon: '✨' },

@@ -17,28 +17,39 @@ export default async function handler(req, res) {
   // ─── LIST USERS ───────────────────────────────────────────────
   if (action === 'list') {
     const { search, plan, page = 1, limit = 50 } = body
+
     let query = sb.from('users')
-      .select(`
-        id, email, name, plan, expire_at, created_at, updated_at,
-        fb_connections(token_expires_at, created_at),
-        fb_ad_accounts(account_id, account_name, currency)
-      `)
+      .select('id, email, name, plan, expire_at, created_at, updated_at')
       .order('created_at', { ascending: false })
 
-    if (search) {
-      query = query.ilike('email', `%${search}%`)
-    }
-    if (plan && plan !== 'all') {
-      query = query.eq('plan', plan)
-    }
+    if (search) query = query.ilike('email', `%${search}%`)
+    if (plan && plan !== 'all') query = query.eq('plan', plan)
 
     const from = (page - 1) * limit
     query = query.range(from, from + limit - 1)
 
-    const { data, error, count } = await query
+    const { data: usersData, error } = await query
     if (error) return res.status(500).json({ ok: false, error: error.message })
+    if (!usersData?.length) return res.json({ ok: true, users: [], total: 0 })
 
-    const users = (data || []).map(u => ({
+    const userIds = usersData.map(u => u.id)
+
+    // Separate queries — no FK join syntax needed
+    const [fbRes, acRes] = await Promise.all([
+      sb.from('fb_connections').select('user_id, token_expires_at').in('user_id', userIds),
+      sb.from('fb_ad_accounts').select('user_id, account_id, account_name').in('user_id', userIds),
+    ])
+
+    const fbMap = {}
+    for (const f of (fbRes.data || [])) fbMap[f.user_id] = f
+
+    const acMap = {}
+    for (const a of (acRes.data || [])) {
+      if (!acMap[a.user_id]) acMap[a.user_id] = []
+      acMap[a.user_id].push(a.account_name || a.account_id)
+    }
+
+    const users = usersData.map(u => ({
       id: u.id,
       email: u.email,
       name: u.name,
@@ -46,10 +57,10 @@ export default async function handler(req, res) {
       expire_at: u.expire_at,
       created_at: u.created_at,
       updated_at: u.updated_at,
-      fb_connected: !!(u.fb_connections?.length),
-      fb_token_expires_at: u.fb_connections?.[0]?.token_expires_at || null,
-      ad_accounts: (u.fb_ad_accounts || []).map(a => a.account_name || a.account_id),
-      ad_account_count: (u.fb_ad_accounts || []).length,
+      fb_connected: !!fbMap[u.id],
+      fb_token_expires_at: fbMap[u.id]?.token_expires_at || null,
+      ad_accounts: acMap[u.id] || [],
+      ad_account_count: (acMap[u.id] || []).length,
       is_expired: u.expire_at ? new Date(u.expire_at) < new Date() : false,
       days_left: u.expire_at
         ? Math.ceil((new Date(u.expire_at) - new Date()) / (1000 * 60 * 60 * 24))
