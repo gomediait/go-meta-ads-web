@@ -121,95 +121,123 @@ function CopyButton({ value }) {
 // ─── OVERVIEW TAB ─────────────────────────────────────────────────────────────
 function OverviewTab() {
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [stats, setStats] = useState(null)
+  const [webStats, setWebStats] = useState(null)
+  const [webRecent, setWebRecent] = useState([])
+  const [openTickets, setOpenTickets] = useState(0)
+
+  const adminToken = typeof window !== 'undefined' ? atob(localStorage.getItem('gmap_admin_token') || '') : ''
+
+  async function callAdmin(action, extra = {}) {
+    const res = await fetch('/api/admin/web-users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-token': adminToken },
+      body: JSON.stringify({ action, ...extra }),
+    })
+    return res.json()
+  }
+
+  async function callAdminTickets(action, extra = {}) {
+    const res = await fetch('/api/admin/tickets', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-token': adminToken },
+      body: JSON.stringify({ action, ...extra }),
+    })
+    return res.json()
+  }
 
   useEffect(() => {
     async function load() {
       try {
-        const [orderRes, downloadRes] = await Promise.allSettled([
-          apiPost('/api/order', { action: 'list', limit: 1000 }),
-          apiPost('/api/download', { action: 'list', limit: 1000 }),
+        const [statsRes, recentRes, ticketsRes] = await Promise.allSettled([
+          callAdmin('stats'),
+          callAdmin('list', { page: 1, limit: 5 }),
+          callAdminTickets('list', { status: 'open', limit: 100 }),
         ])
-        const orders = orderRes.status === 'fulfilled'
-          ? (orderRes.value?.orders || orderRes.value?.data || []) : []
-        const downloads = downloadRes.status === 'fulfilled'
-          ? (downloadRes.value?.downloads || downloadRes.value?.data || []) : []
-        const today = new Date().toISOString().slice(0, 10)
-        const todayDownloads = downloads.filter(d => (d.created_at || '').slice(0, 10) === today)
-        setStats({
-          total: orders.length,
-          pending: orders.filter(o => o.status === 'pending').length,
-          confirmed: orders.filter(o => o.status === 'confirmed').length,
-          todayDownloads: todayDownloads.length,
-          recent: orders.slice(0, 5),
-        })
-      } catch (e) {
-        setError('Không thể tải dữ liệu: ' + e.message)
-      } finally {
-        setLoading(false)
-      }
+        if (statsRes.status === 'fulfilled' && statsRes.value?.ok) setWebStats(statsRes.value)
+        if (recentRes.status === 'fulfilled' && recentRes.value?.ok) setWebRecent(recentRes.value.users || [])
+        if (ticketsRes.status === 'fulfilled' && ticketsRes.value?.ok) setOpenTickets(ticketsRes.value.tickets?.length || 0)
+      } catch {}
+      finally { setLoading(false) }
     }
     load()
   }, [])
 
-  const cardStyle = {
-    background: '#fff',
-    borderRadius: 12,
-    padding: '24px 28px',
-    boxShadow: '0 1px 8px rgba(0,0,0,0.07)',
-    flex: 1,
-    minWidth: 0,
-  }
+  const card = { background: '#fff', borderRadius: 12, padding: '20px 22px', boxShadow: '0 1px 8px rgba(0,0,0,.07)', flex: 1, minWidth: 0 }
+  const planColor = { trial: '#94a3b8', personal: '#3b82f6', business: '#10b981', agency: '#f59e0b' }
+  const planLabel = { trial: 'Dùng thử', personal: 'Personal', business: 'Business', agency: 'Agency' }
 
   return (
     <div>
-      <h2 style={{ fontSize: 20, fontWeight: 700, color: '#1a2332', marginBottom: 24 }}>
-        📊 Tổng quan hệ thống
-      </h2>
-      {error && <ErrorBox msg={error} />}
-      {loading ? <Spinner /> : stats && (
+      <h2 style={{ fontSize: 20, fontWeight: 700, color: '#1a2332', marginBottom: 8 }}>📊 Tổng quan hệ thống</h2>
+      <p style={{ fontSize: 13, color: '#64748b', marginBottom: 24 }}>Web SaaS — adsmeta.gonetwork.vn</p>
+
+      {loading ? <Spinner /> : (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 16, marginBottom: 32 }}>
+          {/* Web SaaS Metrics */}
+          <div style={{ marginBottom: 12, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: '#94a3b8' }}>
+            🌐 WEB USERS (SaaS)
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14, marginBottom: 28 }}>
             {[
-              { label: 'Tổng đơn hàng', value: stats.total, color: '#0c2a72', icon: '📋' },
-              { label: 'Chờ xử lý', value: stats.pending, color: '#d97706', icon: '⏳' },
-              { label: 'Đã xác nhận', value: stats.confirmed, color: '#059669', icon: '✅' },
-              { label: 'Tải hôm nay', value: stats.todayDownloads, color: '#7c3aed', icon: '📥' },
-            ].map(card => (
-              <div key={card.label} style={cardStyle}>
-                <div style={{ fontSize: 28, marginBottom: 8 }}>{card.icon}</div>
-                <div style={{ fontSize: 32, fontWeight: 800, color: card.color, lineHeight: 1 }}>
-                  {card.value}
-                </div>
-                <div style={{ fontSize: 13, color: '#64748b', marginTop: 6 }}>{card.label}</div>
+              { label: 'Tổng users', value: webStats?.total ?? '—', color: '#0c2a72', icon: '👤' },
+              { label: 'Dùng thử', value: webStats?.plan_counts?.trial ?? 0, color: '#64748b', icon: '⏱' },
+              { label: 'Personal', value: webStats?.plan_counts?.personal ?? 0, color: '#2563eb', icon: '💳' },
+              { label: 'Business', value: webStats?.plan_counts?.business ?? 0, color: '#059669', icon: '💼' },
+              { label: 'Agency', value: webStats?.plan_counts?.agency ?? 0, color: '#d97706', icon: '🏢' },
+            ].map(c => (
+              <div key={c.label} style={card}>
+                <div style={{ fontSize: 22, marginBottom: 6 }}>{c.icon}</div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: c.color, lineHeight: 1 }}>{c.value}</div>
+                <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>{c.label}</div>
               </div>
             ))}
           </div>
 
-          <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 1px 8px rgba(0,0,0,0.07)', overflow: 'hidden' }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9' }}>
-              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#1a2332' }}>
-                Đơn hàng gần nhất
-              </h3>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 28 }}>
+            <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 16 }}>
+              <div style={{ fontSize: 40 }}>✨</div>
+              <div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: '#7c3aed' }}>{webStats?.today_new ?? 0}</div>
+                <div style={{ fontSize: 13, color: '#64748b' }}>Đăng ký hôm nay</div>
+              </div>
             </div>
-            {stats.recent.length === 0 ? <EmptyState text="Chưa có đơn hàng nào" /> : (
+            <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 16, cursor: 'pointer' }}>
+              <div style={{ fontSize: 40 }}>🎫</div>
+              <div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: openTickets > 0 ? '#ef4444' : '#10b981' }}>{openTickets}</div>
+                <div style={{ fontSize: 13, color: '#64748b' }}>Ticket chờ xử lý</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Recent users */}
+          <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 1px 8px rgba(0,0,0,.07)', overflow: 'hidden', marginBottom: 28 }}>
+            <div style={{ padding: '14px 20px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#1a2332' }}>👤 Users đăng ký gần nhất</h3>
+            </div>
+            {webRecent.length === 0 ? <EmptyState text="Chưa có user nào" /> : (
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr style={{ background: '#0c2a72' }}>
-                    {['Khách hàng', 'Gói', 'Trạng thái', 'Ngày'].map(h => (
-                      <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#fff' }}>{h}</th>
+                  <tr style={{ background: '#f8fafc' }}>
+                    {['Email', 'Gói', 'Facebook', 'Ngày đăng ký'].map(h => (
+                      <th key={h} style={{ padding: '9px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {stats.recent.map((o, i) => (
-                    <tr key={o.id || i} style={{ background: i % 2 === 0 ? '#fff' : '#f8faff' }}>
-                      <td style={{ padding: '10px 14px', fontSize: 13, color: '#1a2332' }}>{o.full_name || o.name || '—'}</td>
-                      <td style={{ padding: '10px 14px', fontSize: 13, color: '#64748b' }}>{o.plan_id || o.plan || '—'}</td>
-                      <td style={{ padding: '10px 14px' }}><Badge status={o.status} /></td>
+                  {webRecent.map((u, i) => (
+                    <tr key={u.id} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 ? '#fafbfc' : '#fff' }}>
+                      <td style={{ padding: '10px 14px', fontSize: 13, fontWeight: 500, color: '#1a2332' }}>{u.email}</td>
+                      <td style={{ padding: '10px 14px' }}>
+                        <span style={{ background: `${planColor[u.plan] || '#94a3b8'}18`, color: planColor[u.plan] || '#94a3b8', borderRadius: 999, padding: '2px 9px', fontSize: 11, fontWeight: 700 }}>
+                          {planLabel[u.plan] || u.plan}
+                        </span>
+                      </td>
+                      <td style={{ padding: '10px 14px', fontSize: 12, color: u.fb_connected ? '#059669' : '#94a3b8' }}>
+                        {u.fb_connected ? '✅ Đã kết nối' : 'Chưa'}
+                      </td>
                       <td style={{ padding: '10px 14px', fontSize: 12, color: '#94a3b8' }}>
-                        {o.created_at ? new Date(o.created_at).toLocaleDateString('vi-VN') : '—'}
+                        {u.created_at ? new Date(u.created_at).toLocaleDateString('vi-VN') : '—'}
                       </td>
                     </tr>
                   ))}
@@ -3159,18 +3187,185 @@ function WebUsersTab() {
   )
 }
 
+// ─── WEB TICKETS TAB ─────────────────────────────────────────────────────────
+function WebTicketsTab() {
+  const [tickets, setTickets] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState('all')
+  const [selected, setSelected] = useState(null)
+  const [replyText, setReplyText] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [toast, setToast] = useState(null)
+
+  const adminToken = typeof window !== 'undefined' ? atob(localStorage.getItem('gmap_admin_token') || '') : ''
+  const showToast = (msg, type = 'ok') => { setToast({ msg, type }); setTimeout(() => setToast(null), 3000) }
+
+  async function call(action, extra = {}) {
+    const res = await fetch('/api/admin/tickets', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-token': adminToken },
+      body: JSON.stringify({ action, ...extra }),
+    })
+    return res.json()
+  }
+
+  async function load() {
+    setLoading(true)
+    const d = await call('list', { status: filter })
+    if (d.ok) setTickets(d.tickets || [])
+    setLoading(false)
+  }
+
+  useEffect(() => { load() }, [filter])
+
+  async function handleReply() {
+    if (!replyText.trim()) return
+    setSaving(true)
+    const d = await call('reply', { id: selected.id, message: replyText })
+    if (!d.ok) { showToast(d.error || 'Lỗi', 'error'); setSaving(false); return }
+    setReplyText('')
+    showToast('Đã gửi phản hồi')
+    const refreshed = await call('get', { id: selected.id })
+    if (refreshed.ok) setSelected(refreshed.ticket)
+    load()
+    setSaving(false)
+  }
+
+  async function handleStatus(id, status) {
+    await call('update_status', { id, status })
+    showToast('Đã cập nhật trạng thái')
+    if (selected?.id === id) setSelected(p => ({ ...p, status }))
+    load()
+  }
+
+  async function handleDelete(id) {
+    if (!confirm('Xoá ticket này?')) return
+    await call('delete', { id })
+    setSelected(null)
+    load()
+  }
+
+  const ST = {
+    open:        { label: 'Chờ xử lý',    bg: '#dbeafe', color: '#1e40af' },
+    in_progress: { label: 'Đang xử lý',   bg: '#fef3c7', color: '#92400e' },
+    resolved:    { label: 'Đã giải quyết', bg: '#d1fae5', color: '#065f46' },
+    closed:      { label: 'Đã đóng',       bg: '#f1f5f9', color: '#475569' },
+  }
+  const FILTERS = [
+    { id: 'all', label: 'Tất cả' },
+    { id: 'open', label: 'Chờ xử lý' },
+    { id: 'in_progress', label: 'Đang xử lý' },
+    { id: 'resolved', label: 'Đã giải quyết' },
+    { id: 'closed', label: 'Đã đóng' },
+  ]
+  const card = { background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, overflow: 'hidden', marginBottom: 20 }
+  const inp = { padding: '9px 12px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: '#fff', color: '#1a2332' }
+
+  return (
+    <div>
+      {toast && <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 9999, background: toast.type === 'error' ? '#ef4444' : '#10b981', color: '#fff', borderRadius: 10, padding: '12px 20px', fontSize: 13, fontWeight: 600, boxShadow: '0 4px 20px rgba(0,0,0,.25)' }}>{toast.msg}</div>}
+
+      <h2 style={{ fontSize: 20, fontWeight: 700, color: '#1a2332', marginBottom: 20 }}>🎫 Support Tickets (Web)</h2>
+
+      {/* Filter */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+        {FILTERS.map(f => (
+          <button key={f.id} onClick={() => setFilter(f.id)}
+            style={{ padding: '7px 14px', borderRadius: 8, border: '1px solid', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', borderColor: filter === f.id ? '#00c7de' : '#e2e8f0', background: filter === f.id ? 'rgba(0,199,222,0.1)' : '#fff', color: filter === f.id ? '#00c7de' : '#64748b' }}>
+            {f.label}
+          </button>
+        ))}
+        <button onClick={load} style={{ ...inp, cursor: 'pointer', marginLeft: 'auto', background: '#f8fafc', color: '#64748b', padding: '7px 14px' }}>🔄</button>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: selected ? '380px 1fr' : '1fr', gap: 20, alignItems: 'start' }}>
+        {/* List */}
+        <div style={card}>
+          {loading ? <Spinner /> : tickets.length === 0 ? <EmptyState icon="🎫" text="Không có ticket nào" /> : (
+            <div>
+              {tickets.map((t, i) => (
+                <div key={t.id} onClick={() => setSelected(t)} style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', background: selected?.id === t.id ? '#f0fdfc' : i % 2 ? '#fafbfc' : '#fff', transition: 'background .15s' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#1a2332', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.subject}</div>
+                    <span style={{ background: ST[t.status]?.bg, color: ST[t.status]?.color, borderRadius: 999, padding: '2px 8px', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{ST[t.status]?.label || t.status}</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: '#94a3b8' }}>
+                    {t.user_email} · {new Date(t.created_at).toLocaleDateString('vi-VN')}
+                    {t.replies?.length > 0 && ` · ${t.replies.length} phản hồi`}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Detail */}
+        {selected && (
+          <div style={card}>
+            <div style={{ padding: '14px 18px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#1a2332', marginBottom: 3 }}>{selected.subject}</div>
+                <div style={{ fontSize: 12, color: '#64748b' }}>{selected.user_email} · {new Date(selected.created_at).toLocaleString('vi-VN')}</div>
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {['open','in_progress','resolved','closed'].map(s => (
+                  <button key={s} onClick={() => handleStatus(selected.id, s)}
+                    style={{ padding: '4px 10px', borderRadius: 6, border: `1px solid ${ST[s]?.color}40`, background: selected.status === s ? ST[s]?.bg : 'transparent', color: ST[s]?.color, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    {ST[s]?.label}
+                  </button>
+                ))}
+                <button onClick={() => handleDelete(selected.id)} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #fca5a5', background: '#fee2e2', color: '#991b1b', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>🗑</button>
+              </div>
+            </div>
+
+            <div style={{ padding: '16px 18px', maxHeight: 400, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {/* Original message */}
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '12px 14px' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 6 }}>User</div>
+                <div style={{ fontSize: 13, color: '#1a2332', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{selected.message}</div>
+              </div>
+              {/* Replies */}
+              {(selected.replies || []).map((r, i) => (
+                <div key={i} style={{ background: r.from === 'admin' ? 'rgba(0,199,222,0.06)' : '#f8fafc', border: `1px solid ${r.from === 'admin' ? 'rgba(0,199,222,0.2)' : '#e2e8f0'}`, borderRadius: 10, padding: '12px 14px' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: r.from === 'admin' ? '#00c7de' : '#94a3b8', textTransform: 'uppercase', marginBottom: 6 }}>
+                    {r.from === 'admin' ? '🛡 Admin' : 'User'}
+                  </div>
+                  <div style={{ fontSize: 13, color: '#1a2332', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{r.message}</div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>{new Date(r.created_at).toLocaleString('vi-VN')}</div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ padding: '14px 18px', borderTop: '1px solid #e2e8f0' }}>
+              <textarea value={replyText} onChange={e => setReplyText(e.target.value)} placeholder="Nhập phản hồi cho user..." rows={3}
+                style={{ ...inp, width: '100%', resize: 'vertical', marginBottom: 10 }} />
+              <button onClick={handleReply} disabled={saving || !replyText.trim()}
+                style={{ padding: '9px 20px', background: '#00c7de', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: saving || !replyText.trim() ? 0.5 : 1 }}>
+                {saving ? 'Đang gửi...' : '📨 Gửi phản hồi'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 const MENU = [
-  { id: 'overview', icon: '📊', label: 'Tổng quan' },
-  { id: 'web_users', icon: '🌐', label: 'Web Users (SaaS)' },
-  { id: 'customers', icon: '👥', label: 'Khách hàng (Key)' },
-  { id: 'check-key', icon: '🔑', label: 'Kiểm tra Key' },
-  { id: 'affiliate', icon: '🤝', label: 'Affiliate' },
-  { id: 'tickets', icon: '🎫', label: 'Tickets' },
-  { id: 'downloads', icon: '📥', label: 'Yêu cầu tải' },
-  { id: 'pixels', icon: '📈', label: 'Tracking Pixels' },
-  { id: 'smtp', icon: '📧', label: 'Email / SMTP' },
-  { id: 'ai_knowledge', icon: '🧠', label: 'AI Knowledge' },
+  { id: 'overview',    icon: '📊', label: 'Tổng quan' },
+  null,
+  { id: 'web_users',  icon: '🌐', label: 'Web Users (SaaS)' },
+  { id: 'web_tickets', icon: '🎫', label: 'Support Tickets' },
   { id: 'policycheck', icon: '🛡️', label: 'Kiểm tra Vi phạm' },
+  { id: 'ai_knowledge', icon: '🧠', label: 'AI Knowledge' },
+  { id: 'pixels',     icon: '📈', label: 'Tracking Pixels' },
+  { id: 'smtp',       icon: '📧', label: 'Email / SMTP' },
+  null,
+  { id: 'customers',  icon: '👥', label: 'Key Khách Hàng (cũ)' },
+  { id: 'check-key',  icon: '🔑', label: 'Kiểm tra Key (cũ)' },
+  { id: 'affiliate',  icon: '🤝', label: 'Affiliate (cũ)' },
+  { id: 'tickets',    icon: '🗂', label: 'Tickets Extension (cũ)' },
+  { id: 'downloads',  icon: '📥', label: 'Yêu cầu tải (cũ)' },
 ]
 
 function Sidebar({ activeTab, setActiveTab, onLogout }) {
@@ -3201,7 +3396,11 @@ function Sidebar({ activeTab, setActiveTab, onLogout }) {
 
       {/* Menu */}
       <nav style={{ flex: 1, padding: '12px 0' }}>
-        {MENU.map(item => {
+        {MENU.map((item, idx) => {
+          if (!item) {
+            return <div key={`divider-${idx}`} style={{ height: 1, background: 'rgba(0,199,222,0.08)', margin: '6px 0' }} />
+          }
+          const isLegacy = item.label?.includes('(cũ)')
           const isActive = activeTab === item.id
           return (
             <button
@@ -3212,23 +3411,23 @@ function Sidebar({ activeTab, setActiveTab, onLogout }) {
                 alignItems: 'center',
                 gap: 10,
                 width: '100%',
-                padding: '11px 20px',
+                padding: '10px 20px',
                 background: isActive ? 'rgba(0,199,222,0.12)' : 'transparent',
                 borderLeft: isActive ? '3px solid #00c7de' : '3px solid transparent',
                 border: 'none',
                 borderRadius: 0,
-                color: isActive ? '#00c7de' : 'rgba(255,255,255,0.6)',
-                fontSize: 13,
+                color: isActive ? '#00c7de' : isLegacy ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.6)',
+                fontSize: isLegacy ? 12 : 13,
                 fontWeight: isActive ? 700 : 500,
                 cursor: 'pointer',
                 textAlign: 'left',
                 fontFamily: 'inherit',
                 transition: 'all 0.15s',
               }}
-              onMouseEnter={e => { if (!isActive) { e.currentTarget.style.color = 'rgba(255,255,255,0.9)'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)' } }}
-              onMouseLeave={e => { if (!isActive) { e.currentTarget.style.color = 'rgba(255,255,255,0.6)'; e.currentTarget.style.background = 'transparent' } }}
+              onMouseEnter={e => { if (!isActive) { e.currentTarget.style.color = 'rgba(255,255,255,0.85)'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)' } }}
+              onMouseLeave={e => { if (!isActive) { e.currentTarget.style.color = isLegacy ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.6)'; e.currentTarget.style.background = 'transparent' } }}
             >
-              <span style={{ fontSize: 16, width: 20, textAlign: 'center', flexShrink: 0 }}>{item.icon}</span>
+              <span style={{ fontSize: 14, width: 20, textAlign: 'center', flexShrink: 0 }}>{item.icon}</span>
               {item.label}
             </button>
           )
@@ -3309,17 +3508,18 @@ export default function Dashboard() {
   }
 
   const tabContent = {
-    'overview': <OverviewTab />,
-    'web_users': <WebUsersTab />,
-    'customers': <CustomersTab />,
-    'check-key': <CheckKeyTab />,
-    'affiliate': <AffiliateTab />,
-    'tickets': <TicketsTab />,
-    'downloads': <DownloadsTab />,
-    'pixels': <PixelsTab />,
-    'smtp': <SMTPTab />,
-    'ai_knowledge': <AiKnowledgeTab />,
+    'overview':    <OverviewTab />,
+    'web_users':   <WebUsersTab />,
+    'web_tickets': <WebTicketsTab />,
     'policycheck': <PolicyCheckTab />,
+    'ai_knowledge': <AiKnowledgeTab />,
+    'pixels':      <PixelsTab />,
+    'smtp':        <SMTPTab />,
+    'customers':   <CustomersTab />,
+    'check-key':   <CheckKeyTab />,
+    'affiliate':   <AffiliateTab />,
+    'tickets':     <TicketsTab />,
+    'downloads':   <DownloadsTab />,
   }
 
   return (

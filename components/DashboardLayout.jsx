@@ -14,6 +14,8 @@ const NAV = [
   { divider: true },
   { href: '/dashboard/notifications',icon:'🔔', label: 'Thông báo tự động',  needFb: true  },
   { href: '/dashboard/team',        icon: '👥', label: 'Nhân viên',          needFb: false },
+  { divider: true },
+  { href: '/dashboard/support',     icon: '🎫', label: 'Hỗ trợ kỹ thuật',   needFb: false },
   { href: 'https://adsmeta.gonetwork.vn/huong-dan', icon: '📖', label: 'Hướng dẫn', external: true },
 ]
 
