@@ -85,9 +85,33 @@ export default async function handler(req, res) {
     return res.json({ ok: true })
   }
 
-  // ─── FACEBOOK CALLBACK (sẽ hoàn thiện sau khi có App ID) ────
+  // ─── FACEBOOK — khởi tạo OAuth flow ────────────────────────
   if (action === 'facebook') {
-    return res.status(503).json({ error: 'Facebook OAuth chưa được cấu hình' })
+    if (req.method !== 'POST') return res.status(405).end()
+    const currentUser = getUserFromReq(req)
+    if (!currentUser) return res.status(401).json({ error: 'Chưa đăng nhập' })
+
+    const appId = process.env.FACEBOOK_APP_ID
+    if (!appId) return res.status(503).json({ error: 'Facebook App chưa được cấu hình' })
+
+    const jwt = await import('jsonwebtoken')
+    const state = jwt.default.sign(
+      { user_id: currentUser.id, ts: Date.now() },
+      process.env.JWT_SECRET || 'gmap-secret-change-in-prod',
+      { expiresIn: '10m' }
+    )
+
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://adsmeta.gonetwork.vn'
+    const params = new URLSearchParams({
+      client_id: appId,
+      redirect_uri: `${siteUrl}/api/auth/callback`,
+      scope: 'ads_read,ads_management,read_insights,public_profile,email',
+      response_type: 'code',
+      state,
+    })
+
+    const auth_url = `https://www.facebook.com/v18.0/dialog/oauth?${params.toString()}`
+    return res.json({ ok: true, auth_url })
   }
 
   return res.status(404).json({ error: 'Action không tồn tại' })

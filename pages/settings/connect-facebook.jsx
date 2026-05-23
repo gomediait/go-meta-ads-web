@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import Head from 'next/head'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { useAuth } from '../../lib/AuthContext'
 import DashboardLayout from '../../components/DashboardLayout'
@@ -12,8 +12,23 @@ const STEPS = [
 
 export default function ConnectFacebook() {
   const { user, refreshUser } = useAuth()
+  const router = useRouter()
   const [status, setStatus] = useState('idle') // idle | loading | success | error
   const [errorMsg, setErrorMsg] = useState('')
+  const [successMsg, setSuccessMsg] = useState('')
+
+  useEffect(() => {
+    if (router.query.success === '1') {
+      setSuccessMsg('Kết nối Facebook thành công! Trang sẽ cập nhật trong giây lát...')
+      refreshUser()
+      router.replace('/settings/connect-facebook', undefined, { shallow: true })
+    }
+    if (router.query.error) {
+      setErrorMsg(decodeURIComponent(router.query.error))
+      setStatus('error')
+      router.replace('/settings/connect-facebook', undefined, { shallow: true })
+    }
+  }, [router.query])
 
   const fbConnected = user?.fb_connected
 
@@ -70,6 +85,14 @@ export default function ConnectFacebook() {
             <p className="cf-sub">Cấp quyền để Go Meta Ads Pro quản lý chiến dịch quảng cáo của bạn</p>
           </div>
         </div>
+
+        {/* Success banner */}
+        {successMsg && (
+          <div className="success-box">
+            <span>✅</span>
+            <span>{successMsg}</span>
+          </div>
+        )}
 
         {/* Already connected */}
         {fbConnected && (
@@ -202,6 +225,14 @@ export default function ConnectFacebook() {
         }
         .step-title { font-size: 13px; font-weight: 700; color: var(--txt); margin-bottom: 3px; }
         .step-desc  { font-size: 12px; color: var(--mut); }
+
+        /* Success */
+        .success-box {
+          display: flex; align-items: flex-start; gap: 10px;
+          background: rgba(0,196,140,.08); border: 1px solid rgba(0,196,140,.25);
+          border-radius: 10px; padding: 12px 16px;
+          font-size: 13px; color: var(--grn); margin-bottom: 16px;
+        }
 
         /* Error */
         .err-box {
