@@ -1,6 +1,6 @@
 {
   "crons": [
-    { "path": "/api/cron/offhours", "schedule": "*/30 * * * *" },
-    { "path": "/api/cron/notify", "schedule": "0 1,5,9,11,15 * * *" }
+    { "path": "/api/cron/offhours", "schedule": "0 15 * * *" },
+    { "path": "/api/cron/notify", "schedule": "0 1 * * *" }
   ]
 }
