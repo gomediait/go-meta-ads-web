@@ -17,7 +17,7 @@ export default function Navbar() {
     [t.nav.pricing,   '/#pricing'],
     [t.nav.guide,     '/huong-dan'],
     [t.nav.affiliate, '/affiliate'],
-    [t.nav.download,  '/tai-xuong'],
+    [t.nav.download,  '/register'],
     [lang === 'en' ? '🎫 Support' : '🎫 Hỗ trợ', '/ho-tro'],
   ]
 
@@ -78,7 +78,7 @@ export default function Navbar() {
               {t.nav.lookupKey}
             </a>
 
-            <a href="/tai-xuong" className="btn btn-teal btn-sm hide-mobile">
+            <a href="/register" className="btn btn-teal btn-sm hide-mobile">
               🚀 {t.nav.tryFree}
             </a>
 
@@ -131,7 +131,7 @@ export default function Navbar() {
             ))}
           </div>
 
-          <a href="/tai-xuong" onClick={() => setMenuOpen(false)}
+          <a href="/register" onClick={() => setMenuOpen(false)}
             className="btn btn-teal btn-block" style={{ marginTop: 16 }}>
             🚀 {t.nav.tryFree}
           </a>

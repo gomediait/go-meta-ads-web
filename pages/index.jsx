@@ -211,7 +211,7 @@ export default function Home() {
 
             <Reveal delay={240}>
               <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 32 }}>
-                <a href="/tai-xuong" className="btn btn-teal btn-lg btn-ripple">
+                <a href="/register" className="btn btn-teal btn-lg btn-ripple">
                   {t.hero.cta1}
                 </a>
                 <a href="#pricing" className="btn btn-glass btn-lg">
@@ -347,8 +347,8 @@ export default function Home() {
                     <span className="grad-text">vất vả như vậy?</span></>
                   )}
                 </h2>
-                <a href="/tai-xuong" className="btn btn-teal btn-lg">
-                  {lang === 'en' ? 'Try free — 1 day free →' : 'Thử ngay — Miễn phí 1 ngày →'}
+                <a href="/register" className="btn btn-teal btn-lg">
+                  {lang === 'en' ? 'Start free trial →' : 'Đăng ký dùng thử →'}
                 </a>
               </div>
             </Reveal>
@@ -505,8 +505,8 @@ export default function Home() {
 
           <Reveal delay={500}>
             <div style={{ textAlign: 'center' }}>
-              <a href="/tai-xuong" className="btn btn-teal btn-lg btn-ripple">
-                📥 Cài tiện ích ngay — Miễn phí 1 ngày
+              <a href="/register" className="btn btn-teal btn-lg btn-ripple">
+                🚀 Đăng ký dùng thử miễn phí
               </a>
             </div>
           </Reveal>
@@ -1086,8 +1086,8 @@ export default function Home() {
               {t.cta.subtitle}
             </p>
             <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 32 }}>
-              <a href="/tai-xuong" className="btn btn-teal btn-xl btn-ripple">
-                🎁 {t.cta.cta1}
+              <a href="/register" className="btn btn-teal btn-xl btn-ripple">
+                🚀 {t.cta.cta1}
               </a>
               <a href="#pricing" className="btn btn-glass btn-xl">
                 {t.cta.cta2}

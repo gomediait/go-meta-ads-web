@@ -1,5 +1,6 @@
 import '../styles/globals.css'
 import { LangProvider } from '../lib/LangContext'
+import { AuthProvider } from '../lib/AuthContext'
 import { useEffect } from 'react'
 import { useRouter } from 'next/router'
 import dynamic from 'next/dynamic'
@@ -48,7 +49,8 @@ function GlobalEffects() {
 
 export default function App({ Component, pageProps }) {
   const router = useRouter()
-  const isAdmin = router.pathname.startsWith('/admin')
+  const isAdmin     = router.pathname.startsWith('/admin')
+  const isDashboard = router.pathname.startsWith('/dashboard') || router.pathname.startsWith('/settings')
 
   // Đọc ?ref= từ URL và lưu cookie affiliate 30 ngày
   useEffect(() => {
@@ -62,13 +64,15 @@ export default function App({ Component, pageProps }) {
 
   return (
     <LangProvider>
-      {/* Ẩn LiveCounter, FomoPopup, FloatingSupport trong admin */}
-      {!isAdmin && <LiveCounter />}
-      {!isAdmin && <LoadingScreen />}
-      <GlobalEffects />
-      <Component {...pageProps} />
-      {!isAdmin && <FomoPopup />}
-      {!isAdmin && <FloatingSupport />}
+      <AuthProvider>
+        {/* Ẩn widgets marketing trong admin và dashboard */}
+        {!isAdmin && !isDashboard && <LiveCounter />}
+        {!isAdmin && !isDashboard && <LoadingScreen />}
+        {!isDashboard && <GlobalEffects />}
+        <Component {...pageProps} />
+        {!isAdmin && !isDashboard && <FomoPopup />}
+        {!isAdmin && !isDashboard && <FloatingSupport />}
+      </AuthProvider>
     </LangProvider>
   )
 }
