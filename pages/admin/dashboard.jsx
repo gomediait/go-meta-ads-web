@@ -3716,12 +3716,6 @@ const MENU = [
   { id: 'ai_knowledge',    icon: '🧠', label: 'AI Knowledge' },
   { id: 'pixels',          icon: '📈', label: 'Tracking Pixels' },
   { id: 'smtp',            icon: '📧', label: 'Email / SMTP' },
-  null,
-  { id: 'customers',       icon: '👥', label: 'Key Khách Hàng (cũ)' },
-  { id: 'check-key',       icon: '🔑', label: 'Kiểm tra Key (cũ)' },
-  { id: 'affiliate',       icon: '🤝', label: 'Affiliate (cũ)' },
-  { id: 'tickets',         icon: '🗂', label: 'Tickets Extension (cũ)' },
-  { id: 'downloads',       icon: '📥', label: 'Yêu cầu tải (cũ)' },
 ]
 
 function Sidebar({ activeTab, setActiveTab, onLogout }) {
