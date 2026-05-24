@@ -137,12 +137,20 @@ function SkeletonRows({ cols }) {
 }
 
 function BudgetBar({ budget, spend, pct, currency }) {
-  const color = pct >= 85 ? 'var(--red)' : pct >= 65 ? 'var(--ylw)' : 'var(--grn)'
+  const isOver  = pct > 100
+  const color   = pct >= 85 ? 'var(--red)' : pct >= 65 ? 'var(--ylw)' : 'var(--grn)'
+  const pctLabel = pct > 999 ? '>999%' : `${pct}%`
   return (
     <div className="budget-cell">
       <div className="budget-text">
         {fmtMoney(budget, currency)}<span className="budget-day"> /ngày</span>
-        <span className="budget-pct" style={{ color }}> · {pct}%</span>
+        <span className="budget-pct" style={{ color }}> · {pctLabel}</span>
+        {isOver && (
+          <span
+            className="budget-over-tip"
+            title="Chi tiêu đã vượt ngân sách ngày. Thường xảy ra khi ngân sách bị giảm trong ngày hoặc Meta phân phối linh hoạt."
+          >ⓘ</span>
+        )}
       </div>
       <div className="budget-bar-track">
         <div className="budget-bar-fill" style={{ width: `${Math.min(pct, 100)}%`, background: color }} />
@@ -346,12 +354,30 @@ const AI_SUGGESTIONS = [
   'Chi tiêu hôm nay tổng bao nhiêu?',
 ]
 
+function renderMd(text) {
+  if (!text) return null
+  const lines = text.split('\n')
+  return lines.map((line, li) => {
+    const parts = line.split(/(\*\*[^*]+\*\*)/g)
+    return (
+      <span key={li}>
+        {parts.map((p, pi) =>
+          p.startsWith('**') && p.endsWith('**')
+            ? <strong key={pi}>{p.slice(2, -2)}</strong>
+            : p
+        )}
+        {li < lines.length - 1 && <br />}
+      </span>
+    )
+  })
+}
+
 function AIChatPanel({ items, onClose }) {
   const [msgs, setMsgs] = useState([{
     role: 'assistant',
-    content: `Xin chào! Tôi là trợ lý AI Meta Ads. Đang phân tích **${items.length} chiến dịch/nhóm** trong view hiện tại. Tôi có thể giúp bạn phân tích hiệu quả, tìm vấn đề và đưa ra gợi ý tối ưu.`
+    content: `Xin chào! Tôi là trợ lý AI Meta Ads. Đang phân tích **${items.length} chiến dịch/nhóm** trong view hiện tại. Tôi có thể giúp bạn phân tích hiệu quả, tìm vấn đề và đề xuất tối ưu.`
   }])
-  const [input, setInput]   = useState('')
+  const [input, setInput]     = useState('')
   const [loading, setLoading] = useState(false)
   const bottomRef = useRef(null)
 
@@ -370,9 +396,10 @@ function AIChatPanel({ items, onClose }) {
         body: JSON.stringify({ message: userMsg, campaigns: items.slice(0, 40), history: msgs.slice(-8) })
       })
       const data = await res.json()
-      setMsgs(m => [...m, { role: 'assistant', content: data.reply || data.error || 'Không có phản hồi.' }])
-    } catch {
-      setMsgs(m => [...m, { role: 'assistant', content: 'Lỗi kết nối. Vui lòng thử lại.' }])
+      if (!res.ok) throw new Error(data.error || 'Server error')
+      setMsgs(m => [...m, { role: 'assistant', content: data.reply || 'Không có phản hồi.' }])
+    } catch (e) {
+      setMsgs(m => [...m, { role: 'assistant', content: `⚠️ ${e.message || 'Lỗi kết nối. Vui lòng thử lại.'}` }])
     }
     setLoading(false)
   }
@@ -384,23 +411,23 @@ function AIChatPanel({ items, onClose }) {
           <span style={{ fontSize: 22 }}>🤖</span>
           <div>
             <div style={{ fontWeight: 700, fontSize: 13 }}>Trợ lý AI Meta Ads</div>
-            <div style={{ fontSize: 10, color: 'var(--mut)' }}>{items.length} chiến dịch đang xem</div>
+            <div style={{ fontSize: 10, color: 'var(--mut)' }}>{items.length} chiến dịch đang xem · ~$0.004/tin nhắn</div>
           </div>
         </div>
-        <button className="ai-panel-close" onClick={onClose}>×</button>
+        <button className="ai-panel-close" onClick={onClose} title="Đóng">×</button>
       </div>
 
       <div className="ai-msgs">
         {msgs.map((m, i) => (
           <div key={i} className={`ai-msg ai-msg-${m.role}`}>
             {m.role === 'assistant' && <span className="ai-avatar">🤖</span>}
-            <div className="ai-bubble">{m.content}</div>
+            <div className="ai-bubble">{renderMd(m.content)}</div>
           </div>
         ))}
         {loading && (
           <div className="ai-msg ai-msg-assistant">
             <span className="ai-avatar">🤖</span>
-            <div className="ai-bubble ai-typing"><span/><span/><span/></div>
+            <div className="ai-bubble ai-typing"><span /><span /><span /></div>
           </div>
         )}
         <div ref={bottomRef} />
@@ -422,6 +449,7 @@ function AIChatPanel({ items, onClose }) {
           onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), send(input))}
           placeholder="Hỏi về chiến dịch quảng cáo..."
           disabled={loading}
+          autoFocus
         />
         <button className="ai-send-btn" onClick={() => send(input)} disabled={loading || !input.trim()}>
           {loading ? '…' : '↑'}
@@ -1080,7 +1108,7 @@ export default function DashboardHome() {
                           ) : item.lifetime_budget ? (
                             <div className="budget-text-small">{fmtMoney(item.lifetime_budget, item.currency)}<span className="budget-day"> trọn đời</span></div>
                           ) : (
-                            <span className="sub-text">CBO</span>
+                            <span className="sub-text cbo-tag" title="CBO — Campaign Budget Optimization: Ngân sách được phân bổ tự động từ chiến dịch, không đặt riêng ở nhóm QC">CBO ⓘ</span>
                           )}
                         </td>
 
@@ -1507,6 +1535,13 @@ export default function DashboardHome() {
         /* New value colors */
         .val-blue  { color: #60a5fa; font-weight: 600; }
 
+        /* Budget over-tip */
+        .budget-over-tip {
+          font-size: 10px; color: var(--mut); cursor: help; margin-left: 3px;
+          vertical-align: middle;
+        }
+        .cbo-tag { cursor: help; }
+
         /* AI Floating button */
         .ai-fab {
           position: fixed; bottom: 28px; right: 28px; z-index: 1200;
@@ -1524,34 +1559,38 @@ export default function DashboardHome() {
         /* AI Chat Panel */
         .ai-panel {
           position: fixed; bottom: 90px; right: 28px; z-index: 1200;
-          width: 360px; max-height: 560px;
-          display: flex; flex-direction: column;
+          width: 380px;
+          height: calc(100vh - 130px); max-height: 580px; min-height: 340px;
+          display: flex; flex-direction: column; overflow: hidden;
           background: var(--s1); border: 1px solid rgba(99,102,241,.25);
           border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,.3);
           animation: slideUp .2s ease;
         }
+        @keyframes slideUp { from { opacity:0; transform:translateY(12px) } to { opacity:1; transform:none } }
         .ai-panel-hd {
           display: flex; align-items: center; justify-content: space-between;
-          padding: 14px 16px; border-bottom: 1px solid var(--bd);
+          padding: 12px 14px; border-bottom: 1px solid var(--bd);
           background: linear-gradient(135deg, rgba(99,102,241,.12) 0%, rgba(139,92,246,.08) 100%);
-          border-radius: 16px 16px 0 0;
+          border-radius: 16px 16px 0 0; flex-shrink: 0;
         }
         .ai-panel-title { display: flex; align-items: center; gap: 10px; }
         .ai-panel-close {
-          background: none; border: none; font-size: 20px; color: var(--mut);
-          cursor: pointer; line-height: 1; padding: 0 4px;
+          background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
+          border-radius: 6px; font-size: 16px; color: var(--mut);
+          cursor: pointer; line-height: 1; padding: 3px 7px; transition: all .15s;
         }
-        .ai-panel-close:hover { color: var(--txt); }
+        .ai-panel-close:hover { background: rgba(239,68,68,.15); color: var(--red); border-color: var(--red); }
         .ai-msgs {
-          flex: 1; overflow-y: auto; padding: 14px 12px; display: flex; flex-direction: column; gap: 10px;
-          max-height: 320px;
+          flex: 1; overflow-y: auto; padding: 12px 12px;
+          display: flex; flex-direction: column; gap: 10px;
+          min-height: 0;
         }
         .ai-msg { display: flex; gap: 8px; align-items: flex-start; }
         .ai-msg-user { flex-direction: row-reverse; }
         .ai-avatar { font-size: 18px; flex-shrink: 0; margin-top: 2px; }
         .ai-bubble {
-          padding: 9px 12px; border-radius: 12px; font-size: 12.5px; line-height: 1.55;
-          max-width: 82%; white-space: pre-wrap; word-break: break-word;
+          padding: 9px 12px; border-radius: 12px; font-size: 12.5px; line-height: 1.6;
+          max-width: 84%; word-break: break-word;
         }
         .ai-msg-assistant .ai-bubble { background: var(--s2); color: var(--txt); border-radius: 4px 12px 12px 12px; }
         .ai-msg-user .ai-bubble { background: linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; border-radius: 12px 4px 12px 12px; }
@@ -1564,17 +1603,25 @@ export default function DashboardHome() {
         .ai-typing span:nth-child(3) { animation-delay: .4s; }
         @keyframes bounce { 0%,80%,100%{transform:scale(0)} 40%{transform:scale(1)} }
 
-        .ai-suggests { padding: 8px 12px; display: flex; flex-direction: column; gap: 5px; border-top: 1px solid var(--bd); }
-        .ai-suggest-btn {
-          padding: 7px 10px; background: rgba(99,102,241,.08); border: 1px solid rgba(99,102,241,.2);
-          border-radius: 8px; font-size: 11.5px; color: var(--txt);
-          cursor: pointer; font-family: inherit; text-align: left; transition: background .15s;
+        /* Suggestions: horizontal scroll */
+        .ai-suggests {
+          padding: 8px 12px; display: flex; flex-direction: row; flex-wrap: nowrap;
+          overflow-x: auto; gap: 6px; border-top: 1px solid var(--bd); flex-shrink: 0;
+          scrollbar-width: thin; scrollbar-color: var(--bd) transparent;
         }
-        .ai-suggest-btn:hover { background: rgba(99,102,241,.15); }
+        .ai-suggests::-webkit-scrollbar { height: 4px; }
+        .ai-suggests::-webkit-scrollbar-thumb { background: var(--bd); border-radius: 2px; }
+        .ai-suggest-btn {
+          padding: 6px 10px; background: rgba(99,102,241,.08); border: 1px solid rgba(99,102,241,.2);
+          border-radius: 20px; font-size: 11px; color: var(--txt);
+          cursor: pointer; font-family: inherit; white-space: nowrap; flex-shrink: 0;
+          transition: background .15s;
+        }
+        .ai-suggest-btn:hover { background: rgba(99,102,241,.18); }
 
         .ai-input-row {
           display: flex; gap: 7px; padding: 10px 12px;
-          border-top: 1px solid var(--bd);
+          border-top: 1px solid var(--bd); flex-shrink: 0;
         }
         .ai-input {
           flex: 1; padding: 8px 12px; border: 1px solid var(--bd);
