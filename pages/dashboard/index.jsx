@@ -152,18 +152,31 @@ function BudgetBar({ budget, spend, pct, currency }) {
 }
 
 function StatusToggle({ item, onToggle, toggling }) {
-  const isActive = item.effective_status === 'ACTIVE'
-  const isCampaignPaused = item.effective_status === 'CAMPAIGN_PAUSED'
-  if (isCampaignPaused) return <span className="badge-camp-paused">Campaign dừng</span>
+  const isActive        = item.effective_status === 'ACTIVE'
+  const isArchived      = item.effective_status === 'ARCHIVED'
+  const isCampaignPaused= item.effective_status === 'CAMPAIGN_PAUSED'
+
+  if (isArchived) return <span className="badge-status badge-archived">🗄 Archive</span>
+  if (isCampaignPaused) return (
+    <div className="status-toggle-cell">
+      <span className="toggle-sw toggle-sw--disabled"><span className="toggle-knob" /></span>
+      <span className="status-lbl status-lbl--paused">Camp. dừng</span>
+    </div>
+  )
   return (
-    <button
-      className={`toggle-sw${isActive ? ' toggle-sw--on' : ''}`}
-      onClick={() => onToggle(item.id, item.status)}
-      disabled={toggling[item.id]}
-      title={isActive ? 'Tạm dừng' : 'Bật lên'}
-    >
-      <span className="toggle-knob" />
-    </button>
+    <div className="status-toggle-cell">
+      <button
+        className={`toggle-sw${isActive ? ' toggle-sw--on' : ''}`}
+        onClick={() => onToggle(item.id, item.status)}
+        disabled={toggling[item.id]}
+        title={isActive ? 'Nhấn để tạm dừng' : 'Nhấn để bật lên'}
+      >
+        <span className="toggle-knob" />
+      </button>
+      <span className={`status-lbl ${isActive ? 'status-lbl--on' : 'status-lbl--off'}`}>
+        {isActive ? 'ACTIVE' : 'PAUSED'}
+      </span>
+    </div>
   )
 }
 
@@ -254,10 +267,168 @@ function BulkBudgetModal({ count, onClose, onSave, saving }) {
 }
 
 const DEFAULT_COLS = {
-  campaign: true, objective: false,
-  reach: true, impressions: true, cpm: false, frequency: false,
-  clicks: false, linkClicks: false,
-  addToCart: false, checkout: false,
+  campaign: true,    objective: false,
+  reach: true,       impressions: true, cpm: false,      frequency: false,
+  clicks: false,     linkClicks: false, cpc: false,
+  messages: false,   costPerMsg: false,
+  engagement: false, costPerEngage: false, reactions: false, comments: false, shares: false,
+  addToCart: false,  checkout: false,
+  videoViews: false, thruplays: false,
+  leads: false,      costPerLead: false,
+}
+
+const COL_GROUPS = [
+  {
+    label: 'Hiển thị',
+    cols: [
+      { key: 'reach',       name: 'Tiếp cận'  },
+      { key: 'impressions', name: 'Hiển thị'  },
+      { key: 'frequency',   name: 'Tần suất'  },
+      { key: 'cpm',         name: 'CPM'        },
+    ]
+  },
+  {
+    label: 'Nhấp & Click',
+    cols: [
+      { key: 'clicks',     name: 'Tổng click' },
+      { key: 'linkClicks', name: 'Link click'  },
+      { key: 'cpc',        name: 'Chi phí/click (CPC)' },
+    ]
+  },
+  {
+    label: 'Tương tác',
+    cols: [
+      { key: 'engagement',    name: 'Tổng tương tác' },
+      { key: 'costPerEngage', name: 'Chi phí/tương tác' },
+      { key: 'reactions',     name: 'Cảm xúc (Reaction)' },
+      { key: 'comments',      name: 'Bình luận' },
+      { key: 'shares',        name: 'Chia sẻ'   },
+    ]
+  },
+  {
+    label: 'Tin nhắn',
+    cols: [
+      { key: 'messages',   name: 'Lượt nhắn tin' },
+      { key: 'costPerMsg', name: 'Chi phí/tin nhắn' },
+    ]
+  },
+  {
+    label: 'Video',
+    cols: [
+      { key: 'videoViews', name: 'Lượt xem video' },
+      { key: 'thruplays',  name: 'ThruPlay (xem hết)' },
+    ]
+  },
+  {
+    label: 'Chuyển đổi',
+    cols: [
+      { key: 'addToCart',   name: 'Thêm vào giỏ' },
+      { key: 'checkout',    name: 'Bắt đầu TT'   },
+      { key: 'leads',       name: 'Lead'          },
+      { key: 'costPerLead', name: 'Chi phí/lead'  },
+    ]
+  },
+  {
+    label: 'Chiến dịch',
+    cols: [
+      { key: 'campaign',  name: 'Tên chiến dịch' },
+      { key: 'objective', name: 'Mục tiêu'        },
+    ]
+  },
+]
+
+const AI_SUGGESTIONS = [
+  'Chiến dịch nào đang hoạt động tốt nhất?',
+  'Nhóm nào nên tắt để tiết kiệm ngân sách?',
+  'Làm sao tăng ROAS hiệu quả?',
+  'Phân tích các cảnh báo đang có',
+  'Tài khoản nào có hiệu quả tốt nhất?',
+  'Chi tiêu hôm nay tổng bao nhiêu?',
+]
+
+function AIChatPanel({ items, onClose }) {
+  const [msgs, setMsgs] = useState([{
+    role: 'assistant',
+    content: `Xin chào! Tôi là trợ lý AI Meta Ads. Đang phân tích **${items.length} chiến dịch/nhóm** trong view hiện tại. Tôi có thể giúp bạn phân tích hiệu quả, tìm vấn đề và đưa ra gợi ý tối ưu.`
+  }])
+  const [input, setInput]   = useState('')
+  const [loading, setLoading] = useState(false)
+  const bottomRef = useRef(null)
+
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [msgs])
+
+  async function send(text) {
+    if (!text?.trim() || loading) return
+    const userMsg = text.trim()
+    setMsgs(m => [...m, { role: 'user', content: userMsg }])
+    setInput('')
+    setLoading(true)
+    try {
+      const res = await fetch('/api/ai/campaign-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userMsg, campaigns: items.slice(0, 40), history: msgs.slice(-8) })
+      })
+      const data = await res.json()
+      setMsgs(m => [...m, { role: 'assistant', content: data.reply || data.error || 'Không có phản hồi.' }])
+    } catch {
+      setMsgs(m => [...m, { role: 'assistant', content: 'Lỗi kết nối. Vui lòng thử lại.' }])
+    }
+    setLoading(false)
+  }
+
+  return (
+    <div className="ai-panel">
+      <div className="ai-panel-hd">
+        <div className="ai-panel-title">
+          <span style={{ fontSize: 22 }}>🤖</span>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 13 }}>Trợ lý AI Meta Ads</div>
+            <div style={{ fontSize: 10, color: 'var(--mut)' }}>{items.length} chiến dịch đang xem</div>
+          </div>
+        </div>
+        <button className="ai-panel-close" onClick={onClose}>×</button>
+      </div>
+
+      <div className="ai-msgs">
+        {msgs.map((m, i) => (
+          <div key={i} className={`ai-msg ai-msg-${m.role}`}>
+            {m.role === 'assistant' && <span className="ai-avatar">🤖</span>}
+            <div className="ai-bubble">{m.content}</div>
+          </div>
+        ))}
+        {loading && (
+          <div className="ai-msg ai-msg-assistant">
+            <span className="ai-avatar">🤖</span>
+            <div className="ai-bubble ai-typing"><span/><span/><span/></div>
+          </div>
+        )}
+        <div ref={bottomRef} />
+      </div>
+
+      {msgs.length <= 1 && (
+        <div className="ai-suggests">
+          {AI_SUGGESTIONS.map(s => (
+            <button key={s} className="ai-suggest-btn" onClick={() => send(s)}>{s}</button>
+          ))}
+        </div>
+      )}
+
+      <div className="ai-input-row">
+        <input
+          className="ai-input"
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), send(input))}
+          placeholder="Hỏi về chiến dịch quảng cáo..."
+          disabled={loading}
+        />
+        <button className="ai-send-btn" onClick={() => send(input)} disabled={loading || !input.trim()}>
+          {loading ? '…' : '↑'}
+        </button>
+      </div>
+    </div>
+  )
 }
 
 export default function DashboardHome() {
@@ -288,6 +459,7 @@ export default function DashboardHome() {
   const [toasts, setToasts]   = useState([])
   const [cols, setCols]       = useState(DEFAULT_COLS)
   const [showColPicker, setShowColPicker] = useState(false)
+  const [showAI, setShowAI]   = useState(false)
 
   const abortRef = useRef(null)
 
@@ -516,6 +688,32 @@ export default function DashboardHome() {
 
   function toggleCol(key) { setCols(c => ({ ...c, [key]: !c[key] })) }
 
+  async function handleBulkToggle(newStatus) {
+    const targets = adsets.filter(a =>
+      selectedIds.has(a.id) &&
+      a.effective_status !== 'ARCHIVED' &&
+      a.effective_status !== newStatus
+    )
+    if (!targets.length) { addToast('Không có mục nào phù hợp', 'error'); return }
+    let ok = 0
+    for (const item of targets) {
+      setToggling(t => ({ ...t, [item.id]: true }))
+      try {
+        const r = await fetch('/api/fb/campaign-toggle', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ campaign_id: item.id, status: newStatus })
+        })
+        if ((await r.json()).ok !== false) {
+          setAdsets(prev => prev.map(a => a.id === item.id ? { ...a, status: newStatus, effective_status: newStatus } : a))
+          ok++
+        }
+      } catch {}
+      setToggling(t => ({ ...t, [item.id]: false }))
+    }
+    if (ok) addToast(`Đã ${newStatus === 'ACTIVE' ? 'bật' : 'tắt'} ${ok} mục`)
+  }
+
   const expireDate = user?.expire_at ? new Date(user.expire_at).toLocaleDateString('vi-VN') : null
   const cpaMaxVal  = Number(filters.cpa_max)  || 0
   const roasMinVal = Number(filters.roas_min) || 0
@@ -528,17 +726,8 @@ export default function DashboardHome() {
 
   // How many visible columns total (for skeleton)
   const colCount = 6
-    + (level === 'adset' && cols.campaign ? 1 : 0)
-    + (cols.objective   ? 1 : 0)
-    + (cols.reach       ? 1 : 0)
-    + (cols.impressions ? 1 : 0)
-    + (cols.cpm         ? 1 : 0)
-    + (cols.frequency   ? 1 : 0)
-    + (cols.clicks      ? 1 : 0)
-    + (cols.linkClicks  ? 1 : 0)
-    + (cols.addToCart   ? 1 : 0)
-    + (cols.checkout    ? 1 : 0)
-    + 4 // purchases, cpa, roas, revenue
+    + Object.values(cols).filter(Boolean).length
+    + 4 // purchases, cpa, roas, revenue always visible
 
   return (
     <DashboardLayout title="Quản lý chiến dịch">
@@ -670,18 +859,20 @@ export default function DashboardHome() {
                   </button>
                   {showColPicker && (
                     <div className="col-picker-panel">
-                      {level === 'adset' && (
-                        <label className="col-chk"><input type="checkbox" checked={cols.campaign}   onChange={() => toggleCol('campaign')}   /> Chiến dịch</label>
-                      )}
-                      <label className="col-chk"><input type="checkbox" checked={cols.objective}   onChange={() => toggleCol('objective')}   /> Mục tiêu</label>
-                      <label className="col-chk"><input type="checkbox" checked={cols.reach}       onChange={() => toggleCol('reach')}       /> Tiếp cận</label>
-                      <label className="col-chk"><input type="checkbox" checked={cols.impressions} onChange={() => toggleCol('impressions')} /> Hiển thị</label>
-                      <label className="col-chk"><input type="checkbox" checked={cols.cpm}         onChange={() => toggleCol('cpm')}         /> CPM</label>
-                      <label className="col-chk"><input type="checkbox" checked={cols.frequency}   onChange={() => toggleCol('frequency')}   /> Tần suất</label>
-                      <label className="col-chk"><input type="checkbox" checked={cols.clicks}      onChange={() => toggleCol('clicks')}      /> Lượt click</label>
-                      <label className="col-chk"><input type="checkbox" checked={cols.linkClicks}  onChange={() => toggleCol('linkClicks')}  /> Link click</label>
-                      <label className="col-chk"><input type="checkbox" checked={cols.addToCart}   onChange={() => toggleCol('addToCart')}   /> Thêm vào giỏ</label>
-                      <label className="col-chk"><input type="checkbox" checked={cols.checkout}    onChange={() => toggleCol('checkout')}    /> Thanh toán</label>
+                      {COL_GROUPS.map(group => (
+                        <div key={group.label} className="col-group">
+                          <div className="col-group-label">{group.label}</div>
+                          {group.cols
+                            .filter(c => c.key !== 'campaign' || level === 'adset')
+                            .map(c => (
+                              <label key={c.key} className="col-chk">
+                                <input type="checkbox" checked={!!cols[c.key]} onChange={() => toggleCol(c.key)} />
+                                {c.name}
+                              </label>
+                            ))
+                          }
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -762,7 +953,9 @@ export default function DashboardHome() {
                 <div className="sel-bar">
                   Đã chọn <strong>{selectedIds.size}</strong>
                   <button className="sel-clear" onClick={() => setSelectedIds(new Set())}>Bỏ chọn</button>
-                  <button className="sel-budget" onClick={() => setBulkModal(true)}>Tăng NS nhanh →</button>
+                  <button className="sel-act sel-act--on"  onClick={() => handleBulkToggle('ACTIVE')}>▶ Bật tất cả</button>
+                  <button className="sel-act sel-act--off" onClick={() => handleBulkToggle('PAUSED')}>⏸ Tắt tất cả</button>
+                  <button className="sel-budget" onClick={() => setBulkModal(true)}>↑ Tăng NS</button>
                 </div>
               )}
             </div>
@@ -786,14 +979,26 @@ export default function DashboardHome() {
                     <Th col="cpa"         className="th-num">CPA</Th>
                     <Th col="roas"        className="th-num">ROAS</Th>
                     <Th col="revenue"     className="th-num">Doanh thu</Th>
-                    {cols.reach      && <Th col="reach"      className="th-num">Tiếp cận</Th>}
-                    {cols.impressions && <Th col="impressions" className="th-num">Hiển thị</Th>}
-                    {cols.cpm        && <Th col="cpm"        className="th-num">CPM</Th>}
-                    {cols.frequency  && <Th col="frequency"  className="th-num">Tần suất</Th>}
-                    {cols.clicks     && <Th col="clicks"     className="th-num">Click</Th>}
-                    {cols.linkClicks && <Th col="linkClicks" className="th-num">Link click</Th>}
-                    {cols.addToCart  && <Th col="addToCart"  className="th-num">Thêm giỏ</Th>}
-                    {cols.checkout   && <Th col="checkout"   className="th-num">Thanh toán</Th>}
+                    {cols.reach        && <Th col="reach"        className="th-num">Tiếp cận</Th>}
+                    {cols.impressions  && <Th col="impressions"  className="th-num">Hiển thị</Th>}
+                    {cols.frequency    && <Th col="frequency"    className="th-num">Tần suất</Th>}
+                    {cols.cpm          && <Th col="cpm"          className="th-num">CPM</Th>}
+                    {cols.clicks       && <Th col="clicks"       className="th-num">Click</Th>}
+                    {cols.linkClicks   && <Th col="linkClicks"   className="th-num">Link click</Th>}
+                    {cols.cpc          && <Th col="cpc"          className="th-num">CPC</Th>}
+                    {cols.messages     && <Th col="messages"     className="th-num">Tin nhắn</Th>}
+                    {cols.costPerMsg   && <Th col="costPerMsg"   className="th-num">CP/Tin nhắn</Th>}
+                    {cols.engagement   && <Th col="engagement"   className="th-num">Tương tác</Th>}
+                    {cols.costPerEngage&& <Th col="costPerEngage"className="th-num">CP/Tương tác</Th>}
+                    {cols.reactions    && <Th col="reactions"    className="th-num">Cảm xúc</Th>}
+                    {cols.comments     && <Th col="comments"     className="th-num">Bình luận</Th>}
+                    {cols.shares       && <Th col="shares"       className="th-num">Chia sẻ</Th>}
+                    {cols.videoViews   && <Th col="videoViews"   className="th-num">Xem video</Th>}
+                    {cols.thruplays    && <Th col="thruplays"    className="th-num">ThruPlay</Th>}
+                    {cols.addToCart    && <Th col="addToCart"    className="th-num">Thêm giỏ</Th>}
+                    {cols.checkout     && <Th col="checkout"     className="th-num">Bắt đầu TT</Th>}
+                    {cols.leads        && <Th col="leads"        className="th-num">Lead</Th>}
+                    {cols.costPerLead  && <Th col="costPerLead"  className="th-num">CP/Lead</Th>}
                     <th className="th-ctr" onClick={() => handleSort('ctr')}>CTR <SortIcon col="ctr" sortBy={sortBy} sortDir={sortDir} /></th>
                     <th className="td-warn">Cảnh báo</th>
                   </tr>
@@ -915,14 +1120,26 @@ export default function DashboardHome() {
                           ) : <span className="val-muted">—</span>}
                         </td>
 
-                        {cols.reach       && <td className="td-num">{fmtNum(item.reach)}</td>}
-                        {cols.impressions && <td className="td-num">{fmtNum(item.impressions)}</td>}
-                        {cols.cpm         && <td className="td-num">{fmtCpm(item.cpm, item.currency)}</td>}
-                        {cols.frequency   && <td className="td-num">{fmtFreq(item.frequency)}</td>}
-                        {cols.clicks      && <td className="td-num">{fmtNum(item.clicks)}</td>}
-                        {cols.linkClicks  && <td className="td-num">{fmtNum(item.linkClicks)}</td>}
-                        {cols.addToCart   && <td className="td-num">{item.addToCart > 0 ? <span className="val-green">{fmtNum(item.addToCart)}</span> : <span className="val-muted">—</span>}</td>}
-                        {cols.checkout    && <td className="td-num">{item.checkout  > 0 ? <span className="val-green">{fmtNum(item.checkout)}</span>  : <span className="val-muted">—</span>}</td>}
+                        {cols.reach         && <td className="td-num">{fmtNum(item.reach)}</td>}
+                        {cols.impressions   && <td className="td-num">{fmtNum(item.impressions)}</td>}
+                        {cols.frequency     && <td className="td-num">{fmtFreq(item.frequency)}</td>}
+                        {cols.cpm           && <td className="td-num">{fmtCpm(item.cpm, item.currency)}</td>}
+                        {cols.clicks        && <td className="td-num">{fmtNum(item.clicks)}</td>}
+                        {cols.linkClicks    && <td className="td-num">{fmtNum(item.linkClicks)}</td>}
+                        {cols.cpc           && <td className="td-num">{fmtMoney(item.cpc, item.currency)}</td>}
+                        {cols.messages      && <td className="td-num">{item.messages   > 0 ? <span className="val-blue">{fmtNum(item.messages)}</span>   : <span className="val-muted">—</span>}</td>}
+                        {cols.costPerMsg    && <td className="td-num">{fmtMoney(item.costPerMsg, item.currency)}</td>}
+                        {cols.engagement    && <td className="td-num">{item.engagement > 0 ? <span className="val-blue">{fmtNum(item.engagement)}</span> : <span className="val-muted">—</span>}</td>}
+                        {cols.costPerEngage && <td className="td-num">{fmtMoney(item.costPerEngage, item.currency)}</td>}
+                        {cols.reactions     && <td className="td-num">{fmtNum(item.reactions)}</td>}
+                        {cols.comments      && <td className="td-num">{fmtNum(item.comments)}</td>}
+                        {cols.shares        && <td className="td-num">{fmtNum(item.shares)}</td>}
+                        {cols.videoViews    && <td className="td-num">{item.videoViews > 0 ? <span className="val-blue">{fmtNum(item.videoViews)}</span> : <span className="val-muted">—</span>}</td>}
+                        {cols.thruplays     && <td className="td-num">{fmtNum(item.thruplays)}</td>}
+                        {cols.addToCart     && <td className="td-num">{item.addToCart  > 0 ? <span className="val-green">{fmtNum(item.addToCart)}</span>  : <span className="val-muted">—</span>}</td>}
+                        {cols.checkout      && <td className="td-num">{item.checkout   > 0 ? <span className="val-green">{fmtNum(item.checkout)}</span>   : <span className="val-muted">—</span>}</td>}
+                        {cols.leads         && <td className="td-num">{item.leads      > 0 ? <span className="val-green">{fmtNum(item.leads)}</span>      : <span className="val-muted">—</span>}</td>}
+                        {cols.costPerLead   && <td className="td-num">{fmtMoney(item.costPerLead, item.currency)}</td>}
 
                         <td className="td-num">{fmtCtr(item.ctr)}</td>
 
@@ -969,6 +1186,17 @@ export default function DashboardHome() {
       <div className="toast-container">
         {toasts.map(t => <Toast key={t.id} msg={t.msg} type={t.type} onClose={() => removeToast(t.id)} />)}
       </div>
+
+      {/* AI Floating Button */}
+      {fbConnected && (
+        <button className="ai-fab" onClick={() => setShowAI(v => !v)} title="Trợ lý AI Meta Ads">
+          <span className="ai-fab-icon">🤖</span>
+          <span className="ai-fab-label">AI</span>
+        </button>
+      )}
+
+      {/* AI Chat Panel */}
+      {showAI && <AIChatPanel items={filtered} onClose={() => setShowAI(false)} />}
 
       <style jsx>{`
         .dh-root { padding: 20px; min-width: 0; }
@@ -1089,9 +1317,9 @@ export default function DashboardHome() {
         .col-picker-panel {
           position: absolute; right: 0; top: calc(100% + 6px); z-index: 100;
           background: var(--s1); border: 1px solid var(--bd); border-radius: 10px;
-          padding: 10px 14px; min-width: 180px;
+          padding: 10px 14px; min-width: 210px; max-height: 420px; overflow-y: auto;
           box-shadow: 0 8px 30px rgba(0,0,0,.15);
-          display: flex; flex-direction: column; gap: 6px;
+          display: flex; flex-direction: column; gap: 4px;
         }
         .col-chk {
           display: flex; align-items: center; gap: 7px;
@@ -1252,6 +1480,117 @@ export default function DashboardHome() {
         .warn-roas   { background: rgba(239,68,68,.08);  color: var(--red); }
         .warn-noconv { background: rgba(245,158,11,.12); color: #f97316; }
         .warn-camp   { background: rgba(100,116,139,.12); color: var(--mut); }
+
+        /* Status toggle cell */
+        .status-toggle-cell { display: flex; align-items: center; gap: 7px; }
+        .status-lbl { font-size: 10px; font-weight: 700; }
+        .status-lbl--on  { color: var(--grn); }
+        .status-lbl--off { color: var(--mut); }
+        .status-lbl--paused { color: var(--mut); font-size: 10px; }
+        .toggle-sw--disabled { opacity: .35; cursor: default; pointer-events: none; }
+        .badge-status { display: inline-block; padding: 2px 7px; border-radius: 5px; font-size: 10px; font-weight: 700; }
+        .badge-archived { background: var(--s3); color: var(--mut); }
+
+        /* Sel bar actions */
+        .sel-act {
+          padding: 3px 10px; border: none; border-radius: 5px;
+          font-size: 11px; font-weight: 700; cursor: pointer; font-family: inherit;
+        }
+        .sel-act--on  { background: rgba(16,185,129,.15); color: var(--grn); }
+        .sel-act--off { background: rgba(100,116,139,.15); color: var(--mut); }
+
+        /* Col picker groups */
+        .col-group { margin-bottom: 8px; }
+        .col-group-label { font-size: 10px; font-weight: 800; color: var(--mut); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; padding-top: 4px; border-top: 1px solid var(--bd); }
+        .col-group:first-child .col-group-label { border-top: none; }
+
+        /* New value colors */
+        .val-blue  { color: #60a5fa; font-weight: 600; }
+
+        /* AI Floating button */
+        .ai-fab {
+          position: fixed; bottom: 28px; right: 28px; z-index: 1200;
+          display: flex; align-items: center; gap: 6px;
+          background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+          color: #fff; border: none; border-radius: 50px;
+          padding: 10px 18px; font-size: 13px; font-weight: 700;
+          cursor: pointer; font-family: inherit;
+          box-shadow: 0 4px 20px rgba(99,102,241,.5);
+          transition: transform .15s, box-shadow .15s;
+        }
+        .ai-fab:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(99,102,241,.6); }
+        .ai-fab-icon { font-size: 16px; }
+
+        /* AI Chat Panel */
+        .ai-panel {
+          position: fixed; bottom: 90px; right: 28px; z-index: 1200;
+          width: 360px; max-height: 560px;
+          display: flex; flex-direction: column;
+          background: var(--s1); border: 1px solid rgba(99,102,241,.25);
+          border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,.3);
+          animation: slideUp .2s ease;
+        }
+        .ai-panel-hd {
+          display: flex; align-items: center; justify-content: space-between;
+          padding: 14px 16px; border-bottom: 1px solid var(--bd);
+          background: linear-gradient(135deg, rgba(99,102,241,.12) 0%, rgba(139,92,246,.08) 100%);
+          border-radius: 16px 16px 0 0;
+        }
+        .ai-panel-title { display: flex; align-items: center; gap: 10px; }
+        .ai-panel-close {
+          background: none; border: none; font-size: 20px; color: var(--mut);
+          cursor: pointer; line-height: 1; padding: 0 4px;
+        }
+        .ai-panel-close:hover { color: var(--txt); }
+        .ai-msgs {
+          flex: 1; overflow-y: auto; padding: 14px 12px; display: flex; flex-direction: column; gap: 10px;
+          max-height: 320px;
+        }
+        .ai-msg { display: flex; gap: 8px; align-items: flex-start; }
+        .ai-msg-user { flex-direction: row-reverse; }
+        .ai-avatar { font-size: 18px; flex-shrink: 0; margin-top: 2px; }
+        .ai-bubble {
+          padding: 9px 12px; border-radius: 12px; font-size: 12.5px; line-height: 1.55;
+          max-width: 82%; white-space: pre-wrap; word-break: break-word;
+        }
+        .ai-msg-assistant .ai-bubble { background: var(--s2); color: var(--txt); border-radius: 4px 12px 12px 12px; }
+        .ai-msg-user .ai-bubble { background: linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; border-radius: 12px 4px 12px 12px; }
+        .ai-typing { display: flex; align-items: center; gap: 4px; padding: 12px 16px; }
+        .ai-typing span {
+          width: 7px; height: 7px; border-radius: 50%;
+          background: var(--mut); animation: bounce 1.2s infinite;
+        }
+        .ai-typing span:nth-child(2) { animation-delay: .2s; }
+        .ai-typing span:nth-child(3) { animation-delay: .4s; }
+        @keyframes bounce { 0%,80%,100%{transform:scale(0)} 40%{transform:scale(1)} }
+
+        .ai-suggests { padding: 8px 12px; display: flex; flex-direction: column; gap: 5px; border-top: 1px solid var(--bd); }
+        .ai-suggest-btn {
+          padding: 7px 10px; background: rgba(99,102,241,.08); border: 1px solid rgba(99,102,241,.2);
+          border-radius: 8px; font-size: 11.5px; color: var(--txt);
+          cursor: pointer; font-family: inherit; text-align: left; transition: background .15s;
+        }
+        .ai-suggest-btn:hover { background: rgba(99,102,241,.15); }
+
+        .ai-input-row {
+          display: flex; gap: 7px; padding: 10px 12px;
+          border-top: 1px solid var(--bd);
+        }
+        .ai-input {
+          flex: 1; padding: 8px 12px; border: 1px solid var(--bd);
+          border-radius: 10px; background: var(--s2); color: var(--txt);
+          font-size: 12.5px; font-family: inherit; outline: none;
+        }
+        .ai-input:focus { border-color: #6366f1; }
+        .ai-input::placeholder { color: var(--mut); }
+        .ai-send-btn {
+          padding: 8px 14px; background: linear-gradient(135deg,#6366f1,#8b5cf6);
+          border: none; border-radius: 10px; color: #fff;
+          font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
+          transition: opacity .15s;
+        }
+        .ai-send-btn:hover:not(:disabled) { opacity: .88; }
+        .ai-send-btn:disabled { opacity: .45; cursor: default; }
 
         .sort-icon  { font-size: 10px; margin-left: 3px; }
         .sort-none  { opacity: .35; }

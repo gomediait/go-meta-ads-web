@@ -7,6 +7,13 @@ const CART_TYPES      = ['add_to_cart', 'omni_add_to_cart']
 const CHECKOUT_TYPES  = ['initiate_checkout', 'omni_initiated_checkout']
 const VIEW_TYPES      = ['view_content', 'omni_view_content']
 const LEAD_TYPES      = ['lead', 'onsite_conversion.lead_grouped']
+const MSG_TYPES       = ['messaging_conversation_started_7d', 'onsite_conversion.messaging_conversation_started_7d']
+const ENGAGE_TYPES    = ['post_engagement', 'page_engagement']
+const REACTION_TYPES  = ['post_reaction']
+const COMMENT_TYPES   = ['comment']
+const SHARE_TYPES     = ['post']
+const VIDEO_TYPES     = ['video_view']
+const THRUPLAY_TYPES  = ['video_thruplay_watched']
 
 function extractAction(actions, types) {
   if (!actions || !Array.isArray(actions)) return 0
@@ -35,21 +42,33 @@ function parseInsights(ins) {
   const reach       = Number(ins.reach) || 0
   const frequency   = reach > 0 ? impressions / reach : 0
   const cpm         = impressions > 0 ? (spend / impressions * 1000) : 0
-  const linkClicks  = extractAction(ins.actions, ['link_click', 'outbound_click'])
-  const purchases   = extractAction(ins.actions, PURCHASE_TYPES)
-  const addToCart   = extractAction(ins.actions, CART_TYPES)
-  const checkout    = extractAction(ins.actions, CHECKOUT_TYPES)
-  const viewContent = extractAction(ins.actions, VIEW_TYPES)
-  const leads       = extractAction(ins.actions, LEAD_TYPES)
-  const revenue     = extractRevenue(ins.action_values)
+  const linkClicks   = extractAction(ins.actions, ['link_click', 'outbound_click'])
+  const purchases    = extractAction(ins.actions, PURCHASE_TYPES)
+  const addToCart    = extractAction(ins.actions, CART_TYPES)
+  const checkout     = extractAction(ins.actions, CHECKOUT_TYPES)
+  const viewContent  = extractAction(ins.actions, VIEW_TYPES)
+  const leads        = extractAction(ins.actions, LEAD_TYPES)
+  const messages     = extractAction(ins.actions, MSG_TYPES)
+  const engagement   = extractAction(ins.actions, ENGAGE_TYPES)
+  const reactions    = extractAction(ins.actions, REACTION_TYPES)
+  const comments     = extractAction(ins.actions, COMMENT_TYPES)
+  const shares       = extractAction(ins.actions, SHARE_TYPES)
+  const videoViews   = extractAction(ins.actions, VIDEO_TYPES)
+  const thruplays    = extractAction(ins.actions, THRUPLAY_TYPES)
+  const revenue      = extractRevenue(ins.action_values)
   const purchaseRoas = ins.purchase_roas
     ? Number(Array.isArray(ins.purchase_roas) ? ins.purchase_roas[0]?.value : ins.purchase_roas) || 0
     : (spend > 0 && revenue > 0 ? revenue / spend : 0)
-  const cpa = purchases > 0 ? spend / purchases : 0
+  const cpa            = purchases > 0 ? spend / purchases : 0
+  const cpc            = clicks    > 0 ? spend / clicks    : 0
+  const costPerMsg     = messages  > 0 ? spend / messages  : 0
+  const costPerEngage  = engagement > 0 ? spend / engagement : 0
+  const costPerLead    = leads     > 0 ? spend / leads     : 0
   return {
     spend, impressions, clicks, ctr, reach, frequency, cpm,
     linkClicks, purchases, addToCart, checkout, viewContent, leads,
-    revenue, roas: purchaseRoas, cpa
+    messages, engagement, reactions, comments, shares, videoViews, thruplays,
+    revenue, roas: purchaseRoas, cpa, cpc, costPerMsg, costPerEngage, costPerLead
   }
 }
 
