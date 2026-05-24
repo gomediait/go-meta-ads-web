@@ -241,32 +241,32 @@ export default function Home() {
                   animation: 'float 7s ease-in-out infinite',
                 }}>
                   {/* Window chrome */}
-                  <div style={{ background: 'rgba(255,255,255,0.04)', padding: '10px 18px', display: 'flex', alignItems: 'center', gap: 6, borderBottom: '1px solid var(--border)' }}>
+                  <div style={{ background: 'rgba(255,255,255,0.04)', padding: '10px 18px', display: 'flex', alignItems: 'center', gap: 6, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                     <div style={{ width: 11, height: 11, borderRadius: '50%', background: '#ef4444' }} />
                     <div style={{ width: 11, height: 11, borderRadius: '50%', background: '#f59e0b' }} />
                     <div style={{ width: 11, height: 11, borderRadius: '50%', background: '#10b981' }} />
-                    <span style={{ marginLeft: 10, fontSize: 11, color: 'var(--text3)', fontWeight: 500 }}>Go Meta Ads Pro — Dashboard</span>
-                    <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--teal)', fontWeight: 600 }}>● Live</span>
+                    <span style={{ marginLeft: 10, fontSize: 11, color: 'rgba(255,255,255,0.45)', fontWeight: 500 }}>Go Meta Ads Pro — Dashboard</span>
+                    <span style={{ marginLeft: 'auto', fontSize: 10, color: '#00c7de', fontWeight: 600 }}>● Live</span>
                   </div>
                   {/* Stat row */}
-                  <div style={{ padding: '16px 20px', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, borderBottom: '1px solid var(--border)' }}>
+                  <div style={{ padding: '16px 20px', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                     {[
                       { label: 'Chiến dịch', val: '18', color: '#60a5fa' },
-                      { label: 'Chi tiêu hôm nay', val: '36.4M', color: 'var(--text)' },
-                      { label: 'Tổng đơn hàng', val: '924', color: 'var(--teal)' },
+                      { label: 'Chi tiêu hôm nay', val: '36.4M', color: '#e2e8f0' },
+                      { label: 'Tổng đơn hàng', val: '924', color: '#00c7de' },
                       { label: 'CPA cao ⚠', val: '3', color: '#ef4444' },
                     ].map(s => (
-                      <div key={s.label} style={{ background: 'var(--surface)', borderRadius: 10, padding: '10px 14px', border: '1px solid var(--border)' }}>
+                      <div key={s.label} style={{ background: 'rgba(255,255,255,0.07)', borderRadius: 10, padding: '10px 14px', border: '1px solid rgba(255,255,255,0.1)' }}>
                         <div style={{ fontSize: 18, fontWeight: 900, color: s.color, lineHeight: 1 }}>{s.val}</div>
-                        <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 3 }}>{s.label}</div>
+                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', marginTop: 3 }}>{s.label}</div>
                       </div>
                     ))}
                   </div>
                   {/* Table */}
                   <div style={{ padding: '0 20px 16px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 0.7fr 1fr 0.8fr 1.6fr 0.6fr 1fr', gap: 8, padding: '10px 0 6px', borderBottom: '1px solid var(--border)' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 0.7fr 1fr 0.8fr 1.6fr 0.6fr 1fr', gap: 8, padding: '10px 0 6px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                       {['Chiến dịch', 'SP', 'Trạng thái', 'Chi tiêu', 'CPA thực / mục tiêu', 'ROAS', 'Lãi/Lỗ'].map(h => (
-                        <div key={h} style={{ fontSize: 9, color: 'var(--text3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px' }}>{h}</div>
+                        <div key={h} style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px' }}>{h}</div>
                       ))}
                     </div>
                     {[
@@ -277,18 +277,18 @@ export default function Home() {
                       <div key={i} style={{
                         display: 'grid', gridTemplateColumns: '2fr 0.7fr 1fr 0.8fr 1.6fr 0.6fr 1fr',
                         gap: 8, alignItems: 'center', padding: '9px 0',
-                        borderBottom: i < 2 ? '1px solid var(--border)' : 'none', fontSize: 11,
+                        borderBottom: i < 2 ? '1px solid rgba(255,255,255,0.06)' : 'none', fontSize: 11,
                       }}>
                         <div>
-                          <div style={{ color: 'var(--text)', fontWeight: 600, fontSize: 11 }}>{r.name}</div>
-                          <div style={{ color: 'var(--text3)', fontSize: 10, marginTop: 2 }}>Sản phẩm {r.sp}</div>
+                          <div style={{ color: '#e2e8f0', fontWeight: 600, fontSize: 11 }}>{r.name}</div>
+                          <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, marginTop: 2 }}>Sản phẩm {r.sp}</div>
                         </div>
                         <div style={{ color: '#60a5fa', fontWeight: 700 }}>{r.sp}</div>
-                        <div style={{ color: r.statusOk ? 'var(--teal)' : '#f59e0b', fontWeight: 600, fontSize: 10 }}>{r.status}</div>
-                        <div style={{ color: 'var(--text2)' }}>{r.chi}</div>
-                        <div style={{ color: r.ok ? 'var(--teal)' : '#ef4444', fontWeight: 700 }}>{r.cpa}</div>
+                        <div style={{ color: r.statusOk ? '#00c7de' : '#f59e0b', fontWeight: 600, fontSize: 10 }}>{r.status}</div>
+                        <div style={{ color: 'rgba(255,255,255,0.7)' }}>{r.chi}</div>
+                        <div style={{ color: r.ok ? '#00c7de' : '#ef4444', fontWeight: 700 }}>{r.cpa}</div>
                         <div style={{ color: '#f59e0b', fontWeight: 600 }}>{r.roas}</div>
-                        <div style={{ color: r.ok ? 'var(--teal)' : '#ef4444', fontWeight: 800 }}>{r.laiLo}</div>
+                        <div style={{ color: r.ok ? '#00c7de' : '#ef4444', fontWeight: 800 }}>{r.laiLo}</div>
                       </div>
                     ))}
                   </div>
