@@ -356,20 +356,102 @@ const AI_SUGGESTIONS = [
 
 function renderMd(text) {
   if (!text) return null
+
+  function inlineFmt(str) {
+    const parts = str.split(/(\*\*[^*\n]+\*\*|\*[^*\n]+\*|`[^`\n]+`)/g)
+    return parts.map((p, i) => {
+      if (p.startsWith('**') && p.endsWith('**') && p.length > 4)
+        return <strong key={i}>{p.slice(2, -2)}</strong>
+      if (p.startsWith('*') && p.endsWith('*') && p.length > 2 && !p.startsWith('**'))
+        return <em key={i}>{p.slice(1, -1)}</em>
+      if (p.startsWith('`') && p.endsWith('`') && p.length > 2)
+        return <code key={i} className="md-code">{p.slice(1, -1)}</code>
+      return p
+    })
+  }
+
   const lines = text.split('\n')
-  return lines.map((line, li) => {
-    const parts = line.split(/(\*\*[^*]+\*\*)/g)
-    return (
-      <span key={li}>
-        {parts.map((p, pi) =>
-          p.startsWith('**') && p.endsWith('**')
-            ? <strong key={pi}>{p.slice(2, -2)}</strong>
-            : p
-        )}
-        {li < lines.length - 1 && <br />}
-      </span>
-    )
-  })
+  const nodes = []
+  let i = 0
+
+  while (i < lines.length) {
+    const line = lines[i]
+    const trimmed = line.trim()
+
+    if (!trimmed) { i++; continue }
+
+    // Horizontal rule
+    if (/^-{3,}$/.test(trimmed)) {
+      nodes.push(<hr key={i} className="md-hr" />)
+      i++; continue
+    }
+
+    // Headings ## / ###
+    const hm = trimmed.match(/^(#{1,3})\s+(.+)/)
+    if (hm) {
+      nodes.push(<div key={i} className={`md-h${hm[1].length}`}>{inlineFmt(hm[2])}</div>)
+      i++; continue
+    }
+
+    // Blockquote
+    if (trimmed.startsWith('> ')) {
+      nodes.push(<div key={i} className="md-quote">{inlineFmt(trimmed.slice(2))}</div>)
+      i++; continue
+    }
+
+    // Table block
+    if (trimmed.startsWith('|')) {
+      const tbl = []
+      while (i < lines.length && lines[i].trim().startsWith('|')) {
+        tbl.push(lines[i].trim())
+        i++
+      }
+      const rows = tbl
+        .filter(r => !/^\|[\s\-:|]+\|$/.test(r))
+        .map(r => r.split('|').slice(1, -1).map(c => c.trim()))
+      if (rows.length) {
+        nodes.push(
+          <div key={`t${i}`} className="md-table-wrap">
+            <table className="md-table">
+              <thead><tr>{rows[0].map((c, ci) => <th key={ci}>{inlineFmt(c)}</th>)}</tr></thead>
+              <tbody>{rows.slice(1).map((row, ri) => (
+                <tr key={ri}>{row.map((c, ci) => <td key={ci}>{inlineFmt(c)}</td>)}</tr>
+              ))}</tbody>
+            </table>
+          </div>
+        )
+      }
+      continue
+    }
+
+    // Unordered list
+    if (/^[-*]\s/.test(trimmed)) {
+      const items = []
+      while (i < lines.length && /^[-*]\s/.test(lines[i].trim())) {
+        items.push(lines[i].trim().replace(/^[-*]\s+/, ''))
+        i++
+      }
+      nodes.push(<ul key={`ul${i}`} className="md-list">{items.map((it, idx) => <li key={idx}>{inlineFmt(it)}</li>)}</ul>)
+      continue
+    }
+
+    // Ordered list
+    if (/^\d+\.\s/.test(trimmed)) {
+      const items = []
+      while (i < lines.length && /^\d+\.\s/.test(lines[i].trim())) {
+        items.push(lines[i].trim().replace(/^\d+\.\s+/, ''))
+        i++
+      }
+      nodes.push(<ol key={`ol${i}`} className="md-list md-ol">{items.map((it, idx) => <li key={idx}>{inlineFmt(it)}</li>)}</ol>)
+      continue
+    }
+
+    // Normal paragraph
+    nodes.push(<p key={i} className="md-p">{inlineFmt(trimmed)}</p>)
+    i++
+  }
+
+  return nodes
 }
 
 function AIChatPanel({ items, onClose }) {
@@ -1641,6 +1723,33 @@ export default function DashboardHome() {
         }
         .ai-send-btn:hover:not(:disabled) { opacity: .88; }
         .ai-send-btn:disabled { opacity: .45; cursor: default; }
+
+        /* ── Markdown in AI chat ── */
+        .md-h1 { font-size: 14px; font-weight: 800; color: var(--txt); margin: 6px 0 3px; line-height: 1.3; }
+        .md-h2 { font-size: 13px; font-weight: 800; color: var(--txt); margin: 6px 0 3px; line-height: 1.3; }
+        .md-h3 { font-size: 12px; font-weight: 700; color: var(--txt); margin: 4px 0 2px; line-height: 1.3; }
+        .md-hr { border: none; border-top: 1px solid var(--bd); margin: 6px 0; }
+        .md-p  { margin: 2px 0; line-height: 1.6; }
+        .md-quote {
+          border-left: 3px solid #6366f1; padding: 4px 10px; margin: 4px 0;
+          background: rgba(99,102,241,.07); border-radius: 0 6px 6px 0;
+          font-style: italic; color: var(--mut); font-size: 12px;
+        }
+        .md-list { margin: 3px 0 3px 18px; padding: 0; }
+        .md-list li { margin: 2px 0; line-height: 1.5; }
+        .md-ol  { list-style-type: decimal; }
+        .md-table-wrap { overflow-x: auto; margin: 6px 0; border-radius: 6px; }
+        .md-table { border-collapse: collapse; font-size: 11px; width: 100%; }
+        .md-table th {
+          background: var(--s3); padding: 5px 8px; text-align: left;
+          font-weight: 700; border: 1px solid var(--bd); white-space: nowrap; font-size: 10.5px;
+        }
+        .md-table td { padding: 4px 8px; border: 1px solid var(--bd); line-height: 1.4; }
+        .md-table tr:nth-child(even) td { background: rgba(255,255,255,.03); }
+        .md-code {
+          background: var(--s3); padding: 1px 5px; border-radius: 4px;
+          font-family: monospace; font-size: 11px; color: #60a5fa;
+        }
 
         /* ── StatusToggle — global so sub-component elements get styled ── */
         .toggle-sw {
