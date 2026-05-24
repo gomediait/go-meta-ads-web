@@ -19,10 +19,10 @@ export default async function handler(req, res) {
     const { search, plan, page = 1, limit = 50 } = body
 
     let query = sb.from('users')
-      .select('id, email, name, plan, expire_at, created_at, updated_at')
+      .select('id, email, name, phone, plan, expire_at, created_at, updated_at')
       .order('created_at', { ascending: false })
 
-    if (search) query = query.ilike('email', `%${search}%`)
+    if (search) query = query.or(`email.ilike.%${search}%,name.ilike.%${search}%`)
     if (plan && plan !== 'all') query = query.eq('plan', plan)
 
     const from = (page - 1) * limit
@@ -53,6 +53,7 @@ export default async function handler(req, res) {
       id: u.id,
       email: u.email,
       name: u.name,
+      phone: u.phone || '',
       plan: u.plan || 'trial',
       expire_at: u.expire_at,
       created_at: u.created_at,

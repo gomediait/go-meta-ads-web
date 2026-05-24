@@ -4,12 +4,6 @@ import { getSupabase } from '../../../lib/supabase'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://adsmeta.gonetwork.vn'
 
-const payos = new PayOS(
-  process.env.PAYOS_CLIENT_ID,
-  process.env.PAYOS_API_KEY,
-  process.env.PAYOS_CHECKSUM_KEY
-)
-
 const PLAN_MAP = {
   'ca-nhan':      { plan: 'personal', name: 'Personal' },
   'doanh-nghiep': { plan: 'business', name: 'Business' },
@@ -36,29 +30,32 @@ export default async function handler(req, res) {
   if (!BILLING_DAYS[billing_tab]) return res.status(400).json({ ok: false, error: 'Chu kỳ thanh toán không hợp lệ' })
   if (!amount || amount < 1000) return res.status(400).json({ ok: false, error: 'Số tiền không hợp lệ' })
 
-  const sb = getSupabase()
-  const days = BILLING_DAYS[billing_tab]
-
-  // Unique order code using timestamp
-  const orderCode = Date.now()
-
-  // Create order record first
-  const { data: order, error: orderErr } = await sb.from('orders').insert({
-    user_id: user.id,
-    order_code: orderCode,
-    plan: planInfo.plan,
-    billing_tab,
-    amount,
-    days,
-    status: 'pending',
-    buyer_name: buyer_name || user.name || '',
-    buyer_email: user.email,
-    buyer_phone: buyer_phone || '',
-  }).select('id').single()
-
-  if (orderErr) return res.status(500).json({ ok: false, error: 'Lỗi tạo đơn hàng' })
-
   try {
+    const payos = new PayOS(
+      process.env.PAYOS_CLIENT_ID,
+      process.env.PAYOS_API_KEY,
+      process.env.PAYOS_CHECKSUM_KEY
+    )
+
+    const sb = getSupabase()
+    const days = BILLING_DAYS[billing_tab]
+    const orderCode = Date.now()
+
+    const { data: order, error: orderErr } = await sb.from('orders').insert({
+      user_id: user.id,
+      order_code: orderCode,
+      plan: planInfo.plan,
+      billing_tab,
+      amount,
+      days,
+      status: 'pending',
+      buyer_name: buyer_name || user.name || '',
+      buyer_email: user.email,
+      buyer_phone: buyer_phone || '',
+    }).select('id').single()
+
+    if (orderErr) return res.status(500).json({ ok: false, error: 'Lỗi tạo đơn hàng' })
+
     const paymentData = {
       orderCode,
       amount,
@@ -74,8 +71,6 @@ export default async function handler(req, res) {
     const paymentLink = await payos.createPaymentLink(paymentData)
     return res.json({ ok: true, checkoutUrl: paymentLink.checkoutUrl, order_id: order.id })
   } catch (e) {
-    // Cleanup failed order
-    await sb.from('orders').delete().eq('id', order.id)
     return res.status(500).json({ ok: false, error: 'Lỗi tạo link thanh toán: ' + e.message })
   }
 }

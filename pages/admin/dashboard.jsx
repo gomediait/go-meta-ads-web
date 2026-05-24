@@ -3347,10 +3347,36 @@ function WebUsersTab() {
               </label>
               <input
                 type="date"
-                style={{ ...inp, width: '100%' }}
+                style={{ ...inp, width: '100%', marginBottom: 8 }}
                 value={editForm.expire_at || ''}
                 onChange={e => setEditForm(p => ({ ...p, expire_at: e.target.value }))}
               />
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {[
+                  { label: '+30 ngày', days: 30 },
+                  { label: '+90 ngày', days: 90 },
+                  { label: '+180 ngày', days: 180 },
+                  { label: '+1 năm', days: 365 },
+                ].map(({ label, days }) => (
+                  <button
+                    key={days}
+                    type="button"
+                    onClick={() => {
+                      const base = editForm.expire_at
+                        ? new Date(editForm.expire_at + 'T00:00:00')
+                        : new Date()
+                      base.setDate(base.getDate() + days)
+                      setEditForm(p => ({ ...p, expire_at: base.toISOString().slice(0, 10) }))
+                    }}
+                    style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}
+                  >{label}</button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setEditForm(p => ({ ...p, expire_at: '' }))}
+                  style={{ background: '#f1f5f9', color: '#64748b', border: '1px solid #e2e8f0', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+                >Xoá hạn</button>
+              </div>
             </div>
 
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
