@@ -3,10 +3,13 @@ import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Link from 'next/link'
 import { useAuth } from '../lib/AuthContext'
+import { useLang } from '../lib/LangContext'
 
 export default function Login() {
   const { login } = useAuth()
   const router    = useRouter()
+  const { lang, setLang, t } = useLang()
+  const tr = t.auth?.login || {}
   const [form, setForm]   = useState({ email: '', password: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -27,23 +30,26 @@ export default function Login() {
 
   return (
     <>
-      <Head><title>Đăng nhập — Go Meta Ads Pro</title></Head>
+      <Head><title>{tr.pageTitle || 'Đăng nhập — Go Meta Ads Pro'}</title></Head>
       <div className="auth-page">
         <div className="auth-card">
+          <button className="lang-toggle" onClick={() => setLang(lang === 'vi' ? 'en' : 'vi')}>
+            {lang === 'vi' ? '🇬🇧 EN' : '🇻🇳 VI'}
+          </button>
           <div className="auth-logo">
             <img src="/logo.png" alt="logo" onError={e => e.target.style.display='none'} />
             <h1>Go Meta Ads Pro</h1>
-            <p>Nền tảng quản lý quảng cáo Facebook chuyên nghiệp</p>
+            <p>{tr.subtitle || 'Nền tảng quản lý quảng cáo Facebook chuyên nghiệp'}</p>
           </div>
 
           <form onSubmit={handleSubmit}>
             <div className="field">
-              <label>Email</label>
+              <label>{tr.email || 'Email'}</label>
               <input type="email" placeholder="email@example.com" autoComplete="email"
                 value={form.email} onChange={e => setForm(f => ({...f, email: e.target.value}))} required />
             </div>
             <div className="field">
-              <label>Mật khẩu</label>
+              <label>{tr.password || 'Mật khẩu'}</label>
               <input type="password" placeholder="••••••••" autoComplete="current-password"
                 value={form.password} onChange={e => setForm(f => ({...f, password: e.target.value}))} required />
             </div>
@@ -51,18 +57,18 @@ export default function Login() {
             {error && <div className="err-msg">{error}</div>}
 
             <button type="submit" className="submit-btn" disabled={loading}>
-              {loading ? '⏳ Đang đăng nhập...' : '→ Đăng nhập'}
+              {loading ? (tr.submitting || '⏳ Đang đăng nhập...') : (tr.submit || '→ Đăng nhập')}
             </button>
           </form>
 
-          <div className="auth-divider"><span>hoặc</span></div>
+          <div className="auth-divider"><span>{tr.or || 'hoặc'}</span></div>
 
           <button className="fb-btn" disabled title="Sắp có — Facebook OAuth đang được cấu hình">
-            <span>f</span> Đăng nhập bằng Facebook
+            <span>f</span> {tr.fbBtn || 'Đăng nhập bằng Facebook'}
           </button>
 
           <div className="auth-footer">
-            Chưa có tài khoản? <Link href="/register">Đăng ký ngay</Link>
+            {tr.noAccount || 'Chưa có tài khoản?'} <Link href="/register">{tr.registerLink || 'Đăng ký ngay'}</Link>
           </div>
         </div>
       </div>
@@ -78,6 +84,14 @@ export default function Login() {
           padding: 36px 32px; width: 100%; max-width: 400px;
           box-shadow: 0 24px 60px rgba(0,0,0,.6);
         }
+        .lang-toggle {
+          position: absolute; top: 14px; right: 14px;
+          background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18);
+          border-radius: 7px; padding: 4px 10px; font-size: 11px; font-weight: 700;
+          color: #e8eaf0; cursor: pointer; transition: background .15s;
+        }
+        .lang-toggle:hover { background: rgba(255,255,255,.16); }
+        .auth-card { position: relative; }
         .auth-logo { text-align: center; margin-bottom: 28px; }
         .auth-logo img { width: 56px; height: 56px; object-fit: contain; border-radius: 12px; margin-bottom: 10px; }
         .auth-logo h1 { font-size: 20px; font-weight: 700; color: #e8eaf0; margin-bottom: 4px; }

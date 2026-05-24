@@ -2,24 +2,32 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { useAuth } from '../../lib/AuthContext'
+import { useLang } from '../../lib/LangContext'
 import DashboardLayout from '../../components/DashboardLayout'
-
-const STEPS = [
-  { n: 1, title: 'Đăng nhập Facebook', desc: 'Nhấn nút bên dưới để xác thực với Facebook' },
-  { n: 2, title: 'Cấp quyền truy cập', desc: 'Cho phép Go Meta Ads Pro đọc dữ liệu Ads của bạn' },
-  { n: 3, title: 'Chọn tài khoản Ads', desc: 'Chọn tài khoản quảng cáo bạn muốn quản lý' },
-]
 
 export default function ConnectFacebook() {
   const { user, refreshUser } = useAuth()
   const router = useRouter()
+  const { t } = useLang()
+  const tr = t.dashboard?.connectFb || {}
+  const steps = tr.steps || [
+    { title: 'Đăng nhập Facebook', desc: 'Nhấn nút bên dưới để xác thực với Facebook' },
+    { title: 'Cấp quyền truy cập', desc: 'Cho phép Go Meta Ads Pro đọc dữ liệu Ads của bạn' },
+    { title: 'Chọn tài khoản Ads', desc: 'Chọn tài khoản quảng cáo bạn muốn quản lý' },
+  ]
+  const perms = tr.perms || [
+    { icon: '📊', label: 'ads_read',       desc: 'Đọc dữ liệu chiến dịch & báo cáo' },
+    { icon: '⚙️', label: 'ads_management', desc: 'Bật/tắt, điều chỉnh ngân sách' },
+    { icon: '📈', label: 'read_insights',  desc: 'Xem số liệu hiệu suất quảng cáo' },
+  ]
+
   const [status, setStatus] = useState('idle') // idle | loading | success | error
   const [errorMsg, setErrorMsg] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
 
   useEffect(() => {
     if (router.query.success === '1') {
-      setSuccessMsg('Kết nối Facebook thành công! Trang sẽ cập nhật trong giây lát...')
+      setSuccessMsg(tr.successMsg || 'Kết nối Facebook thành công! Trang sẽ cập nhật trong giây lát...')
       refreshUser()
       router.replace('/settings/connect-facebook', undefined, { shallow: true })
     }
@@ -28,7 +36,7 @@ export default function ConnectFacebook() {
       setStatus('error')
       router.replace('/settings/connect-facebook', undefined, { shallow: true })
     }
-  }, [router.query])
+  }, [router.query, tr])
 
   const fbConnected = user?.fb_connected
 
@@ -40,9 +48,9 @@ export default function ConnectFacebook() {
       const d = await r.json()
       if (!r.ok) {
         if (r.status === 503) {
-          setErrorMsg('Facebook OAuth chưa được cấu hình. Vui lòng liên hệ quản trị viên để hoàn tất thiết lập.')
+          setErrorMsg(tr.errNotConfig || 'Facebook OAuth chưa được cấu hình. Vui lòng liên hệ quản trị viên.')
         } else {
-          setErrorMsg(d.error || 'Có lỗi xảy ra khi kết nối Facebook.')
+          setErrorMsg(d.error || (tr.errGeneral || 'Có lỗi xảy ra khi kết nối Facebook.'))
         }
         setStatus('error')
         return
@@ -51,13 +59,13 @@ export default function ConnectFacebook() {
         window.location.href = d.auth_url
       }
     } catch {
-      setErrorMsg('Không thể kết nối. Kiểm tra lại kết nối mạng.')
+      setErrorMsg(tr.errNetwork || 'Không thể kết nối. Kiểm tra lại kết nối mạng.')
       setStatus('error')
     }
   }
 
   async function handleDisconnect() {
-    if (!confirm('Ngắt kết nối Facebook sẽ tắt tất cả tính năng liên quan đến quảng cáo. Tiếp tục?')) return
+    if (!confirm(tr.disconnectConfirm || 'Ngắt kết nối Facebook sẽ tắt tất cả tính năng liên quan đến quảng cáo. Tiếp tục?')) return
     setStatus('loading')
     try {
       const r = await fetch('/api/fb/disconnect', { method: 'POST' })
@@ -66,23 +74,23 @@ export default function ConnectFacebook() {
         setStatus('idle')
       } else {
         setStatus('error')
-        setErrorMsg('Không thể ngắt kết nối. Thử lại sau.')
+        setErrorMsg(tr.errDisconn || 'Không thể ngắt kết nối. Thử lại sau.')
       }
     } catch {
       setStatus('error')
-      setErrorMsg('Lỗi kết nối mạng.')
+      setErrorMsg(tr.errNetDisc || 'Lỗi kết nối mạng.')
     }
   }
 
   return (
-    <DashboardLayout title="Kết nối Facebook Ads">
+    <DashboardLayout title={tr.title || 'Kết nối Facebook Ads'}>
       <div className="cf-page">
 
         <div className="cf-header">
           <div className="cf-header-icon">🔗</div>
           <div>
-            <h1 className="cf-title">Kết nối Facebook Ads</h1>
-            <p className="cf-sub">Cấp quyền để Go Meta Ads Pro quản lý chiến dịch quảng cáo của bạn</p>
+            <h1 className="cf-title">{tr.title || 'Kết nối Facebook Ads'}</h1>
+            <p className="cf-sub">{tr.subtitle || 'Cấp quyền để Go Meta Ads Pro quản lý chiến dịch quảng cáo của bạn'}</p>
           </div>
         </div>
 
@@ -99,9 +107,9 @@ export default function ConnectFacebook() {
           <div className="connected-card">
             <div className="conn-icon">✅</div>
             <div className="conn-body">
-              <div className="conn-title">Facebook đã được kết nối</div>
+              <div className="conn-title">{tr.connected || 'Facebook đã được kết nối'}</div>
               <div className="conn-meta">
-                {user?.fb_name && <span>Tài khoản: <strong>{user.fb_name}</strong></span>}
+                {user?.fb_name && <span>{tr.accountLabel || 'Tài khoản:'} <strong>{user.fb_name}</strong></span>}
                 {user?.fb_email && <span> · {user.fb_email}</span>}
               </div>
             </div>
@@ -110,7 +118,7 @@ export default function ConnectFacebook() {
               onClick={handleDisconnect}
               disabled={status === 'loading'}
             >
-              {status === 'loading' ? '...' : 'Ngắt kết nối'}
+              {status === 'loading' ? '...' : (tr.disconnect || 'Ngắt kết nối')}
             </button>
           </div>
         )}
@@ -120,9 +128,9 @@ export default function ConnectFacebook() {
           <>
             {/* Steps */}
             <div className="steps-row">
-              {STEPS.map(s => (
-                <div key={s.n} className="step-card">
-                  <div className="step-num">{s.n}</div>
+              {steps.map((s, i) => (
+                <div key={i} className="step-card">
+                  <div className="step-num">{i + 1}</div>
                   <div className="step-body">
                     <div className="step-title">{s.title}</div>
                     <div className="step-desc">{s.desc}</div>
@@ -146,27 +154,20 @@ export default function ConnectFacebook() {
               disabled={status === 'loading'}
             >
               {status === 'loading'
-                ? '⏳ Đang xử lý...'
-                : <><span className="fb-f">f</span> Kết nối với Facebook Ads</>
+                ? (tr.connecting || '⏳ Đang xử lý...')
+                : <><span className="fb-f">f</span> {tr.connectBtn || 'Kết nối với Facebook Ads'}</>
               }
             </button>
 
-            <p className="permission-note">
-              Go Meta Ads Pro sẽ yêu cầu quyền: <strong>ads_read</strong>, <strong>ads_management</strong>, <strong>read_insights</strong>.
-              Chúng tôi không đăng bài, không nhắn tin, không truy cập thông tin cá nhân ngoài phạm vi quảng cáo.
-            </p>
+            <p className="permission-note">{tr.permNote || 'Go Meta Ads Pro sẽ yêu cầu quyền: ads_read, ads_management, read_insights.'}</p>
           </>
         )}
 
         {/* Permissions info */}
         <div className="perm-section">
-          <div className="perm-title">Quyền truy cập được yêu cầu</div>
+          <div className="perm-title">{tr.permTitle || 'Quyền truy cập được yêu cầu'}</div>
           <div className="perm-grid">
-            {[
-              { icon: '📊', label: 'ads_read',        desc: 'Đọc dữ liệu chiến dịch & báo cáo' },
-              { icon: '⚙️', label: 'ads_management',  desc: 'Bật/tắt, điều chỉnh ngân sách' },
-              { icon: '📈', label: 'read_insights',   desc: 'Xem số liệu hiệu suất quảng cáo' },
-            ].map(p => (
+            {perms.map(p => (
               <div key={p.label} className="perm-card">
                 <span className="perm-icon">{p.icon}</span>
                 <div>
@@ -179,7 +180,7 @@ export default function ConnectFacebook() {
         </div>
 
         <div className="back-link">
-          <Link href="/dashboard">← Về trang chủ</Link>
+          <Link href="/dashboard">{tr.back || '← Về dashboard'}</Link>
         </div>
 
       </div>

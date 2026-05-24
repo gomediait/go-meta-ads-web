@@ -3,10 +3,13 @@ import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Link from 'next/link'
 import { useAuth } from '../lib/AuthContext'
+import { useLang } from '../lib/LangContext'
 
 export default function Register() {
   const { register } = useAuth()
   const router = useRouter()
+  const { lang, setLang, t } = useLang()
+  const tr = t.auth?.register || {}
   const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', confirm: '', referral_code: '', otp: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -40,7 +43,7 @@ export default function Register() {
 
   async function handleSendOtp() {
     setOtpError('')
-    if (!form.email) return setOtpError('Vui lòng nhập email trước')
+    if (!form.email) return setOtpError(lang === 'en' ? 'Please enter your email first' : 'Vui lòng nhập email trước')
     setOtpSending(true)
     try {
       const r = await fetch('/api/auth?action=send_otp', {
@@ -49,13 +52,13 @@ export default function Register() {
         body: JSON.stringify({ email: form.email }),
       })
       const d = await r.json()
-      if (!r.ok) return setOtpError(d.error || 'Gửi mã thất bại')
+      if (!r.ok) return setOtpError(d.error || (tr.errSendFail || 'Gửi mã thất bại'))
       setOtpSent(true)
       setOtpVerified(false)
       setForm(f => ({ ...f, otp: '' }))
       startCountdown()
     } catch {
-      setOtpError('Lỗi kết nối')
+      setOtpError(tr.errNetwork || 'Lỗi kết nối')
     } finally {
       setOtpSending(false)
     }
@@ -63,7 +66,7 @@ export default function Register() {
 
   async function handleVerifyOtp() {
     setOtpError('')
-    if (form.otp.length !== 6) return setOtpError('Mã gồm 6 chữ số')
+    if (form.otp.length !== 6) return setOtpError(tr.errOtpDigits || 'Mã gồm 6 chữ số')
     try {
       const r = await fetch('/api/auth?action=verify_otp', {
         method: 'POST',
@@ -71,21 +74,21 @@ export default function Register() {
         body: JSON.stringify({ email: form.email, otp: form.otp }),
       })
       const d = await r.json()
-      if (!r.ok) return setOtpError(d.error || 'Mã không đúng')
+      if (!r.ok) return setOtpError(d.error || (tr.errOtpWrong || 'Mã không đúng'))
       setOtpVerified(true)
       setOtpError('')
     } catch {
-      setOtpError('Lỗi kết nối')
+      setOtpError(tr.errNetwork || 'Lỗi kết nối')
     }
   }
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
-    if (!otpVerified) return setError('Vui lòng xác minh email trước khi đăng ký')
-    if (form.password !== form.confirm) return setError('Mật khẩu xác nhận không khớp')
-    if (form.password.length < 6) return setError('Mật khẩu tối thiểu 6 ký tự')
-    if (!form.phone.trim()) return setError('Vui lòng nhập số điện thoại')
+    if (!otpVerified) return setError(tr.errVerifyFirst || 'Vui lòng xác minh email trước khi đăng ký')
+    if (form.password !== form.confirm) return setError(tr.errPwdMismatch || 'Mật khẩu xác nhận không khớp')
+    if (form.password.length < 6) return setError(tr.errPwdShort || 'Mật khẩu tối thiểu 6 ký tự')
+    if (!form.phone.trim()) return setError(tr.errPhoneReq || 'Vui lòng nhập số điện thoại')
     setLoading(true)
     try {
       await register(form.email, form.password, form.name, form.phone, form.referral_code, form.otp)
@@ -99,21 +102,24 @@ export default function Register() {
 
   return (
     <>
-      <Head><title>Đăng ký — Go Meta Ads Pro</title></Head>
+      <Head><title>{tr.pageTitle || 'Đăng ký — Go Meta Ads Pro'}</title></Head>
       <div className="auth-page">
         <div className="auth-card">
+          <button className="lang-toggle" onClick={() => setLang(lang === 'vi' ? 'en' : 'vi')}>
+            {lang === 'vi' ? '🇬🇧 EN' : '🇻🇳 VI'}
+          </button>
           <div className="auth-logo">
             <img src="/logo.png" alt="logo" onError={e => e.target.style.display='none'} />
-            <h1>Tạo tài khoản miễn phí</h1>
-            <p>Dùng thử 3 ngày — không cần thẻ tín dụng</p>
+            <h1>{tr.title || 'Tạo tài khoản miễn phí'}</h1>
+            <p>{tr.subtitle || 'Dùng thử 3 ngày — không cần thẻ tín dụng'}</p>
           </div>
 
           <form onSubmit={handleSubmit}>
             {/* Step 1: Email + OTP */}
-            <div className="step-label">Bước 1 — Xác minh email</div>
+            <div className="step-label">{tr.step1 || 'Bước 1 — Xác minh email'}</div>
 
             <div className="field">
-              <label>Email <span className="field-hint">Gmail, Outlook, Yahoo, email công ty...</span></label>
+              <label>{tr.email || 'Email'} <span className="field-hint">{tr.emailHint || 'Gmail, Outlook, Yahoo, email công ty...'}</span></label>
               <div className="otp-row">
                 <input type="email" placeholder="email@gmail.com" autoComplete="email"
                   value={form.email}
@@ -122,14 +128,14 @@ export default function Register() {
                   required />
                 <button type="button" className="otp-btn" onClick={handleSendOtp}
                   disabled={!form.email || otpSending || countdown > 0 || otpVerified}>
-                  {otpSending ? '...' : countdown > 0 ? `${countdown}s` : otpSent ? 'Gửi lại' : 'Gửi mã'}
+                  {otpSending ? '...' : countdown > 0 ? `${countdown}s` : otpSent ? (tr.resendOtp || 'Gửi lại') : (tr.sendOtp || 'Gửi mã')}
                 </button>
               </div>
             </div>
 
             {otpSent && !otpVerified && (
               <div className="field">
-                <label>Mã xác nhận <span className="field-hint">6 số gửi về email của bạn</span></label>
+                <label>{tr.otpLabel || 'Mã xác nhận'} <span className="field-hint">{tr.otpHint || '6 số gửi về email của bạn'}</span></label>
                 <div className="otp-row">
                   <input type="text" placeholder="_ _ _ _ _ _" maxLength={6} inputMode="numeric"
                     value={form.otp}
@@ -137,7 +143,7 @@ export default function Register() {
                     style={{ letterSpacing: 6, fontSize: 18, textAlign: 'center' }} />
                   <button type="button" className="otp-btn confirm" onClick={handleVerifyOtp}
                     disabled={form.otp.length !== 6}>
-                    Xác nhận
+                    {tr.confirmOtp || 'Xác nhận'}
                   </button>
                 </div>
                 {otpError && <div className="otp-err">{otpError}</div>}
@@ -145,51 +151,51 @@ export default function Register() {
             )}
 
             {otpVerified && (
-              <div className="verified-badge">✅ Email đã được xác minh</div>
+              <div className="verified-badge">{tr.verified || '✅ Email đã được xác minh'}</div>
             )}
 
             {/* Step 2: Account info */}
-            <div className="step-label" style={{ marginTop: 20 }}>Bước 2 — Thông tin tài khoản</div>
+            <div className="step-label" style={{ marginTop: 20 }}>{tr.step2 || 'Bước 2 — Thông tin tài khoản'}</div>
 
             <div className="field">
-              <label>Họ và tên</label>
-              <input type="text" placeholder="Nguyễn Văn A" autoComplete="name"
+              <label>{tr.name || 'Họ và tên'}</label>
+              <input type="text" placeholder={tr.namePh || 'Nguyễn Văn A'} autoComplete="name"
                 value={form.name} onChange={e => setForm(f => ({...f, name: e.target.value}))} required />
             </div>
             <div className="field">
-              <label>Số điện thoại</label>
-              <input type="tel" placeholder="0912 345 678" autoComplete="tel"
+              <label>{tr.phone || 'Số điện thoại'}</label>
+              <input type="tel" placeholder={tr.phonePh || '0912 345 678'} autoComplete="tel"
                 value={form.phone} onChange={e => setForm(f => ({...f, phone: e.target.value}))} required />
             </div>
             <div className="field">
-              <label>Mật khẩu</label>
-              <input type="password" placeholder="Tối thiểu 6 ký tự" autoComplete="new-password"
+              <label>{tr.password || 'Mật khẩu'}</label>
+              <input type="password" placeholder={tr.passwordPh || 'Tối thiểu 6 ký tự'} autoComplete="new-password"
                 value={form.password} onChange={e => setForm(f => ({...f, password: e.target.value}))} required />
             </div>
             <div className="field">
-              <label>Xác nhận mật khẩu</label>
-              <input type="password" placeholder="Nhập lại mật khẩu" autoComplete="new-password"
+              <label>{tr.confirm || 'Xác nhận mật khẩu'}</label>
+              <input type="password" placeholder={tr.confirmPh || 'Nhập lại mật khẩu'} autoComplete="new-password"
                 value={form.confirm} onChange={e => setForm(f => ({...f, confirm: e.target.value}))} required />
             </div>
             <div className="field">
-              <label>Mã giới thiệu <span className="field-hint">(tùy chọn)</span></label>
-              <input type="text" placeholder="Nhập mã nếu có" style={{ textTransform: 'uppercase' }}
+              <label>{tr.referral || 'Mã giới thiệu'} <span className="field-hint">{tr.referralHint || '(tùy chọn)'}</span></label>
+              <input type="text" placeholder={tr.referralPh || 'Nhập mã nếu có'} style={{ textTransform: 'uppercase' }}
                 value={form.referral_code} onChange={e => setForm(f => ({...f, referral_code: e.target.value.toUpperCase()}))} />
             </div>
 
             {error && <div className="err-msg">{error}</div>}
 
             <button type="submit" className="submit-btn" disabled={loading || !otpVerified}>
-              {loading ? '⏳ Đang tạo tài khoản...' : '🚀 Bắt đầu dùng thử miễn phí'}
+              {loading ? (tr.submitting || '⏳ Đang tạo tài khoản...') : (tr.submit || '🚀 Bắt đầu dùng thử miễn phí')}
             </button>
 
             <p className="terms-note">
-              Bằng cách đăng ký, bạn đồng ý với <Link href="/terms">Điều khoản dịch vụ</Link> và <Link href="/privacy">Chính sách bảo mật</Link>.
+              {tr.termsNote || 'Bằng cách đăng ký, bạn đồng ý với'} <Link href="/terms">{tr.termsLink || 'Điều khoản dịch vụ'}</Link> {tr.and || 'và'} <Link href="/privacy">{tr.privacyLink || 'Chính sách bảo mật'}</Link>.
             </p>
           </form>
 
           <div className="auth-footer">
-            Đã có tài khoản? <Link href="/login">Đăng nhập</Link>
+            {tr.hasAccount || 'Đã có tài khoản?'} <Link href="/login">{tr.loginLink || 'Đăng nhập'}</Link>
           </div>
         </div>
       </div>
@@ -205,6 +211,14 @@ export default function Register() {
           padding: 36px 32px; width: 100%; max-width: 440px;
           box-shadow: 0 24px 60px rgba(0,0,0,.6);
         }
+        .lang-toggle {
+          position: absolute; top: 14px; right: 14px;
+          background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18);
+          border-radius: 7px; padding: 4px 10px; font-size: 11px; font-weight: 700;
+          color: #e8eaf0; cursor: pointer; transition: background .15s;
+        }
+        .lang-toggle:hover { background: rgba(255,255,255,.16); }
+        .auth-card { position: relative; }
         .auth-logo { text-align: center; margin-bottom: 20px; }
         .auth-logo img { width: 48px; height: 48px; object-fit: contain; border-radius: 10px; margin-bottom: 10px; }
         .auth-logo h1 { font-size: 18px; font-weight: 700; color: #e8eaf0; margin-bottom: 4px; }
