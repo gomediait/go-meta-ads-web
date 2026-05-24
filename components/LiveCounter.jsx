@@ -73,11 +73,10 @@ export default function LiveCounter() {
   return (
     <div style={{
       position: 'fixed', top: 0, left: 0, right: 0, height: 40, zIndex: 1002,
-      background: 'linear-gradient(135deg, rgba(0,10,20,0.97) 0%, rgba(0,20,35,0.97) 100%)',
-      backdropFilter: 'blur(12px)',
-      borderBottom: '1px solid rgba(0,199,222,0.12)',
+      background: 'linear-gradient(135deg, #0c2a72 0%, #1a3a8f 100%)',
+      borderBottom: '1px solid rgba(255,255,255,0.1)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.8)',
+      fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.85)',
       overflow: 'hidden',
     }}>
       <div style={{ position: 'absolute', bottom: 0, left: '20%', right: '20%', height: 1, background: 'linear-gradient(90deg,transparent,rgba(0,199,222,0.4),transparent)' }} />

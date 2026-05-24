@@ -165,13 +165,13 @@ export default function AffiliatePage() {
 
       {/* ─── HERO ─── */}
       <section style={{
-        background: 'linear-gradient(135deg, var(--navy) 0%, #0e1e50 55%, #1a0a00 100%)',
+        background: 'linear-gradient(135deg, #0c2a72 0%, #1a3a8f 55%, #0e2060 100%)',
         paddingTop: 'calc(var(--header-h) + 20px)',
         paddingBottom: 80, color: '#fff', textAlign: 'center',
         position: 'relative', overflow: 'hidden',
       }}>
-        <div style={{ position: 'absolute', top: -80, right: -80, width: 340, height: 340, borderRadius: '50%', background: 'rgba(254,95,1,0.1)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', bottom: -60, left: -60, width: 240, height: 240, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', top: -80, right: -80, width: 340, height: 340, borderRadius: '50%', background: 'rgba(254,95,1,0.12)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: -60, left: -60, width: 240, height: 240, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', pointerEvents: 'none' }} />
 
         <div className="container" style={{ maxWidth: 780, position: 'relative' }}>
           <div className="badge badge-white" style={{ marginBottom: 24, background: 'rgba(254,95,1,0.15)', borderColor: 'rgba(254,95,1,0.3)', color: '#ffb380' }}>
@@ -352,7 +352,7 @@ export default function AffiliatePage() {
 
       {/* ─── BOTTOM CTA ─── */}
       <section style={{
-        background: 'linear-gradient(135deg, var(--navy) 0%, var(--navy2) 100%)',
+        background: 'linear-gradient(135deg, #0c2a72 0%, #1a3a8f 100%)',
         padding: '80px 0', textAlign: 'center', color: '#fff',
       }}>
         <div className="container" style={{ maxWidth: 640 }}>

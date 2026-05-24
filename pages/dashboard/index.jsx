@@ -8,11 +8,6 @@ const PAGE_SIZE = 20
 const DATE_PRESETS = [
   { value: 'today',               label: 'Hôm nay'       },
   { value: 'yesterday',           label: 'Hôm qua'       },
-  { value: 'last_7_days',         label: '7 ngày'        },
-  { value: 'last_14_days',        label: '14 ngày'       },
-  { value: 'last_28_days',        label: '28 ngày'       },
-  { value: 'last_30_days',        label: '30 ngày'       },
-  { value: 'last_90_days',        label: '90 ngày'       },
   { value: 'this_week_mon_today', label: 'Tuần này'      },
   { value: 'last_week_mon_sun',   label: 'Tuần trước'    },
   { value: 'this_month',          label: 'Tháng này'     },

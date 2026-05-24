@@ -1,45 +1,51 @@
 /* ════════════════════════════════════════════════════════════
-   GO META ADS PRO — Dark Space Theme (inspired by SMIT Agency)
+   GO META ADS PRO — Light Blue-White Theme
    Font: Be Vietnam Pro
-   Colors: Dark #000d1a + Teal #00c7de + Cyan #35e7e9 + Lime #ccf456
+   Colors: White/Blue + Teal #00c7de + Orange #fe5f01
 ════════════════════════════════════════════════════════════ */
 
 @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap');
 
 /* ─── TOKENS ─── */
 :root {
-  /* Brand */
-  --bg:        #000d1a;
-  --bg2:       #000f20;
-  --bg3:       #001428;
-  --surface:   rgba(255,255,255,0.04);
-  --surface2:  rgba(255,255,255,0.07);
-  --border:    rgba(255,255,255,0.08);
-  --border2:   rgba(255,255,255,0.12);
+  /* Backgrounds */
+  --bg:        #f4f8ff;
+  --bg2:       #eaf2ff;
+  --bg3:       #ddeeff;
+  --surface:   #ffffff;
+  --surface2:  #f8faff;
+  --border:    rgba(0,80,180,0.1);
+  --border2:   rgba(0,80,180,0.16);
 
-  /* Accent colors (SMIT palette) */
-  --teal:      #00c7de;
-  --cyan:      #35e7e9;
-  --lime:      #ccf456;
-  --blue:      #1a8cff;
-  --blue2:     #0071f2;
-  --orange:    #fe5f01;   /* Go Meta brand CTA */
+  /* Brand/Navy */
+  --navy:      #0c2a72;
+  --navy2:     #1a3a8f;
+  --gray:      #f1f5f9;
+  --gray2:     #e2e8f0;
+
+  /* Accent colors */
+  --teal:      #00a8c0;
+  --cyan:      #14b8c8;
+  --lime:      #65a30d;
+  --blue:      #1a6fff;
+  --blue2:     #0058e8;
+  --orange:    #fe5f01;
   --orange2:   #e54e00;
 
   /* Gradients */
   --grad-teal:  linear-gradient(155deg, #00c7de 0%, #1a8cff 54.9%, #0071f2 100%);
-  --grad-lime:  linear-gradient(135deg, #ccf456 0%, #35e7e9 100%);
-  --grad-dark:  linear-gradient(135deg, #000d1a 0%, #001428 100%);
+  --grad-lime:  linear-gradient(135deg, #84cc16 0%, #06b6d4 100%);
+  --grad-dark:  linear-gradient(135deg, #f4f8ff 0%, #ddeeff 100%);
 
   /* Text */
-  --text:       #ffffff;
-  --text2:      rgba(255,255,255,0.65);
-  --text3:      rgba(255,255,255,0.35);
+  --text:       #0c1a2e;
+  --text2:      rgba(12,26,46,0.68);
+  --text3:      rgba(12,26,46,0.42);
 
   /* Status */
-  --green:      #00e676;
-  --red:        #ff4560;
-  --yellow:     #ffb400;
+  --green:      #16a34a;
+  --red:        #dc2626;
+  --yellow:     #d97706;
 
   /* Misc */
   --radius-sm:  8px;
@@ -48,13 +54,13 @@
   --radius-xl:  28px;
   --radius-full:999px;
 
-  --shadow:     0 4px 24px rgba(0,199,222,0.12);
-  --shadow-lg:  0 12px 48px rgba(0,199,222,0.18);
-  --shadow-xl:  0 24px 80px rgba(0,0,0,0.5);
+  --shadow:     0 2px 16px rgba(0,80,180,0.08);
+  --shadow-lg:  0 8px 40px rgba(0,80,180,0.12);
+  --shadow-xl:  0 20px 60px rgba(0,80,180,0.15);
 
-  --nav-h:      68px;   /* chiều cao Navbar */
-  --counter-h:  40px;   /* chiều cao LiveCounter bar */
-  --header-h:   108px;  /* tổng = nav-h + counter-h */
+  --nav-h:      68px;
+  --counter-h:  40px;
+  --header-h:   108px;
   --max-w: 1200px;
 
   --transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
@@ -138,17 +144,29 @@ p  { line-height: 1.7; }
 }
 .btn-orange:hover { background: var(--orange2); transform: translateY(-2px); box-shadow: 0 8px 28px rgba(254,95,1,0.5); }
 
+.btn-navy {
+  background: var(--navy); color: #fff;
+  box-shadow: 0 4px 16px rgba(12,42,114,0.3);
+}
+.btn-navy:hover { background: var(--navy2); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(12,42,114,0.4); }
+
+.btn-primary {
+  background: var(--orange); color: #fff;
+  box-shadow: 0 4px 20px rgba(254,95,1,0.4);
+}
+.btn-primary:hover { background: var(--orange2); transform: translateY(-2px); box-shadow: 0 8px 28px rgba(254,95,1,0.5); }
+
 .btn-outline {
   background: transparent; color: var(--teal);
   border: 1.5px solid var(--teal);
 }
-.btn-outline:hover { background: rgba(0,199,222,0.08); }
+.btn-outline:hover { background: rgba(0,168,192,0.08); }
 
 .btn-glass {
-  background: rgba(255,255,255,0.06); color: var(--text);
+  background: rgba(0,80,180,0.05); color: var(--text);
   border: 1px solid var(--border2); backdrop-filter: blur(12px);
 }
-.btn-glass:hover { background: rgba(255,255,255,0.1); }
+.btn-glass:hover { background: rgba(0,80,180,0.1); }
 
 .btn-sm  { padding: 8px 20px;  font-size: 13px; }
 .btn-lg  { padding: 15px 36px; font-size: 16px; }
@@ -177,19 +195,19 @@ p  { line-height: 1.7; }
 .card:hover { border-color: rgba(0,199,222,0.3); box-shadow: var(--shadow-lg); }
 
 .card-solid {
-  background: #001428; border: 1px solid var(--border2);
+  background: #ffffff; border: 1px solid var(--border2);
   border-radius: var(--radius-lg); padding: 28px;
   transition: var(--transition);
 }
-.card-solid:hover { border-color: rgba(0,199,222,0.25); }
+.card-solid:hover { border-color: rgba(0,150,180,0.35); }
 
-/* Floating card (like SMIT's feature preview cards) */
+/* Floating card */
 .float-card {
-  background: rgba(0,20,40,0.85);
+  background: rgba(255,255,255,0.95);
   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(0,199,222,0.15);
+  border: 1px solid rgba(0,150,200,0.18);
   border-radius: var(--radius-lg); padding: 18px 22px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  box-shadow: 0 8px 40px rgba(0,80,180,0.15);
 }
 
 /* ─── BADGE ─── */
@@ -201,8 +219,10 @@ p  { line-height: 1.7; }
   border: 1px solid rgba(0,199,222,0.25); letter-spacing: 0.3px;
   margin-bottom: 18px;
 }
-.badge-lime { background: rgba(204,244,86,0.1); color: var(--lime); border-color: rgba(204,244,86,0.25); }
+.badge-lime { background: rgba(101,163,13,0.1); color: var(--lime); border-color: rgba(101,163,13,0.25); }
 .badge-orange { background: rgba(254,95,1,0.1); color: var(--orange); border-color: rgba(254,95,1,0.25); }
+.badge-navy { background: rgba(12,42,114,0.08); color: var(--navy); border-color: rgba(12,42,114,0.2); }
+.badge-white { background: rgba(255,255,255,0.12); color: #fff; border-color: rgba(255,255,255,0.3); }
 
 /* ─── GRID ─── */
 .grid-2   { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
@@ -239,11 +259,11 @@ p  { line-height: 1.7; }
 .form-label { display: block; font-weight: 600; font-size: 13px; color: var(--text2); margin-bottom: 7px; text-transform: uppercase; letter-spacing: 0.4px; }
 .form-input {
   width: 100%; padding: 12px 16px;
-  background: rgba(255,255,255,0.04); border: 1px solid var(--border2);
+  background: #ffffff; border: 1px solid var(--border2);
   border-radius: var(--radius-sm); font-size: 15px; color: var(--text);
   font-family: inherit; outline: none; transition: border-color 0.2s, box-shadow 0.2s;
 }
-.form-input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(0,199,222,0.1); }
+.form-input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(0,180,210,0.12); }
 .form-input::placeholder { color: var(--text3); }
 .form-group { margin-bottom: 18px; }
 .form-error { font-size: 13px; color: var(--red); margin-top: 5px; }
@@ -353,7 +373,7 @@ p  { line-height: 1.7; }
 .choice-card .choice-desc  { font-size: 12px; color: var(--text2); margin-top: 3px; line-height: 1.4; }
 
 /* ─── TOAST ─── */
-.toast { position: fixed; bottom: 28px; right: 28px; z-index: 9999; background: #001428; color: #fff; padding: 12px 20px; border-radius: var(--radius); font-size: 14px; font-weight: 600; box-shadow: var(--shadow-xl); animation: slideDown 0.3s ease; border: 1px solid var(--border2); max-width: 320px; }
+.toast { position: fixed; bottom: 28px; right: 28px; z-index: 9999; background: #0c2a72; color: #fff; padding: 12px 20px; border-radius: var(--radius); font-size: 14px; font-weight: 600; box-shadow: var(--shadow-xl); animation: slideDown 0.3s ease; border: 1px solid rgba(255,255,255,0.15); max-width: 320px; }
 
 /* ─── SCROLL INDICATOR ─── */
 .scroll-indicator { display: flex; flex-direction: column; align-items: center; gap: 8px; }
@@ -382,8 +402,8 @@ p  { line-height: 1.7; }
 /* ─── GRID LINES (background decoration) ─── */
 .grid-bg {
   background-image:
-    linear-gradient(rgba(0,199,222,0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,199,222,0.04) 1px, transparent 1px);
+    linear-gradient(rgba(0,80,200,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,80,200,0.06) 1px, transparent 1px);
   background-size: 60px 60px;
 }
 

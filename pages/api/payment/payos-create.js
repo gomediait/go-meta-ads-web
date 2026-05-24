@@ -1,4 +1,4 @@
-import PayOS from '@payos/node'
+import { PayOS } from '@payos/node'
 import { getUserFromReq } from '../../../lib/auth'
 import { getSupabase } from '../../../lib/supabase'
 

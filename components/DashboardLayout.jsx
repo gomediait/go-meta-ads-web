@@ -3,6 +3,7 @@ import { useRouter } from 'next/router'
 import Link from 'next/link'
 import Head from 'next/head'
 import { useAuth } from '../lib/AuthContext'
+import { useLang } from '../lib/LangContext'
 import { isPlanAllowed } from '../lib/planLimits'
 import pkg from '../package.json'
 
@@ -35,6 +36,7 @@ const PLAN_TEXT = {
 
 export default function DashboardLayout({ children, title = 'Dashboard' }) {
   const { user, logout, planName, isExpired } = useAuth()
+  const { lang, setLang } = useLang()
   const router  = useRouter()
   const [collapsed, setCollapsed] = useState(false)
   const [theme, setTheme]         = useState('light')
@@ -94,6 +96,9 @@ export default function DashboardLayout({ children, title = 'Dashboard' }) {
               {planName}
             </span>
             <span className="user-name">{user?.name}</span>
+            <button className="icon-btn lang-btn" onClick={() => setLang(lang === 'vi' ? 'en' : 'vi')} title="Switch language">
+              {lang === 'vi' ? '🇬🇧 EN' : '🇻🇳 VI'}
+            </button>
             <button className="icon-btn" onClick={toggleTheme} title="Đổi theme">{theme === 'dark' ? '☀️' : '🌙'}</button>
             <Link href="/settings" className="icon-btn" title="Cài đặt">⚙️</Link>
             <button className="icon-btn logout-btn" onClick={logout} title="Đăng xuất">↪</button>
@@ -215,6 +220,7 @@ export default function DashboardLayout({ children, title = 'Dashboard' }) {
         }
         .icon-btn:hover { background: rgba(255,255,255,.22); }
         .logout-btn { font-size: 16px; }
+        .lang-btn { font-size: 11px; font-weight: 700; letter-spacing: .3px; padding: 5px 10px; }
         .expired-badge {
           background: rgba(255,69,96,.25); border: 1px solid rgba(255,69,96,.5);
           border-radius: 7px; padding: 4px 10px; font-size: 11px; color: #ff8fa3;

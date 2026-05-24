@@ -17,7 +17,7 @@ export default function Footer() {
   ]
 
   return (
-    <footer style={{ background: '#000913', borderTop: '1px solid rgba(0,199,222,0.08)', paddingTop: 72, paddingBottom: 36, position: 'relative', overflow: 'hidden' }}>
+    <footer style={{ background: 'linear-gradient(135deg, #071d52 0%, #0c2a72 100%)', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 72, paddingBottom: 36, position: 'relative', overflow: 'hidden' }}>
       <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 600, height: 200, background: 'radial-gradient(ellipse at 50% 0%, rgba(0,199,222,0.05) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
       <div className="container">

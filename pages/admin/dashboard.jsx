@@ -2255,98 +2255,102 @@ function DownloadsTab() {
 
 // ─── PIXELS TAB ───────────────────────────────────────────────────────────────
 function PixelsTab() {
-  const [copied, setCopied] = useState(false)
+  const adminToken = typeof window !== 'undefined' ? atob(localStorage.getItem('gmap_admin_token') || '') : ''
 
-  const envVars = [
-    { label: 'Facebook Pixel ID', env: 'NEXT_PUBLIC_FB_PIXEL_ID', placeholder: '123456789012345' },
-    { label: 'Google Tag Manager', env: 'NEXT_PUBLIC_GTM_ID', placeholder: 'GTM-XXXXXXX' },
-    { label: 'Google Analytics 4', env: 'NEXT_PUBLIC_GA4_ID', placeholder: 'G-XXXXXXXXXX' },
-    { label: 'TikTok Pixel', env: 'NEXT_PUBLIC_TIKTOK_PIXEL_ID', placeholder: 'CXXXXXXXXXXXXXXX' },
-    { label: 'Google Ads Conversion', env: 'NEXT_PUBLIC_GOOGLE_ADS_ID', placeholder: 'AW-XXXXXXXXXX' },
+  const FIELDS = [
+    { key: 'fb_pixel_id',      label: 'Facebook Pixel ID',      placeholder: '123456789012345' },
+    { key: 'gtm_id',           label: 'Google Tag Manager',     placeholder: 'GTM-XXXXXXX' },
+    { key: 'ga4_id',           label: 'Google Analytics 4',     placeholder: 'G-XXXXXXXXXX' },
+    { key: 'tiktok_pixel_id',  label: 'TikTok Pixel',           placeholder: 'CXXXXXXXXXXXXXXX' },
+    { key: 'google_ads_id',    label: 'Google Ads Conversion',  placeholder: 'AW-XXXXXXXXXX' },
   ]
-  const [values, setValues] = useState({})
 
-  function copyInstructions() {
-    const lines = envVars.map(v => `${v.env}=${values[v.env] || '[YOUR_ID]'}`).join('\n')
-    const text = `# Go Meta Ads Pro — Vercel Environment Variables\n# Vào Vercel → Settings → Environment Variables → Thêm từng dòng → Redeploy\n\n${lines}`
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    })
+  const [values, setValues]   = useState({})
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving]   = useState(false)
+  const [msg, setMsg]         = useState('')
+
+  useEffect(() => {
+    fetch('/api/admin/site-settings')
+      .then(r => r.json())
+      .then(({ settings = {} }) => { setValues(settings); setLoading(false) })
+      .catch(() => setLoading(false))
+  }, [])
+
+  async function save() {
+    setSaving(true)
+    setMsg('')
+    try {
+      const res = await fetch('/api/admin/site-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-token': adminToken },
+        body: JSON.stringify({ settings: values }),
+      })
+      const data = await res.json()
+      setMsg(data.ok ? '✓ Đã lưu thành công! Pixels sẽ hoạt động ngay khi trang được tải lại.' : ('Lỗi: ' + data.error))
+    } catch (e) {
+      setMsg('Lỗi kết nối: ' + e.message)
+    }
+    setSaving(false)
+    setTimeout(() => setMsg(''), 5000)
   }
 
   const inputStyle = {
-    flex: 1,
-    padding: '9px 12px',
-    border: '1px solid #e2e8f0',
-    borderRadius: 8,
-    fontSize: 13,
-    color: '#1a2332',
-    fontFamily: 'monospace',
-    outline: 'none',
+    flex: 1, padding: '9px 12px', border: '1px solid #e2e8f0',
+    borderRadius: 8, fontSize: 13, color: '#1a2332', fontFamily: 'monospace', outline: 'none',
   }
+
+  if (loading) return <div style={{ color: '#64748b', padding: 32 }}>Đang tải...</div>
 
   return (
     <div style={{ maxWidth: 700 }}>
       <h2 style={{ fontSize: 20, fontWeight: 700, color: '#1a2332', marginBottom: 6 }}>📈 Cấu hình Tracking Pixels</h2>
       <p style={{ fontSize: 13, color: '#64748b', marginBottom: 24 }}>
-        Đã inject vào website. Nhập ID vào đây để xem hướng dẫn cài đặt vào Vercel.
+        Nhập ID và nhấn <b>Lưu</b> — pixels sẽ hoạt động ngay, không cần redeploy Vercel.
       </p>
 
       <div style={{ background: '#fff', borderRadius: 12, padding: 24, boxShadow: '0 1px 8px rgba(0,0,0,0.07)', marginBottom: 20 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {envVars.map(v => (
-            <div key={v.env} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span style={{ width: 190, fontSize: 13, fontWeight: 600, color: '#1a2332', flexShrink: 0 }}>{v.label}</span>
+          {FIELDS.map(f => (
+            <div key={f.key} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span style={{ width: 190, fontSize: 13, fontWeight: 600, color: '#1a2332', flexShrink: 0 }}>{f.label}</span>
               <input
                 style={inputStyle}
-                placeholder={v.placeholder}
-                value={values[v.env] || ''}
-                onChange={e => setValues(prev => ({ ...prev, [v.env]: e.target.value }))}
+                placeholder={f.placeholder}
+                value={values[f.key] || ''}
+                onChange={e => setValues(prev => ({ ...prev, [f.key]: e.target.value }))}
               />
             </div>
           ))}
         </div>
       </div>
 
-      <div style={{ background: '#0c2a72', borderRadius: 12, padding: 20, marginBottom: 16 }}>
-        <p style={{ color: '#93c5fd', fontSize: 12, fontWeight: 700, margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: 1 }}>
-          Hướng dẫn cài đặt Vercel
-        </p>
-        <ol style={{ color: '#cbd5e1', fontSize: 13, margin: 0, paddingLeft: 18, lineHeight: 2 }}>
-          <li>Vào <b style={{ color: '#fff' }}>vercel.com</b> → Project <b style={{ color: '#fff' }}>go-meta-ads-web</b></li>
-          <li>Chọn <b style={{ color: '#fff' }}>Settings</b> → <b style={{ color: '#fff' }}>Environment Variables</b></li>
-          <li>Nhấn <b style={{ color: '#fff' }}>Add New</b> → nhập từng biến bên dưới</li>
-          <li>Sau khi thêm xong → <b style={{ color: '#fff' }}>Redeploy</b> project</li>
-        </ol>
-        <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 8, padding: '12px 16px', marginTop: 12, fontFamily: 'monospace', fontSize: 12 }}>
-          {envVars.map(v => (
-            <div key={v.env} style={{ marginBottom: 4 }}>
-              <span style={{ color: '#7dd3fc' }}>{v.env}</span>
-              <span style={{ color: '#94a3b8' }}>=</span>
-              <span style={{ color: '#fcd34d' }}>{values[v.env] || v.placeholder}</span>
-            </div>
-          ))}
-        </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <button
+          onClick={save}
+          disabled={saving}
+          style={{
+            padding: '10px 28px', border: 'none', borderRadius: 8,
+            background: saving ? '#94a3b8' : '#0c2a72', color: '#fff',
+            fontSize: 13, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer',
+            fontFamily: 'inherit', transition: 'background 0.2s',
+          }}
+        >
+          {saving ? 'Đang lưu...' : '💾 Lưu thay đổi'}
+        </button>
+        {msg && (
+          <span style={{ fontSize: 13, color: msg.startsWith('✓') ? '#059669' : '#dc2626', fontWeight: 600 }}>
+            {msg}
+          </span>
+        )}
       </div>
 
-      <button
-        onClick={copyInstructions}
-        style={{
-          padding: '10px 22px',
-          border: 'none',
-          borderRadius: 8,
-          background: copied ? '#059669' : '#00c7de',
-          color: '#fff',
-          fontSize: 13,
-          fontWeight: 700,
-          cursor: 'pointer',
-          fontFamily: 'inherit',
-          transition: 'background 0.2s',
-        }}
-      >
-        {copied ? '✓ Đã sao chép!' : '📋 Copy hướng dẫn env vars'}
-      </button>
+      <div style={{ marginTop: 24, background: '#f8faff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 16 }}>
+        <p style={{ fontSize: 12, color: '#64748b', margin: 0, lineHeight: 1.7 }}>
+          <b>Lưu ý:</b> Pixels được inject tự động khi trang load — lưu từ đây là đủ, không cần thêm env vars vào Vercel.
+          Để xoá 1 pixel, xoá trắng ô ID và nhấn Lưu.
+        </p>
+      </div>
     </div>
   )
 }

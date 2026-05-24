@@ -94,7 +94,7 @@ export default async function handler(req, res) {
     const { data: existing } = await db.from('users').select('id').eq('email', emailLower).single()
     if (existing) return res.status(409).json({ error: 'Email đã được đăng ký' })
 
-    // Verify referral code if provided
+    // Verify referral code if provided — must be valid or registration fails
     let referredBy = null
     if (referral_code?.trim()) {
       const { data: aff } = await db.from('affiliates')
@@ -102,7 +102,8 @@ export default async function handler(req, res) {
         .eq('referral_code', referral_code.trim().toUpperCase())
         .eq('status', 'active')
         .single()
-      if (aff) referredBy = referral_code.trim().toUpperCase()
+      if (!aff) return res.status(400).json({ error: 'Mã giới thiệu không hợp lệ hoặc không còn hoạt động. Vui lòng kiểm tra lại hoặc để trống.' })
+      referredBy = referral_code.trim().toUpperCase()
     }
 
     const { data: user, error } = await db.from('users').insert({

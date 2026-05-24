@@ -26,13 +26,12 @@ export default function Navbar() {
         position: 'fixed', top: 'var(--counter-h, 40px)', left: 0, right: 0, zIndex: 1001,
         height: 'var(--nav-h)',
         display: 'flex', alignItems: 'center', padding: '0 24px',
-        /* Luôn có dark bg tối thiểu để text trắng luôn đọc được trên mọi nền */
-        background: scrolled ? 'rgba(0,13,26,0.97)' : 'rgba(0,13,26,0.75)',
+        background: scrolled ? 'rgba(255,255,255,0.97)' : 'rgba(255,255,255,0.85)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        borderBottom: scrolled ? '1px solid rgba(0,199,222,0.08)' : '1px solid rgba(255,255,255,0.04)',
+        borderBottom: scrolled ? '1px solid rgba(0,80,200,0.12)' : '1px solid rgba(0,80,200,0.06)',
         transition: 'background 0.35s ease',
-        boxShadow: scrolled ? '0 2px 24px rgba(0,0,0,0.4)' : 'none',
+        boxShadow: scrolled ? '0 2px 20px rgba(0,80,200,0.08)' : 'none',
       }}>
         <div style={{ maxWidth: 'var(--max-w)', margin: '0 auto', width: '100%', display: 'flex', alignItems: 'center', gap: 8 }}>
 
@@ -40,8 +39,8 @@ export default function Navbar() {
           <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
             <img src="/logo.png" alt="Go Meta Ads Pro" style={{ height: 36, borderRadius: 9, border: '1px solid rgba(0,199,222,0.2)' }} />
             <div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', lineHeight: 1.2 }}>Go Meta Ads Pro</div>
-              <div style={{ fontSize: 10, color: 'rgba(0,199,222,0.6)', fontWeight: 500 }}>by Go Media Vietnam</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--navy)', lineHeight: 1.2 }}>Go Meta Ads Pro</div>
+              <div style={{ fontSize: 10, color: 'var(--teal)', fontWeight: 500 }}>by Go Media Vietnam</div>
             </div>
           </a>
 
@@ -56,7 +55,7 @@ export default function Navbar() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 'auto', flexShrink: 0 }}>
 
             {/* Language switcher */}
-            <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--radius-full)', padding: 3, gap: 2 }} className="hide-mobile">
+            <div style={{ display: 'flex', background: 'rgba(0,80,200,0.06)', border: '1px solid rgba(0,80,200,0.1)', borderRadius: 'var(--radius-full)', padding: 3, gap: 2 }} className="hide-mobile">
               {[['vi', '🇻🇳 VI'], ['en', '🇬🇧 EN']].map(([l, label]) => (
                 <button key={l} onClick={() => setLang(l)} style={{
                   padding: '4px 12px', borderRadius: 'var(--radius-full)',
@@ -71,9 +70,9 @@ export default function Navbar() {
               ))}
             </div>
 
-            <a href="/login" className="hide-mobile" style={{ fontSize: 13, fontWeight: 500, color: 'var(--text2)', padding: '8px 12px', borderRadius: 8, transition: 'color 0.2s' }}
+            <a href="/login" className="hide-mobile" style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)', padding: '8px 12px', borderRadius: 8, transition: 'color 0.2s' }}
               onMouseOver={e => e.target.style.color = 'var(--teal)'}
-              onMouseOut={e  => e.target.style.color = 'var(--text2)'}>
+              onMouseOut={e  => e.target.style.color = 'var(--navy)'}>
               {t.nav.login || 'Đăng nhập'}
             </a>
 
@@ -97,20 +96,21 @@ export default function Navbar() {
       {menuOpen && (
         <div style={{
           position: 'fixed', top: 'var(--nav-h)', left: 0, right: 0, zIndex: 999,
-          background: 'rgba(0,10,20,0.98)', backdropFilter: 'blur(20px)',
+          background: 'rgba(255,255,255,0.98)', backdropFilter: 'blur(20px)',
           padding: '20px 24px 32px',
-          borderBottom: '1px solid rgba(0,199,222,0.08)',
+          borderBottom: '1px solid rgba(0,80,200,0.1)',
+          boxShadow: '0 8px 32px rgba(0,80,200,0.1)',
           animation: 'slideDown 0.2s ease',
         }}>
           {links.map(([label, href]) => (
             <a key={label} href={href} onClick={() => setMenuOpen(false)} style={{
-              display: 'block', color: 'var(--text2)',
+              display: 'block', color: 'var(--navy)',
               padding: '14px 0', fontSize: 16, fontWeight: 600,
-              borderBottom: '1px solid rgba(255,255,255,0.05)',
+              borderBottom: '1px solid rgba(0,80,200,0.06)',
               transition: 'color 0.15s',
             }}
             onMouseOver={e => e.target.style.color = 'var(--teal)'}
-            onMouseOut={e  => e.target.style.color = 'var(--text2)'}
+            onMouseOut={e  => e.target.style.color = 'var(--navy)'}
             >{label}</a>
           ))}
 
@@ -132,7 +132,7 @@ export default function Navbar() {
 
           <div style={{ display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
             <a href="/login" onClick={() => setMenuOpen(false)}
-              className="btn btn-block" style={{ flex: 1, background: 'rgba(255,255,255,0.08)', color: 'var(--text2)', border: '1px solid var(--border2)' }}>
+              className="btn btn-block" style={{ flex: 1, background: 'var(--gray)', color: 'var(--navy)', border: '1px solid var(--gray2)' }}>
               {t.nav.login || 'Đăng nhập'}
             </a>
             <a href="/register" onClick={() => setMenuOpen(false)}

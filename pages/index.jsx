@@ -108,7 +108,7 @@ export default function Home() {
           position: 'relative',
           overflow: 'hidden',
           minHeight: '100vh',
-          background: 'var(--bg)',
+          background: 'linear-gradient(160deg, #f8fbff 0%, #edf4ff 45%, #e6f0ff 100%)',
           paddingTop: 'calc(var(--header-h) + 60px)',
           paddingBottom: 80,
           display: 'flex',
@@ -116,8 +116,7 @@ export default function Home() {
           justifyContent: 'center',
         }}
       >
-        {/* Stars */}
-        <StarField count={180} speed={0.25} />
+        {/* Floating orb bg */}
 
         {/* Grid bg */}
         <div className="grid-bg" style={{ position: 'absolute', inset: 0, opacity: 0.4, pointerEvents: 'none' }} />
@@ -197,7 +196,7 @@ export default function Home() {
             </Reveal>
 
             <Reveal delay={80}>
-              <h1 style={{ marginBottom: 16, marginTop: 8 }}>
+              <h1 style={{ marginBottom: 16, marginTop: 8, color: '#0c1a2e' }}>
                 {t.hero.title1}<br />
                 <span className="grad-text">{t.hero.title2}</span>
               </h1>
@@ -234,13 +233,11 @@ export default function Home() {
             <Reveal delay={420}>
               <div style={{ marginTop: 60, position: 'relative' }}>
                 <div style={{
-                  background: 'rgba(0,15,32,0.9)',
-                  backdropFilter: 'blur(20px)',
-                  WebkitBackdropFilter: 'blur(20px)',
-                  border: '1px solid var(--border2)',
+                  background: '#0a1628',
+                  border: '1px solid rgba(0,199,222,0.15)',
                   borderRadius: 'var(--radius-lg)',
                   overflow: 'hidden',
-                  boxShadow: '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,199,222,0.08)',
+                  boxShadow: '0 32px 80px rgba(12,42,114,0.25), 0 0 0 1px rgba(0,199,222,0.08)',
                   animation: 'float 7s ease-in-out infinite',
                 }}>
                   {/* Window chrome */}
@@ -320,13 +317,13 @@ export default function Home() {
         minHeight: '80vh',
         display: 'flex',
         alignItems: 'center',
-        background: 'linear-gradient(135deg, #000000 0%, #000d1a 60%, #00101f 100%)',
+        background: 'linear-gradient(135deg, #eef4ff 0%, #f4f8ff 60%, #f8fbff 100%)',
         position: 'relative',
         overflow: 'hidden',
         padding: '100px 0',
       }}>
-        {/* Teal glow left */}
-        <div style={{ position: 'absolute', left: -100, top: '50%', transform: 'translateY(-50%)', width: 500, height: 500, background: 'radial-gradient(circle, rgba(0,199,222,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        {/* Blue glow left */}
+        <div style={{ position: 'absolute', left: -100, top: '50%', transform: 'translateY(-50%)', width: 500, height: 500, background: 'radial-gradient(circle, rgba(0,120,255,0.06) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
         <div className="container">
           <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: 64, alignItems: 'center' }} className="problem-grid">
@@ -405,9 +402,9 @@ export default function Home() {
       </section>
 
       {/* ══ 4. BEFORE / AFTER ════════════════════════════════════════════════ */}
-      <section className="section" style={{ background: 'linear-gradient(135deg, #000f20 0%, #001428 100%)', position: 'relative', overflow: 'hidden' }}>
+      <section className="section" style={{ background: 'linear-gradient(135deg, #f0f7ff 0%, #e8f2ff 100%)', position: 'relative', overflow: 'hidden' }}>
         {/* subtle center glow */}
-        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 600, height: 300, background: 'radial-gradient(ellipse, rgba(0,199,222,0.05) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 600, height: 300, background: 'radial-gradient(ellipse, rgba(0,120,255,0.05) 0%, transparent 70%)', pointerEvents: 'none' }} />
         <div className="container" style={{ position: 'relative' }}>
           <Reveal>
             <div className="section-header">
@@ -426,12 +423,12 @@ export default function Home() {
                 padding: 32,
                 backdropFilter: 'blur(12px)',
               }}>
-                <h3 style={{ color: '#fca5a5', fontSize: 16, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
+                <h3 style={{ color: '#dc2626', fontSize: 16, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
                   <span>😰</span> Trước — Quản lý thủ công
                 </h3>
                 <ul className="check-list">
                   {t.beforeAfter.before.map((item, i) => (
-                    <li key={i} style={{ color: 'var(--text2)', borderBottomColor: 'rgba(255,255,255,0.06)' }}>
+                    <li key={i} style={{ color: 'var(--text2)', borderBottomColor: 'rgba(0,80,200,0.08)' }}>
                       <span className="cross" style={{ color: '#ef4444' }}>✗</span>
                       {item}
                     </li>
@@ -454,7 +451,7 @@ export default function Home() {
                 </h3>
                 <ul className="check-list">
                   {t.beforeAfter.after.map((item, i) => (
-                    <li key={i} style={{ color: 'var(--text)', borderBottomColor: 'rgba(255,255,255,0.06)', fontWeight: 500 }}>
+                    <li key={i} style={{ color: 'var(--text)', borderBottomColor: 'rgba(0,80,200,0.08)', fontWeight: 500 }}>
                       <span className="check">✓</span>
                       {item}
                     </li>
@@ -545,15 +542,15 @@ export default function Home() {
       </section>
 
       {/* ══ 6b. ANALYTICS / CHARTS ══════════════════════════════════════════ */}
-      <section id="analytics" style={{ background: '#000d1a', padding: '100px 0', position: 'relative', overflow: 'hidden' }}>
+      <section id="analytics" style={{ background: 'linear-gradient(135deg, #0a1e4a 0%, #0c2a72 100%)', padding: '100px 0', position: 'relative', overflow: 'hidden' }}>
         {/* subtle glow */}
-        <div style={{ position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%,-50%)', width: 900, height: 400, background: 'radial-gradient(ellipse, rgba(0,199,222,0.05) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%,-50%)', width: 900, height: 400, background: 'radial-gradient(ellipse, rgba(0,199,222,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
         <div className="container" style={{ position: 'relative' }}>
           <Reveal>
             <div className="section-header">
               <span className="badge">📈 {lang === 'en' ? 'Real Results' : 'Kết quả thực tế'}</span>
               <h2 style={{ color: '#fff' }}>{lang === 'en' ? <>Real results after using<br /><span className="grad-text">Go Meta Ads Pro</span></> : <>Kết quả thực tế sau khi dùng<br /><span className="grad-text">Go Meta Ads Pro</span></>}</h2>
-              <p style={{ color: 'rgba(255,255,255,0.6)' }}>{lang === 'en' ? 'Aggregated data from 3,200+ active users — measured after 30 days of use' : 'Số liệu tổng hợp từ 3,200+ người dùng hoạt động — đo lường sau 30 ngày sử dụng'}</p>
+              <p style={{ color: 'rgba(255,255,255,0.65)' }}>{lang === 'en' ? 'Aggregated data from 3,200+ active users — measured after 30 days of use' : 'Số liệu tổng hợp từ 3,200+ người dùng hoạt động — đo lường sau 30 ngày sử dụng'}</p>
             </div>
           </Reveal>
 
@@ -1065,7 +1062,7 @@ export default function Home() {
 
       {/* ══ 10. FINAL CTA ════════════════════════════════════════════════════ */}
       <section style={{
-        background: 'linear-gradient(135deg, #000d1a 0%, #001428 50%, #000f20 100%)',
+        background: 'linear-gradient(135deg, #0c2a72 0%, #1a3a8f 50%, #0e2060 100%)',
         padding: '100px 0',
         position: 'relative',
         overflow: 'hidden',
@@ -1079,27 +1076,27 @@ export default function Home() {
         <div className="container" style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
           <Reveal>
             <span className="badge" style={{ marginBottom: 24 }}>{t.cta.badge}</span>
-            <h2 style={{ marginBottom: 16, fontSize: 'clamp(1.8rem,4vw,2.8rem)' }}>
+            <h2 style={{ marginBottom: 16, fontSize: 'clamp(1.8rem,4vw,2.8rem)', color: '#fff' }}>
               {t.cta.title}
             </h2>
-            <p style={{ color: 'var(--text2)', fontSize: 17, lineHeight: 1.8, marginBottom: 40, maxWidth: 540, marginLeft: 'auto', marginRight: 'auto' }}>
+            <p style={{ color: 'rgba(255,255,255,0.72)', fontSize: 17, lineHeight: 1.8, marginBottom: 40, maxWidth: 540, marginLeft: 'auto', marginRight: 'auto' }}>
               {t.cta.subtitle}
             </p>
             <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 32 }}>
               <a href="/register" className="btn btn-teal btn-xl btn-ripple">
                 🚀 {t.cta.cta1}
               </a>
-              <a href="#pricing" className="btn btn-glass btn-xl">
+              <a href="#pricing" className="btn btn-xl" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.25)', color: '#fff' }}>
                 {t.cta.cta2}
               </a>
             </div>
-            <div style={{ color: 'var(--text3)', fontSize: 14 }}>
+            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>
               {t.cta.contact}{' '}
-              <a href="https://zalo.me" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text2)', fontWeight: 600 }}>Zalo</a>
+              <a href="https://zalo.me" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>Zalo</a>
               {' · '}
-              <a href="https://t.me/Go_Meta_Ads_Pro_V1_bot" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text2)', fontWeight: 600 }}>Telegram Bot</a>
+              <a href="https://t.me/Go_Meta_Ads_Pro_V1_bot" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>Telegram Bot</a>
               {' · '}
-              <a href="mailto:admin@gonetwork.vn" style={{ color: 'var(--text2)', fontWeight: 600 }}>admin@gonetwork.vn</a>
+              <a href="mailto:admin@gonetwork.vn" style={{ color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>admin@gonetwork.vn</a>
             </div>
           </Reveal>
         </div>
@@ -1107,27 +1104,27 @@ export default function Home() {
       </section>
 
       {/* ══ 11. SECURITY ═════════════════════════════════════════════════════ */}
-      <section style={{ background: '#000f20', padding: '80px 0' }}>
+      <section style={{ background: 'linear-gradient(135deg, #0c2a72 0%, #1a3a8f 100%)', padding: '80px 0' }}>
         <div className="container">
           <Reveal>
             <div style={{ display: 'flex', alignItems: 'center', gap: 56, flexWrap: 'wrap' }}>
               {/* Left */}
               <div style={{ flex: '1 1 300px' }}>
                 <div style={{ fontSize: 40, marginBottom: 14 }}>🔐</div>
-                <h3 style={{ fontSize: 24, fontWeight: 800, marginBottom: 14 }}>
+                <h3 style={{ fontSize: 24, fontWeight: 800, marginBottom: 14, color: '#fff' }}>
                   {t.security.title}
                 </h3>
-                <p style={{ color: 'var(--text2)', fontSize: 15, lineHeight: 1.85 }}>
+                <p style={{ color: 'rgba(255,255,255,0.72)', fontSize: 15, lineHeight: 1.85 }}>
                   {t.security.desc}
                 </p>
               </div>
               {/* Right: 4 glass cards */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, flex: '1 1 260px' }}>
                 {t.security.items.map((s, i) => (
-                  <div key={i} className="card" style={{ padding: 20 }}>
+                  <div key={i} style={{ padding: 20, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 'var(--radius-lg)' }}>
                     <div style={{ fontSize: 26, marginBottom: 10 }}>{s.icon}</div>
-                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{s.title}</div>
-                    <div style={{ color: 'var(--text3)', fontSize: 12, lineHeight: 1.55 }}>{s.desc}</div>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: '#fff' }}>{s.title}</div>
+                    <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, lineHeight: 1.55 }}>{s.desc}</div>
                   </div>
                 ))}
               </div>
@@ -1162,8 +1159,8 @@ export default function Home() {
           margin-bottom: 32px;
         }
         .analytics-card {
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.08);
+          background: rgba(255,255,255,0.07);
+          border: 1px solid rgba(255,255,255,0.12);
           border-radius: 20px;
           padding: 28px 24px;
           backdrop-filter: blur(12px);

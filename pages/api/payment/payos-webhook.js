@@ -1,4 +1,4 @@
-import PayOS from '@payos/node'
+import { PayOS } from '@payos/node'
 import { getSupabase } from '../../../lib/supabase'
 import { AFFILIATE_COMMISSION } from '../../../lib/planLimits'
 
