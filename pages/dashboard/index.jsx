@@ -1542,103 +1542,6 @@ export default function DashboardHome() {
         }
         .cbo-tag { cursor: help; }
 
-        /* AI Floating button */
-        .ai-fab {
-          position: fixed; bottom: 28px; right: 28px; z-index: 1200;
-          display: flex; align-items: center; gap: 6px;
-          background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-          color: #fff; border: none; border-radius: 50px;
-          padding: 10px 18px; font-size: 13px; font-weight: 700;
-          cursor: pointer; font-family: inherit;
-          box-shadow: 0 4px 20px rgba(99,102,241,.5);
-          transition: transform .15s, box-shadow .15s;
-        }
-        .ai-fab:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(99,102,241,.6); }
-        .ai-fab-icon { font-size: 16px; }
-
-        /* AI Chat Panel */
-        .ai-panel {
-          position: fixed; bottom: 90px; right: 28px; z-index: 1200;
-          width: 380px;
-          height: calc(100vh - 130px); max-height: 580px; min-height: 340px;
-          display: flex; flex-direction: column; overflow: hidden;
-          background: var(--s1); border: 1px solid rgba(99,102,241,.25);
-          border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,.3);
-          animation: slideUp .2s ease;
-        }
-        @keyframes slideUp { from { opacity:0; transform:translateY(12px) } to { opacity:1; transform:none } }
-        .ai-panel-hd {
-          display: flex; align-items: center; justify-content: space-between;
-          padding: 12px 14px; border-bottom: 1px solid var(--bd);
-          background: linear-gradient(135deg, rgba(99,102,241,.12) 0%, rgba(139,92,246,.08) 100%);
-          border-radius: 16px 16px 0 0; flex-shrink: 0;
-        }
-        .ai-panel-title { display: flex; align-items: center; gap: 10px; }
-        .ai-panel-close {
-          background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
-          border-radius: 6px; font-size: 16px; color: var(--mut);
-          cursor: pointer; line-height: 1; padding: 3px 7px; transition: all .15s;
-        }
-        .ai-panel-close:hover { background: rgba(239,68,68,.15); color: var(--red); border-color: var(--red); }
-        .ai-msgs {
-          flex: 1; overflow-y: auto; padding: 12px 12px;
-          display: flex; flex-direction: column; gap: 10px;
-          min-height: 0;
-        }
-        .ai-msg { display: flex; gap: 8px; align-items: flex-start; }
-        .ai-msg-user { flex-direction: row-reverse; }
-        .ai-avatar { font-size: 18px; flex-shrink: 0; margin-top: 2px; }
-        .ai-bubble {
-          padding: 9px 12px; border-radius: 12px; font-size: 12.5px; line-height: 1.6;
-          max-width: 84%; word-break: break-word;
-        }
-        .ai-msg-assistant .ai-bubble { background: var(--s2); color: var(--txt); border-radius: 4px 12px 12px 12px; }
-        .ai-msg-user .ai-bubble { background: linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; border-radius: 12px 4px 12px 12px; }
-        .ai-typing { display: flex; align-items: center; gap: 4px; padding: 12px 16px; }
-        .ai-typing span {
-          width: 7px; height: 7px; border-radius: 50%;
-          background: var(--mut); animation: bounce 1.2s infinite;
-        }
-        .ai-typing span:nth-child(2) { animation-delay: .2s; }
-        .ai-typing span:nth-child(3) { animation-delay: .4s; }
-        @keyframes bounce { 0%,80%,100%{transform:scale(0)} 40%{transform:scale(1)} }
-
-        /* Suggestions: horizontal scroll */
-        .ai-suggests {
-          padding: 8px 12px; display: flex; flex-direction: row; flex-wrap: nowrap;
-          overflow-x: auto; gap: 6px; border-top: 1px solid var(--bd); flex-shrink: 0;
-          scrollbar-width: thin; scrollbar-color: var(--bd) transparent;
-        }
-        .ai-suggests::-webkit-scrollbar { height: 4px; }
-        .ai-suggests::-webkit-scrollbar-thumb { background: var(--bd); border-radius: 2px; }
-        .ai-suggest-btn {
-          padding: 6px 10px; background: rgba(99,102,241,.08); border: 1px solid rgba(99,102,241,.2);
-          border-radius: 20px; font-size: 11px; color: var(--txt);
-          cursor: pointer; font-family: inherit; white-space: nowrap; flex-shrink: 0;
-          transition: background .15s;
-        }
-        .ai-suggest-btn:hover { background: rgba(99,102,241,.18); }
-
-        .ai-input-row {
-          display: flex; gap: 7px; padding: 10px 12px;
-          border-top: 1px solid var(--bd); flex-shrink: 0;
-        }
-        .ai-input {
-          flex: 1; padding: 8px 12px; border: 1px solid var(--bd);
-          border-radius: 10px; background: var(--s2); color: var(--txt);
-          font-size: 12.5px; font-family: inherit; outline: none;
-        }
-        .ai-input:focus { border-color: #6366f1; }
-        .ai-input::placeholder { color: var(--mut); }
-        .ai-send-btn {
-          padding: 8px 14px; background: linear-gradient(135deg,#6366f1,#8b5cf6);
-          border: none; border-radius: 10px; color: #fff;
-          font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
-          transition: opacity .15s;
-        }
-        .ai-send-btn:hover:not(:disabled) { opacity: .88; }
-        .ai-send-btn:disabled { opacity: .45; cursor: default; }
-
         .sort-icon  { font-size: 10px; margin-left: 3px; }
         .sort-none  { opacity: .35; }
         .sort-active { color: var(--blue); }
@@ -1734,6 +1637,7 @@ export default function DashboardHome() {
       `}</style>
 
       <style jsx global>{`
+        /* ── Toast ── */
         .toast-container {
           position: fixed; bottom: 24px; right: 24px; z-index: 9999;
           display: flex; flex-direction: column; gap: 8px; pointer-events: none;
@@ -1744,7 +1648,7 @@ export default function DashboardHome() {
           border-radius: 10px; padding: 9px 14px;
           font-size: 12px; font-weight: 600; color: var(--txt);
           box-shadow: 0 8px 32px rgba(0,0,0,.2);
-          animation: slideUp .25s ease; pointer-events: all; max-width: 260px;
+          animation: aiSlideUp .25s ease; pointer-events: all; max-width: 260px;
         }
         .toast-success { border-color: rgba(16,185,129,.4); }
         .toast-error   { border-color: rgba(239,68,68,.4); }
@@ -1752,7 +1656,91 @@ export default function DashboardHome() {
           background: none; border: none; color: var(--mut);
           font-size: 16px; cursor: pointer; margin-left: auto; line-height: 1; padding: 0 2px;
         }
-        @keyframes slideUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes aiSlideUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+        /* ── AI Floating button — must be global (outside scoped component) ── */
+        .ai-fab {
+          position: fixed; bottom: 28px; right: 28px; z-index: 1200;
+          display: flex; align-items: center; gap: 6px;
+          background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+          color: #fff; border: none; border-radius: 50px;
+          padding: 10px 18px; font-size: 13px; font-weight: 700;
+          cursor: pointer; font-family: inherit;
+          box-shadow: 0 4px 20px rgba(99,102,241,.5);
+          transition: transform .15s, box-shadow .15s;
+        }
+        .ai-fab:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(99,102,241,.6); }
+        .ai-fab-icon { font-size: 16px; }
+
+        /* ── AI Chat Panel — must be global so position:fixed works from sub-component ── */
+        .ai-panel {
+          position: fixed; bottom: 90px; right: 28px; z-index: 1200;
+          width: 380px;
+          height: calc(100vh - 130px); max-height: 580px; min-height: 340px;
+          display: flex; flex-direction: column; overflow: hidden;
+          background: var(--s1); border: 1px solid rgba(99,102,241,.25);
+          border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,.3);
+          animation: aiSlideUp .2s ease;
+        }
+        .ai-panel-hd {
+          display: flex; align-items: center; justify-content: space-between;
+          padding: 12px 14px; border-bottom: 1px solid var(--bd);
+          background: linear-gradient(135deg, rgba(99,102,241,.12) 0%, rgba(139,92,246,.08) 100%);
+          border-radius: 16px 16px 0 0; flex-shrink: 0;
+        }
+        .ai-panel-title { display: flex; align-items: center; gap: 10px; }
+        .ai-panel-close {
+          background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
+          border-radius: 6px; font-size: 16px; color: var(--mut);
+          cursor: pointer; line-height: 1; padding: 3px 8px; transition: all .15s;
+        }
+        .ai-panel-close:hover { background: rgba(239,68,68,.15); color: #ef4444; border-color: #ef4444; }
+        .ai-msgs {
+          flex: 1; overflow-y: auto; padding: 12px;
+          display: flex; flex-direction: column; gap: 10px; min-height: 0;
+        }
+        .ai-msg { display: flex; gap: 8px; align-items: flex-start; }
+        .ai-msg-user { flex-direction: row-reverse; }
+        .ai-avatar { font-size: 18px; flex-shrink: 0; margin-top: 2px; }
+        .ai-bubble {
+          padding: 9px 12px; border-radius: 12px; font-size: 12.5px; line-height: 1.6;
+          max-width: 84%; word-break: break-word;
+        }
+        .ai-msg-assistant .ai-bubble { background: var(--s2); color: var(--txt); border-radius: 4px 12px 12px 12px; }
+        .ai-msg-user .ai-bubble { background: linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; border-radius: 12px 4px 12px 12px; }
+        .ai-typing { display: flex; align-items: center; gap: 4px; padding: 12px 16px; }
+        .ai-typing span { width: 7px; height: 7px; border-radius: 50%; background: var(--mut); animation: aiBounce 1.2s infinite; }
+        .ai-typing span:nth-child(2) { animation-delay: .2s; }
+        .ai-typing span:nth-child(3) { animation-delay: .4s; }
+        @keyframes aiBounce { 0%,80%,100%{transform:scale(0)} 40%{transform:scale(1)} }
+        .ai-suggests {
+          padding: 8px 12px; display: flex; flex-wrap: nowrap;
+          overflow-x: auto; gap: 6px; border-top: 1px solid var(--bd); flex-shrink: 0;
+          scrollbar-width: thin; scrollbar-color: var(--bd) transparent;
+        }
+        .ai-suggests::-webkit-scrollbar { height: 4px; }
+        .ai-suggests::-webkit-scrollbar-thumb { background: var(--bd); border-radius: 2px; }
+        .ai-suggest-btn {
+          padding: 6px 11px; background: rgba(99,102,241,.08); border: 1px solid rgba(99,102,241,.2);
+          border-radius: 20px; font-size: 11px; color: var(--txt);
+          cursor: pointer; font-family: inherit; white-space: nowrap; flex-shrink: 0; transition: background .15s;
+        }
+        .ai-suggest-btn:hover { background: rgba(99,102,241,.18); }
+        .ai-input-row { display: flex; gap: 7px; padding: 10px 12px; border-top: 1px solid var(--bd); flex-shrink: 0; }
+        .ai-input {
+          flex: 1; padding: 8px 12px; border: 1px solid var(--bd);
+          border-radius: 10px; background: var(--s2); color: var(--txt);
+          font-size: 12.5px; font-family: inherit; outline: none;
+        }
+        .ai-input:focus { border-color: #6366f1; }
+        .ai-input::placeholder { color: var(--mut); }
+        .ai-send-btn {
+          padding: 8px 14px; background: linear-gradient(135deg,#6366f1,#8b5cf6);
+          border: none; border-radius: 10px; color: #fff;
+          font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: opacity .15s;
+        }
+        .ai-send-btn:hover:not(:disabled) { opacity: .88; }
+        .ai-send-btn:disabled { opacity: .45; cursor: default; }
       `}</style>
     </DashboardLayout>
   )
