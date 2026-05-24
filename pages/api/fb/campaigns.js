@@ -2,11 +2,11 @@ import { getUserFromReq } from '../../../lib/auth'
 import { getSupabase } from '../../../lib/supabase'
 import { getUserFbData, callMeta } from '../../../lib/metaApi'
 
-const PURCHASE_TYPES   = ['purchase', 'offsite_conversion.fb_pixel_purchase', 'omni_purchase']
-const CART_TYPES       = ['add_to_cart', 'omni_add_to_cart']
-const CHECKOUT_TYPES   = ['initiate_checkout', 'omni_initiated_checkout']
-const VIEW_TYPES       = ['view_content', 'omni_view_content']
-const LEAD_TYPES       = ['lead', 'onsite_conversion.lead_grouped']
+const PURCHASE_TYPES  = ['purchase', 'offsite_conversion.fb_pixel_purchase', 'omni_purchase']
+const CART_TYPES      = ['add_to_cart', 'omni_add_to_cart']
+const CHECKOUT_TYPES  = ['initiate_checkout', 'omni_initiated_checkout']
+const VIEW_TYPES      = ['view_content', 'omni_view_content']
+const LEAD_TYPES      = ['lead', 'onsite_conversion.lead_grouped']
 
 function extractAction(actions, types) {
   if (!actions || !Array.isArray(actions)) return 0
@@ -28,20 +28,20 @@ function extractRevenue(actionValues) {
 
 function parseInsights(ins) {
   if (!ins) return {}
-  const spend        = Number(ins.spend) || 0
-  const impressions  = Number(ins.impressions) || 0
-  const clicks       = Number(ins.clicks) || 0
-  const ctr          = Number(ins.ctr) || 0
-  const reach        = Number(ins.reach) || 0
-  const frequency    = reach > 0 ? impressions / reach : 0
-  const cpm          = impressions > 0 ? (spend / impressions * 1000) : 0
-  const linkClicks   = extractAction(ins.actions, ['link_click', 'outbound_click'])
-  const purchases    = extractAction(ins.actions, PURCHASE_TYPES)
-  const addToCart    = extractAction(ins.actions, CART_TYPES)
-  const checkout     = extractAction(ins.actions, CHECKOUT_TYPES)
-  const viewContent  = extractAction(ins.actions, VIEW_TYPES)
-  const leads        = extractAction(ins.actions, LEAD_TYPES)
-  const revenue      = extractRevenue(ins.action_values)
+  const spend       = Number(ins.spend) || 0
+  const impressions = Number(ins.impressions) || 0
+  const clicks      = Number(ins.clicks) || 0
+  const ctr         = Number(ins.ctr) || 0
+  const reach       = Number(ins.reach) || 0
+  const frequency   = reach > 0 ? impressions / reach : 0
+  const cpm         = impressions > 0 ? (spend / impressions * 1000) : 0
+  const linkClicks  = extractAction(ins.actions, ['link_click', 'outbound_click'])
+  const purchases   = extractAction(ins.actions, PURCHASE_TYPES)
+  const addToCart   = extractAction(ins.actions, CART_TYPES)
+  const checkout    = extractAction(ins.actions, CHECKOUT_TYPES)
+  const viewContent = extractAction(ins.actions, VIEW_TYPES)
+  const leads       = extractAction(ins.actions, LEAD_TYPES)
+  const revenue     = extractRevenue(ins.action_values)
   const purchaseRoas = ins.purchase_roas
     ? Number(Array.isArray(ins.purchase_roas) ? ins.purchase_roas[0]?.value : ins.purchase_roas) || 0
     : (spend > 0 && revenue > 0 ? revenue / spend : 0)
@@ -53,16 +53,11 @@ function parseInsights(ins) {
   }
 }
 
+// Safe proven fields — computed locally: cpm, frequency, linkClicks
 const INSIGHT_FIELDS = [
   'spend', 'impressions', 'clicks', 'ctr', 'reach',
   'actions', 'action_values', 'purchase_roas'
 ].join(',')
-
-function buildStatusFilter(filterStatus, isCampaign) {
-  if (filterStatus === 'ACTIVE') return ['ACTIVE']
-  if (filterStatus === 'PAUSED') return isCampaign ? ['PAUSED'] : ['PAUSED', 'CAMPAIGN_PAUSED']
-  return isCampaign ? ['ACTIVE', 'PAUSED'] : ['ACTIVE', 'PAUSED', 'CAMPAIGN_PAUSED']
-}
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' })
@@ -77,130 +72,169 @@ export default async function handler(req, res) {
   const { token, accounts } = fbData
   const {
     date_preset    = 'today',
+    since, until,                          // custom date range
     account_id: filterAccountId,
-    status: filterStatus = 'ALL',
+    status: filterStatus  = 'ALL',
     compare        = 'false',
     level          = 'adset',
     campaign_id: filterCampaignId,
     objective: filterObjective,
   } = req.query
 
-  const doCompare    = compare === 'true'
-  const isCampaign   = level === 'campaign'
+  const doCompare   = compare === 'true'
+  const isCampaign  = level === 'campaign'
   const targetAccounts = filterAccountId
     ? accounts.filter(a => a.account_id === filterAccountId)
     : accounts
+
+  // Time params — prefer custom range over preset
+  const timeParams = (since && until)
+    ? { time_range: JSON.stringify({ since, until }) }
+    : { date_preset }
 
   const allItems = []
 
   for (const account of targetAccounts) {
     try {
-      const statusFilter = buildStatusFilter(filterStatus, isCampaign)
-      const filtering    = [{ field: 'effective_status', operator: 'IN', value: statusFilter }]
-
       if (isCampaign) {
-        // ── CAMPAIGN LEVEL ──────────────────────────────────────────
-        const campaignsRes = await callMeta(
-          `${account.account_id}/campaigns`, token,
-          {
-            fields: 'id,name,status,effective_status,objective,daily_budget,lifetime_budget,budget_remaining',
-            limit: '200',
-            filtering: JSON.stringify(filtering)
-          }
-        )
-        const campaigns = campaignsRes?.data || []
-        if (!campaigns.length) continue
-
-        const [insRes, insResY] = await Promise.all([
+        // ── INSIGHTS-FIRST: campaign level ──────────────────────────
+        // Fetch insights (covers ALL campaigns with spend, including archived/deleted)
+        // + current campaign meta in parallel for budget/status
+        const [insRes, metaRes, insResY] = await Promise.all([
           callMeta(`${account.account_id}/insights`, token, {
-            fields: `campaign_id,${INSIGHT_FIELDS}`, date_preset, level: 'campaign', limit: '500'
+            fields: `campaign_id,campaign_name,objective,${INSIGHT_FIELDS}`,
+            ...timeParams,
+            level: 'campaign',
+            limit: '500',
+          }),
+          callMeta(`${account.account_id}/campaigns`, token, {
+            fields: 'id,status,effective_status,objective,daily_budget,lifetime_budget,budget_remaining',
+            filtering: JSON.stringify([{ field: 'effective_status', operator: 'IN', value: ['ACTIVE', 'PAUSED', 'ARCHIVED'] }]),
+            limit: '500',
           }),
           doCompare ? callMeta(`${account.account_id}/insights`, token, {
-            fields: `campaign_id,${INSIGHT_FIELDS}`, date_preset: 'yesterday', level: 'campaign', limit: '500'
-          }) : Promise.resolve(null)
+            fields: `campaign_id,${INSIGHT_FIELDS}`,
+            date_preset: 'yesterday',
+            level: 'campaign',
+            limit: '500',
+          }) : Promise.resolve(null),
         ])
 
-        const insMap  = Object.fromEntries((insRes?.data  || []).map(x => [x.campaign_id, x]))
-        const insMapY = Object.fromEntries((insResY?.data || []).map(x => [x.campaign_id, x]))
+        const insData  = insRes?.data  || []
+        const metaMap  = Object.fromEntries((metaRes?.data  || []).map(c => [c.id, c]))
+        const insMapY  = Object.fromEntries((insResY?.data  || []).map(x => [x.campaign_id, x]))
 
-        for (const c of campaigns) {
-          if (filterObjective && c.objective !== filterObjective) continue
-          const today     = parseInsights(insMap[c.id])
-          const yesterday = doCompare ? parseInsights(insMapY[c.id]) : null
-          const dailyBudget    = c.daily_budget     ? Number(c.daily_budget)     / 100 : null
-          const lifetimeBudget = c.lifetime_budget  ? Number(c.lifetime_budget)  / 100 : null
-          const budgetRemaining= c.budget_remaining ? Number(c.budget_remaining) / 100 : null
+        for (const ins of insData) {
+          const meta            = metaMap[ins.campaign_id] || {}
+          const effectiveStatus = meta.effective_status || 'ARCHIVED'
+
+          // Status filter
+          if (filterStatus === 'ACTIVE' && effectiveStatus !== 'ACTIVE') continue
+          if (filterStatus === 'PAUSED' && !['PAUSED', 'CAMPAIGN_PAUSED'].includes(effectiveStatus)) continue
+
+          const objective = ins.objective || meta.objective || ''
+          if (filterObjective && objective !== filterObjective) continue
+
+          const today           = parseInsights(ins)
+          const yesterday       = doCompare ? parseInsights(insMapY[ins.campaign_id]) : null
+          const dailyBudget     = meta.daily_budget     ? Number(meta.daily_budget)     / 100 : null
+          const lifetimeBudget  = meta.lifetime_budget  ? Number(meta.lifetime_budget)  / 100 : null
+          const budgetRemaining = meta.budget_remaining ? Number(meta.budget_remaining) / 100 : null
           const effectiveBudget = dailyBudget || lifetimeBudget || 0
           const budgetUtilPct   = effectiveBudget > 0 && today.spend > 0
             ? Math.round((today.spend / effectiveBudget) * 100) : 0
 
           allItems.push({
-            id: c.id, name: c.name, status: c.status, effective_status: c.effective_status,
-            objective: c.objective || '', level: 'campaign',
+            id: ins.campaign_id,
+            name: ins.campaign_name || ins.campaign_id,
+            status: meta.status || effectiveStatus,
+            effective_status: effectiveStatus,
+            objective, level: 'campaign',
             account_id: account.account_id, account_name: account.account_name,
             currency: account.currency || 'VND',
             daily_budget: dailyBudget, lifetime_budget: lifetimeBudget,
             budget_remaining: budgetRemaining, budget_util_pct: budgetUtilPct,
             ...today,
             ...(doCompare && {
-              yesterday_spend: yesterday?.spend ?? 0, yesterday_purchases: yesterday?.purchases ?? 0,
-              yesterday_cpa: yesterday?.cpa ?? 0, yesterday_roas: yesterday?.roas ?? 0,
-              yesterday_revenue: yesterday?.revenue ?? 0,
+              yesterday_spend:     yesterday?.spend     ?? 0,
+              yesterday_purchases: yesterday?.purchases ?? 0,
+              yesterday_cpa:       yesterday?.cpa       ?? 0,
+              yesterday_roas:      yesterday?.roas      ?? 0,
+              yesterday_revenue:   yesterday?.revenue   ?? 0,
             })
           })
         }
 
       } else {
-        // ── ADSET LEVEL ─────────────────────────────────────────────
+        // ── INSIGHTS-FIRST: adset level ─────────────────────────────
+        const insightFiltering = []
         if (filterCampaignId) {
-          filtering.push({ field: 'campaign.id', operator: 'EQUAL', value: filterCampaignId })
+          insightFiltering.push({ field: 'campaign.id', operator: 'EQUAL', value: filterCampaignId })
         }
 
-        const adsetsRes = await callMeta(
-          `${account.account_id}/adsets`, token,
-          {
+        const [insRes, metaRes, insResY] = await Promise.all([
+          callMeta(`${account.account_id}/insights`, token, {
+            fields: `adset_id,adset_name,campaign_id,campaign_name,${INSIGHT_FIELDS}`,
+            ...timeParams,
+            level: 'adset',
+            limit: '500',
+            ...(insightFiltering.length && { filtering: JSON.stringify(insightFiltering) }),
+          }),
+          // Current adset meta for budget & status
+          callMeta(`${account.account_id}/adsets`, token, {
             fields: [
-              'id', 'name', 'status', 'effective_status', 'campaign_id',
+              'id', 'status', 'effective_status', 'campaign_id',
               'campaign{id,name,status,effective_status,objective}',
               'daily_budget', 'lifetime_budget', 'budget_remaining'
             ].join(','),
-            limit: '200',
-            filtering: JSON.stringify(filtering)
-          }
-        )
-        const adsets = adsetsRes?.data || []
-        if (!adsets.length) continue
-
-        const [insRes, insResY] = await Promise.all([
-          callMeta(`${account.account_id}/insights`, token, {
-            fields: `adset_id,${INSIGHT_FIELDS}`, date_preset, level: 'adset', limit: '500'
+            filtering: JSON.stringify([{ field: 'effective_status', operator: 'IN', value: ['ACTIVE', 'PAUSED', 'CAMPAIGN_PAUSED', 'ARCHIVED'] }]),
+            limit: '500',
+            ...(filterCampaignId && { filtering: JSON.stringify([
+              { field: 'effective_status', operator: 'IN', value: ['ACTIVE', 'PAUSED', 'CAMPAIGN_PAUSED', 'ARCHIVED'] },
+              { field: 'campaign.id', operator: 'EQUAL', value: filterCampaignId }
+            ]) }),
           }),
           doCompare ? callMeta(`${account.account_id}/insights`, token, {
-            fields: `adset_id,${INSIGHT_FIELDS}`, date_preset: 'yesterday', level: 'adset', limit: '500'
-          }) : Promise.resolve(null)
+            fields: `adset_id,${INSIGHT_FIELDS}`,
+            date_preset: 'yesterday',
+            level: 'adset',
+            limit: '500',
+            ...(insightFiltering.length && { filtering: JSON.stringify(insightFiltering) }),
+          }) : Promise.resolve(null),
         ])
 
-        const insMap  = Object.fromEntries((insRes?.data  || []).map(x => [x.adset_id, x]))
-        const insMapY = Object.fromEntries((insResY?.data || []).map(x => [x.adset_id, x]))
+        const insData = insRes?.data  || []
+        const metaMap = Object.fromEntries((metaRes?.data  || []).map(a => [a.id, a]))
+        const insMapY = Object.fromEntries((insResY?.data  || []).map(x => [x.adset_id, x]))
 
-        for (const adset of adsets) {
-          const objective = adset.campaign?.objective || ''
+        for (const ins of insData) {
+          const meta            = metaMap[ins.adset_id] || {}
+          const effectiveStatus = meta.effective_status || 'ARCHIVED'
+          const objective       = meta.campaign?.objective || ''
+
+          // Status filter
+          if (filterStatus === 'ACTIVE' && effectiveStatus !== 'ACTIVE') continue
+          if (filterStatus === 'PAUSED' && !['PAUSED', 'CAMPAIGN_PAUSED'].includes(effectiveStatus)) continue
           if (filterObjective && objective !== filterObjective) continue
-          const today     = parseInsights(insMap[adset.id])
-          const yesterday = doCompare ? parseInsights(insMapY[adset.id]) : null
-          const dailyBudget    = adset.daily_budget     ? Number(adset.daily_budget)     / 100 : null
-          const lifetimeBudget = adset.lifetime_budget  ? Number(adset.lifetime_budget)  / 100 : null
-          const budgetRemaining= adset.budget_remaining ? Number(adset.budget_remaining) / 100 : null
+
+          const today           = parseInsights(ins)
+          const yesterday       = doCompare ? parseInsights(insMapY[ins.adset_id]) : null
+          const dailyBudget     = meta.daily_budget     ? Number(meta.daily_budget)     / 100 : null
+          const lifetimeBudget  = meta.lifetime_budget  ? Number(meta.lifetime_budget)  / 100 : null
+          const budgetRemaining = meta.budget_remaining ? Number(meta.budget_remaining) / 100 : null
           const effectiveBudget = dailyBudget || lifetimeBudget || 0
           const budgetUtilPct   = effectiveBudget > 0 && today.spend > 0
             ? Math.round((today.spend / effectiveBudget) * 100) : 0
 
           allItems.push({
-            id: adset.id, name: adset.name, status: adset.status, effective_status: adset.effective_status,
-            campaign_id: adset.campaign?.id || adset.campaign_id,
-            campaign_name: adset.campaign?.name || '',
-            campaign_status: adset.campaign?.status || '',
-            campaign_effective_status: adset.campaign?.effective_status || '',
+            id: ins.adset_id,
+            name: ins.adset_name || ins.adset_id,
+            status: meta.status || effectiveStatus,
+            effective_status: effectiveStatus,
+            campaign_id: ins.campaign_id,
+            campaign_name: ins.campaign_name || meta.campaign?.name || '',
+            campaign_status: meta.campaign?.status || '',
+            campaign_effective_status: meta.campaign?.effective_status || '',
             objective, level: 'adset',
             account_id: account.account_id, account_name: account.account_name,
             currency: account.currency || 'VND',
@@ -208,9 +242,11 @@ export default async function handler(req, res) {
             budget_remaining: budgetRemaining, budget_util_pct: budgetUtilPct,
             ...today,
             ...(doCompare && {
-              yesterday_spend: yesterday?.spend ?? 0, yesterday_purchases: yesterday?.purchases ?? 0,
-              yesterday_cpa: yesterday?.cpa ?? 0, yesterday_roas: yesterday?.roas ?? 0,
-              yesterday_revenue: yesterday?.revenue ?? 0,
+              yesterday_spend:     yesterday?.spend     ?? 0,
+              yesterday_purchases: yesterday?.purchases ?? 0,
+              yesterday_cpa:       yesterday?.cpa       ?? 0,
+              yesterday_roas:      yesterday?.roas      ?? 0,
+              yesterday_revenue:   yesterday?.revenue   ?? 0,
             })
           })
         }

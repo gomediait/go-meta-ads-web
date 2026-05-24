@@ -6,17 +6,38 @@ import { useAuth } from '../../lib/AuthContext'
 const PAGE_SIZE = 20
 
 const DATE_PRESETS = [
-  { value: 'today',                label: 'Hôm nay'     },
-  { value: 'yesterday',            label: 'Hôm qua'     },
-  { value: 'last_7_days',          label: '7 ngày'      },
-  { value: 'last_14_days',         label: '14 ngày'     },
-  { value: 'last_28_days',         label: '28 ngày'     },
-  { value: 'last_30_days',         label: '30 ngày'     },
-  { value: 'this_week_mon_today',  label: 'Tuần này'    },
-  { value: 'last_week_mon_sun',    label: 'Tuần trước'  },
-  { value: 'this_month',           label: 'Tháng này'   },
-  { value: 'last_month',           label: 'Tháng trước' },
+  { value: 'today',               label: 'Hôm nay'       },
+  { value: 'yesterday',           label: 'Hôm qua'       },
+  { value: 'last_7_days',         label: '7 ngày'        },
+  { value: 'last_14_days',        label: '14 ngày'       },
+  { value: 'last_28_days',        label: '28 ngày'       },
+  { value: 'last_30_days',        label: '30 ngày'       },
+  { value: 'last_90_days',        label: '90 ngày'       },
+  { value: 'this_week_mon_today', label: 'Tuần này'      },
+  { value: 'last_week_mon_sun',   label: 'Tuần trước'    },
+  { value: 'this_month',          label: 'Tháng này'     },
+  { value: 'last_month',          label: 'Tháng trước'   },
+  { value: 'this_quarter',        label: 'Quý này'       },
+  { value: 'this_year',           label: 'Năm nay'       },
+  { value: 'last_year',           label: 'Năm ngoái'     },
+  { value: 'maximum',             label: 'Toàn thời gian'},
+  { value: 'custom',              label: '📅 Tùy chỉnh'  },
 ]
+
+function getCustomTimeRange(preset) {
+  const now   = new Date()
+  const yyyy  = now.getFullYear()
+  const pad   = n => String(n).padStart(2, '0')
+  const fmt   = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`
+  const today = fmt(now)
+  if (preset === 'this_year') {
+    return { since: `${yyyy}-01-01`, until: today }
+  }
+  if (preset === 'last_year') {
+    return { since: `${yyyy-1}-01-01`, until: `${yyyy-1}-12-31` }
+  }
+  return null
+}
 
 const OBJECTIVES = [
   { value: '',                    label: 'Tất cả mục tiêu' },
@@ -232,6 +253,7 @@ export default function DashboardHome() {
   const [filters, setFilters] = useState({
     search: '', account_id: '', status: 'ALL',
     date_preset: 'today', compare: false,
+    since: '', until: '',
     campaign_id: '', objective: '',
     cpa_max: '', roas_min: '', spend_min: '',
   })
@@ -264,14 +286,26 @@ export default function DashboardHome() {
     setPage(1)
     setSelectedIds(new Set())
     try {
+      // Resolve custom/computed presets to time_range
+      let since = filters.since, until = filters.until
+      let datePreset = filters.date_preset
+      if (['this_year', 'last_year'].includes(datePreset)) {
+        const range = getCustomTimeRange(datePreset)
+        if (range) { since = range.since; until = range.until; datePreset = '' }
+      }
+      const isCustom = datePreset === 'custom'
+
       const params = new URLSearchParams({
-        date_preset: filters.date_preset,
-        status: filters.status,
+        status:  filters.status,
         compare: filters.compare ? 'true' : 'false',
         level,
         ...(filters.account_id  && { account_id:  filters.account_id  }),
         ...(filters.campaign_id && { campaign_id: filters.campaign_id }),
         ...(filters.objective   && { objective:   filters.objective   }),
+        // custom or computed range
+        ...((isCustom || datePreset === '') && since && until
+          ? { since, until }
+          : { date_preset: isCustom ? 'today' : datePreset }),
       })
       const res  = await fetch(`/api/fb/campaigns?${params}`, { signal: ctrl.signal })
       if (!res.ok) throw new Error('API error')
@@ -286,7 +320,8 @@ export default function DashboardHome() {
       setLoading(false)
     }
   }, [fbConnected, level, filters.date_preset, filters.status, filters.compare,
-      filters.account_id, filters.campaign_id, filters.objective])
+      filters.account_id, filters.campaign_id, filters.objective,
+      filters.since, filters.until])
 
   useEffect(() => { fetchAdsets() }, [fetchAdsets])
 
@@ -513,6 +548,25 @@ export default function DashboardHome() {
                 <select className="filter-sel filter-sel--date" value={filters.date_preset} onChange={e => setFilter('date_preset', e.target.value)}>
                   {DATE_PRESETS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
                 </select>
+
+                {filters.date_preset === 'custom' && (
+                  <div className="custom-range">
+                    <input
+                      type="date" className="filter-date-input"
+                      value={filters.since}
+                      onChange={e => setFilter('since', e.target.value)}
+                    />
+                    <span className="custom-range-sep">→</span>
+                    <input
+                      type="date" className="filter-date-input"
+                      value={filters.until}
+                      onChange={e => setFilter('until', e.target.value)}
+                    />
+                    {filters.since && filters.until && (
+                      <button className="custom-range-go" onClick={fetchAdsets}>Áp dụng</button>
+                    )}
+                  </div>
+                )}
 
                 <select className="filter-sel" value={filters.status} onChange={e => setFilter('status', e.target.value)}>
                   <option value="ALL">Tất cả trạng thái</option>
@@ -957,6 +1011,24 @@ export default function DashboardHome() {
         }
         .filter-refresh:hover:not(:disabled) { background: var(--s3); }
         .filter-refresh:disabled { opacity: .6; cursor: default; }
+
+        .custom-range {
+          display: flex; align-items: center; gap: 5px; flex-wrap: nowrap;
+        }
+        .filter-date-input {
+          padding: 6px 8px; border: 1px solid var(--bd); border-radius: 8px;
+          background: var(--s2); color: var(--txt); font-size: 12px;
+          font-family: inherit; outline: none; cursor: pointer;
+        }
+        .filter-date-input:focus { border-color: var(--blue); }
+        .custom-range-sep { font-size: 12px; color: var(--mut); flex-shrink: 0; }
+        .custom-range-go {
+          padding: 6px 12px; background: var(--blue); border: none;
+          border-radius: 8px; font-size: 12px; font-weight: 700;
+          color: #fff; cursor: pointer; font-family: inherit; white-space: nowrap;
+          transition: opacity .15s;
+        }
+        .custom-range-go:hover { opacity: .85; }
 
         .col-picker-wrap { position: relative; margin-left: auto; }
         .col-picker-btn {
