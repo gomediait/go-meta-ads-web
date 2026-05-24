@@ -11,9 +11,9 @@ function buildSummary(campaigns) {
     const msgs    = c.messages  || 0
     const engage  = c.engagement || 0
     const warns   = []
-    if (c.budget_util_pct >= 85)                          warns.push('NS gần hết')
-    if (c.spend > 200000 && !c.purchases && !c.leads)     warns.push('Không chuyển đổi')
-    if (c.roas > 0 && c.roas < 1)                        warns.push('ROAS<1 lỗ tiền')
+    if (c.budget_util_pct >= 85)                      warns.push('NS gần hết')
+    if (c.spend > 200000 && !c.purchases && !c.leads) warns.push('Không chuyển đổi')
+    if (c.roas > 0 && c.roas < 1)                    warns.push('ROAS<1 lỗ tiền')
     return `• [${c.effective_status}] ${c.name} | Chi: ${s}${spend} | NS: ${budget} | Mua: ${c.purchases||0} | Lead: ${c.leads||0} | Tin nhắn: ${msgs} | Tương tác: ${engage} | ROAS: ${roas} | CPA: ${cpa}${warns.length ? ' ⚠️ ' + warns.join(', ') : ''}`
   }).join('\n')
 }
@@ -27,7 +27,8 @@ export default async function handler(req, res) {
   const { message, campaigns, history = [] } = req.body
   if (!message?.trim()) return res.status(400).json({ error: 'Thiếu câu hỏi' })
 
-  if (!process.env.ANTHROPIC_API_KEY) {
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) {
     return res.status(503).json({ error: 'AI chưa được cấu hình. Vui lòng thêm ANTHROPIC_API_KEY vào Vercel.' })
   }
 
@@ -39,30 +40,42 @@ DỮ LIỆU CHIẾN DỊCH ĐANG XEM (${campaigns?.length || 0} mục):
 ${summary}`
 
   const messages = [
+    { role: 'system', content: systemPrompt },
     ...history.slice(-8).map(m => ({ role: m.role, content: m.content })),
     { role: 'user', content: message }
   ]
 
   try {
-    const apiRes = await fetch('https://api.anthropic.com/v1/messages', {
+    // shopaikey.com uses OpenAI-compatible format
+    const apiRes = await fetch('https://api.shopaikey.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
+        'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 1024,
-        system: systemPrompt,
         messages,
       })
     })
+
+    if (!apiRes.ok) {
+      const errText = await apiRes.text()
+      console.error('[campaign-chat] ShopAIKey error:', apiRes.status, errText.slice(0, 300))
+      return res.status(502).json({ error: `AI lỗi HTTP ${apiRes.status}. Vui lòng thử lại.` })
+    }
+
     const data = await apiRes.json()
-    if (data.error) throw new Error(data.error.message || 'API error')
-    return res.json({ reply: data.content?.[0]?.text || 'Không có phản hồi.' })
+    // OpenAI-compatible response: choices[0].message.content
+    const reply = data.choices?.[0]?.message?.content
+    if (!reply) {
+      console.error('[campaign-chat] Unexpected response:', JSON.stringify(data).slice(0, 300))
+      return res.json({ reply: 'Không có phản hồi từ AI.' })
+    }
+    return res.json({ reply })
   } catch (err) {
-    console.error('[AI Chat]', err)
-    return res.status(500).json({ error: 'Lỗi AI: ' + err.message })
+    console.error('[campaign-chat]', err)
+    return res.status(500).json({ error: 'Lỗi kết nối AI: ' + err.message })
   }
 }
