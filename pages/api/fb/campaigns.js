@@ -113,7 +113,19 @@ export default async function handler(req, res) {
 
   const allItems = []
 
+  // Meta API returns budgets in minor currency unit (cents) for USD/EUR/etc.
+  // For zero-decimal currencies (VND, JPY, KRW, IDR) Meta returns the raw amount directly.
+  const ZERO_DECIMAL = new Set(['VND', 'JPY', 'KRW', 'IDR', 'CLP', 'ISK', 'HUF', 'TWD'])
+
   for (const account of targetAccounts) {
+    const budgetDiv = ZERO_DECIMAL.has(account.currency || 'VND') ? 1 : 100
+
+    function parseBudget(raw) {
+      if (!raw) return null
+      const n = Number(raw)
+      return n ? n / budgetDiv : null
+    }
+
     try {
       if (isCampaign) {
         // ── INSIGHTS-FIRST: campaign level ──────────────────────────
@@ -153,9 +165,9 @@ export default async function handler(req, res) {
 
           const today           = parseInsights(ins)
           const yesterday       = doCompare ? parseInsights(insMapY[ins.campaign_id]) : null
-          const dailyBudget     = meta.daily_budget     ? Number(meta.daily_budget)     / 100 : null
-          const lifetimeBudget  = meta.lifetime_budget  ? Number(meta.lifetime_budget)  / 100 : null
-          const budgetRemaining = meta.budget_remaining ? Number(meta.budget_remaining) / 100 : null
+          const dailyBudget     = parseBudget(meta.daily_budget)
+          const lifetimeBudget  = parseBudget(meta.lifetime_budget)
+          const budgetRemaining = parseBudget(meta.budget_remaining)
           const effectiveBudget = dailyBudget || lifetimeBudget || 0
           const budgetUtilPct   = effectiveBudget > 0 && today.spend > 0
             ? Math.round((today.spend / effectiveBudget) * 100) : 0
@@ -234,9 +246,9 @@ export default async function handler(req, res) {
 
           const today           = parseInsights(ins)
           const yesterday       = doCompare ? parseInsights(insMapY[ins.adset_id]) : null
-          const dailyBudget     = meta.daily_budget     ? Number(meta.daily_budget)     / 100 : null
-          const lifetimeBudget  = meta.lifetime_budget  ? Number(meta.lifetime_budget)  / 100 : null
-          const budgetRemaining = meta.budget_remaining ? Number(meta.budget_remaining) / 100 : null
+          const dailyBudget     = parseBudget(meta.daily_budget)
+          const lifetimeBudget  = parseBudget(meta.lifetime_budget)
+          const budgetRemaining = parseBudget(meta.budget_remaining)
           const effectiveBudget = dailyBudget || lifetimeBudget || 0
           const budgetUtilPct   = effectiveBudget > 0 && today.spend > 0
             ? Math.round((today.spend / effectiveBudget) * 100) : 0
