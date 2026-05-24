@@ -112,6 +112,7 @@ export default async function handler(req, res) {
     : { date_preset }
 
   const allItems = []
+  const metaErrors = []
 
   // Meta API returns budgets in minor currency unit (cents) for USD/EUR/etc.
   // For zero-decimal currencies (VND, JPY, KRW, IDR) Meta returns the raw amount directly.
@@ -120,7 +121,7 @@ export default async function handler(req, res) {
   for (const account of targetAccounts) {
     const budgetDiv = ZERO_DECIMAL.has(account.currency || 'VND') ? 1 : 100
 
-    function parseBudget(raw) {
+    const parseBudget = (raw) => {
       if (!raw) return null
       const n = Number(raw)
       return n ? n / budgetDiv : null
@@ -148,6 +149,11 @@ export default async function handler(req, res) {
           }) : Promise.resolve(null),
         ])
 
+        if (insRes?.error) {
+          const msg = insRes.error.message || JSON.stringify(insRes.error)
+          metaErrors.push({ account: account.account_id, error: msg })
+          console.error('[campaigns] insights error (campaign):', account.account_id, insRes.error)
+        }
         const insData  = insRes?.data  || []
         const metaMap  = Object.fromEntries((metaRes?.data  || []).map(c => [c.id, c]))
         const insMapY  = Object.fromEntries((insResY?.data  || []).map(x => [x.campaign_id, x]))
@@ -230,6 +236,11 @@ export default async function handler(req, res) {
           }) : Promise.resolve(null),
         ])
 
+        if (insRes?.error) {
+          const msg = insRes.error.message || JSON.stringify(insRes.error)
+          metaErrors.push({ account: account.account_id, error: msg })
+          console.error('[campaigns] insights error (adset):', account.account_id, insRes.error)
+        }
         const insData = insRes?.data  || []
         const metaMap = Object.fromEntries((metaRes?.data  || []).map(a => [a.id, a]))
         const insMapY = Object.fromEntries((insResY?.data  || []).map(x => [x.adset_id, x]))
@@ -290,5 +301,10 @@ export default async function handler(req, res) {
     return (b.spend || 0) - (a.spend || 0)
   })
 
-  return res.json({ ok: true, adsets: allItems, accounts: targetAccounts })
+  return res.json({
+    ok: true,
+    adsets: allItems,
+    accounts: targetAccounts,
+    ...(metaErrors.length && { meta_errors: metaErrors })
+  })
 }
