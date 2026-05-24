@@ -51,7 +51,6 @@ export default async function handler(req, res) {
         subject: subject.trim(),
         message: message.trim(),
         priority,
-        issue_type,
         status: 'open',
         replies: [],
       }).select().single()

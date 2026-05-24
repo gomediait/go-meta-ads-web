@@ -18,7 +18,6 @@ export default function Navbar() {
     [t.nav.guide,     '/huong-dan'],
     [t.nav.affiliate, '/affiliate'],
     [t.nav.download,  '/register'],
-    [lang === 'en' ? '🎫 Support' : '🎫 Hỗ trợ', '/ho-tro'],
   ]
 
   return (
