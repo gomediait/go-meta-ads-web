@@ -8,9 +8,9 @@ const PAGE_SIZE = 20
 const DATE_PRESETS = [
   { value: 'today',                label: 'Hôm nay'     },
   { value: 'yesterday',            label: 'Hôm qua'     },
-  { value: 'last_3_days',          label: '3 ngày'      },
   { value: 'last_7_days',          label: '7 ngày'      },
   { value: 'last_14_days',         label: '14 ngày'     },
+  { value: 'last_28_days',         label: '28 ngày'     },
   { value: 'last_30_days',         label: '30 ngày'     },
   { value: 'this_week_mon_today',  label: 'Tuần này'    },
   { value: 'last_week_mon_sun',    label: 'Tuần trước'  },
@@ -39,6 +39,15 @@ function fmtVnd(v) {
 }
 function fmtNum(v) {
   if (v == null || isNaN(v) || v === 0) return '—'
+  return Number(v).toLocaleString('vi-VN')
+}
+// For stats bar: show 0 as "0" not "—"
+function fmtStatVnd(v) {
+  if (v == null || isNaN(v)) return '—'
+  return Number(v).toLocaleString('vi-VN')
+}
+function fmtStatNum(v) {
+  if (v == null || isNaN(v)) return '0'
   return Number(v).toLocaleString('vi-VN')
 }
 function fmtCtr(v)  { return v ? Number(v).toFixed(2) + '%' : '0.00%' }
@@ -87,7 +96,7 @@ function SkeletonRows({ cols }) {
 }
 
 function BudgetBar({ budget, spend, pct }) {
-  const color = pct >= 90 ? 'var(--red)' : pct >= 70 ? 'var(--ylw)' : 'var(--grn)'
+  const color = pct >= 85 ? 'var(--red)' : pct >= 65 ? 'var(--ylw)' : 'var(--grn)'
   return (
     <div className="budget-cell">
       <div className="budget-text">
@@ -309,12 +318,12 @@ export default function DashboardHome() {
     if (roasMin > 0) list = list.filter(a => a.roas === 0 || a.roas >= roasMin)
 
     list.sort((a, b) => {
-      let av = a[sortBy] ?? 0, bv = b[sortBy] ?? 0
       if (sortBy === 'spend') {
-        const aA = a.effective_status === 'ACTIVE' ? 0 : 1
-        const bA = b.effective_status === 'ACTIVE' ? 0 : 1
-        if (aA !== bA) return aA - bA
+        const aScore = (a.effective_status === 'ACTIVE' ? 2 : 0) + ((a.spend || 0) > 0 ? 1 : 0)
+        const bScore = (b.effective_status === 'ACTIVE' ? 2 : 0) + ((b.spend || 0) > 0 ? 1 : 0)
+        if (aScore !== bScore) return sortDir === 'desc' ? bScore - aScore : aScore - bScore
       }
+      let av = a[sortBy] ?? 0, bv = b[sortBy] ?? 0
       if (typeof av === 'string') av = av.toLowerCase()
       if (typeof bv === 'string') bv = bv.toLowerCase()
       return av < bv ? (sortDir === 'asc' ? -1 : 1) : av > bv ? (sortDir === 'asc' ? 1 : -1) : 0
@@ -584,22 +593,22 @@ export default function DashboardHome() {
               </div>
               <div className="stat-sep" />
               <div className="stat-item">
-                <div className="stat-num">₫{fmtVnd(Math.round(stats.totalSpend))}</div>
+                <div className="stat-num">₫{fmtStatVnd(Math.round(stats.totalSpend))}</div>
                 <div className="stat-lbl">Tổng chi tiêu</div>
               </div>
               <div className="stat-sep" />
               <div className="stat-item">
-                <div className="stat-num">₫{fmtVnd(Math.round(stats.totalBudget))}</div>
+                <div className="stat-num">₫{fmtStatVnd(Math.round(stats.totalBudget))}</div>
                 <div className="stat-lbl">Tổng NS/ngày</div>
               </div>
               <div className="stat-sep" />
               <div className="stat-item">
-                <div className="stat-num stat-green">{fmtNum(stats.totalPurchases)}</div>
+                <div className="stat-num stat-green">{fmtStatNum(stats.totalPurchases)}</div>
                 <div className="stat-lbl">Lượt mua</div>
               </div>
               <div className="stat-sep" />
               <div className="stat-item">
-                <div className="stat-num">₫{fmtVnd(Math.round(stats.totalRevenue))}</div>
+                <div className="stat-num">₫{fmtStatVnd(Math.round(stats.totalRevenue))}</div>
                 <div className="stat-lbl">Doanh thu</div>
               </div>
               <div className="stat-sep" />
@@ -609,17 +618,17 @@ export default function DashboardHome() {
               </div>
               <div className="stat-sep" />
               <div className="stat-item">
-                <div className="stat-num">{stats.avgCpa > 0 ? '₫' + fmtVnd(Math.round(stats.avgCpa)) : '—'}</div>
+                <div className="stat-num">{stats.avgCpa > 0 ? '₫' + fmtStatVnd(Math.round(stats.avgCpa)) : '—'}</div>
                 <div className="stat-lbl">CPA TB</div>
               </div>
               <div className="stat-sep" />
               <div className="stat-item">
-                <div className="stat-num">{fmtNum(stats.totalReach)}</div>
+                <div className="stat-num">{fmtStatNum(stats.totalReach)}</div>
                 <div className="stat-lbl">Tiếp cận</div>
               </div>
               <div className="stat-sep" />
               <div className="stat-item">
-                <div className="stat-num">{fmtNum(stats.totalImpr)}</div>
+                <div className="stat-num">{fmtStatNum(stats.totalImpr)}</div>
                 <div className="stat-lbl">Hiển thị</div>
               </div>
               <div className="stat-sep" />
@@ -704,9 +713,11 @@ export default function DashboardHome() {
                       </td>
                     </tr>
                   ) : pageItems.map(item => {
-                    const isHighCpa  = cpaMaxVal  > 0 && item.cpa  > cpaMaxVal
-                    const isLowRoas  = roasMinVal > 0 && item.roas > 0 && item.roas < roasMinVal
-                    const isHighBudget = item.budget_util_pct >= 90
+                    const isHighCpa    = cpaMaxVal  > 0 && item.cpa  > cpaMaxVal
+                    const isLowRoas    = roasMinVal > 0 && item.roas > 0 && item.roas < roasMinVal
+                    const isHighBudget = (item.budget_util_pct || 0) >= 85
+                    const isLosingMoney= (item.roas || 0) > 0 && item.roas < 1
+                    const noConversion = (item.spend || 0) > 200000 && (item.purchases || 0) === 0
                     const selected   = selectedIds.has(item.id)
                     const doComp     = filters.compare
                     return (
@@ -815,8 +826,9 @@ export default function DashboardHome() {
                         <td className="td-warn">
                           <div className="warn-list">
                             {isHighCpa    && <span className="warn-badge warn-cpa">⚠️ CPA cao</span>}
-                            {isLowRoas    && <span className="warn-badge warn-roas">⚠️ ROAS thấp</span>}
+                            {(isLowRoas || isLosingMoney) && <span className="warn-badge warn-roas">⚠️ ROAS &lt; 1</span>}
                             {isHighBudget && <span className="warn-badge warn-ns">⚠️ NS gần hết</span>}
+                            {noConversion && <span className="warn-badge warn-noconv">⚠️ Không chuyển đổi</span>}
                             {item.effective_status === 'CAMPAIGN_PAUSED' && <span className="warn-badge warn-camp">Campaign dừng</span>}
                           </div>
                         </td>
@@ -1113,10 +1125,11 @@ export default function DashboardHome() {
           display: inline-block; padding: 2px 6px; border-radius: 5px;
           font-size: 10px; font-weight: 700; white-space: nowrap;
         }
-        .warn-cpa  { background: rgba(239,68,68,.12);  color: var(--red); }
-        .warn-ns   { background: rgba(245,158,11,.12); color: var(--ylw); }
-        .warn-roas { background: rgba(239,68,68,.08);  color: var(--red); }
-        .warn-camp { background: rgba(100,116,139,.12); color: var(--mut); }
+        .warn-cpa    { background: rgba(239,68,68,.12);  color: var(--red); }
+        .warn-ns     { background: rgba(245,158,11,.12); color: var(--ylw); }
+        .warn-roas   { background: rgba(239,68,68,.08);  color: var(--red); }
+        .warn-noconv { background: rgba(245,158,11,.12); color: #f97316; }
+        .warn-camp   { background: rgba(100,116,139,.12); color: var(--mut); }
 
         .sort-icon  { font-size: 10px; margin-left: 3px; }
         .sort-none  { opacity: .35; }

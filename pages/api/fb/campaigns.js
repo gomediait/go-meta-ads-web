@@ -33,9 +33,9 @@ function parseInsights(ins) {
   const clicks       = Number(ins.clicks) || 0
   const ctr          = Number(ins.ctr) || 0
   const reach        = Number(ins.reach) || 0
-  const frequency    = Number(ins.frequency) || 0
-  const cpm          = Number(ins.cpm) || (impressions > 0 ? (spend / impressions * 1000) : 0)
-  const linkClicks   = Number(ins.inline_link_clicks) || 0
+  const frequency    = reach > 0 ? impressions / reach : 0
+  const cpm          = impressions > 0 ? (spend / impressions * 1000) : 0
+  const linkClicks   = extractAction(ins.actions, ['link_click', 'outbound_click'])
   const purchases    = extractAction(ins.actions, PURCHASE_TYPES)
   const addToCart    = extractAction(ins.actions, CART_TYPES)
   const checkout     = extractAction(ins.actions, CHECKOUT_TYPES)
@@ -54,8 +54,8 @@ function parseInsights(ins) {
 }
 
 const INSIGHT_FIELDS = [
-  'spend', 'impressions', 'clicks', 'ctr', 'reach', 'frequency', 'cpm',
-  'inline_link_clicks', 'actions', 'action_values', 'purchase_roas'
+  'spend', 'impressions', 'clicks', 'ctr', 'reach',
+  'actions', 'action_values', 'purchase_roas'
 ].join(',')
 
 function buildStatusFilter(filterStatus, isCampaign) {
@@ -221,10 +221,10 @@ export default async function handler(req, res) {
   }
 
   allItems.sort((a, b) => {
-    const aAct = a.effective_status === 'ACTIVE' ? 0 : 1
-    const bAct = b.effective_status === 'ACTIVE' ? 0 : 1
-    if (aAct !== bAct) return aAct - bAct
-    return b.spend - a.spend
+    const aScore = (a.effective_status === 'ACTIVE' ? 2 : 0) + ((a.spend || 0) > 0 ? 1 : 0)
+    const bScore = (b.effective_status === 'ACTIVE' ? 2 : 0) + ((b.spend || 0) > 0 ? 1 : 0)
+    if (aScore !== bScore) return bScore - aScore
+    return (b.spend || 0) - (a.spend || 0)
   })
 
   return res.json({ ok: true, adsets: allItems, accounts: targetAccounts })
