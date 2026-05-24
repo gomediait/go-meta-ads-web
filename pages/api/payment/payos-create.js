@@ -54,7 +54,7 @@ export default async function handler(req, res) {
       buyer_phone: buyer_phone || '',
     }).select('id').single()
 
-    if (orderErr) return res.status(500).json({ ok: false, error: 'Lỗi tạo đơn hàng' })
+    if (orderErr) return res.status(500).json({ ok: false, error: 'Lỗi tạo đơn hàng: ' + orderErr.message + ' | code: ' + orderErr.code })
 
     const paymentData = {
       orderCode,
