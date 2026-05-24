@@ -7,22 +7,25 @@ import { useLang } from '../lib/LangContext'
 import { isPlanAllowed } from '../lib/planLimits'
 import pkg from '../package.json'
 
-const NAV = [
-  { href: '/dashboard',             icon: '📊', label: 'Quản lý chiến dịch', needFb: true,  feature: 'campaigns'     },
-  { href: '/dashboard/profit',      icon: '💰', label: 'Kiểm soát lãi lỗ',  needFb: false, feature: 'profit'        },
-  { href: '/dashboard/report',      icon: '📈', label: 'Report',             needFb: true,  feature: 'report'        },
-  { href: '/dashboard/autocare',    icon: '💚', label: 'Auto Care',          needFb: true,  feature: 'autocare'      },
-  { href: '/dashboard/autoset',     icon: '⚙️', label: 'Tự động Set QC',     needFb: true,  feature: 'autoset'       },
-  { href: '/dashboard/automated-rules', icon: '📋', label: 'Quy tắc tự động', needFb: true,  feature: 'autoset'       },
-  { href: '/dashboard/policycheck', icon: '🛡️', label: 'Kiểm tra Vi phạm',   needFb: false, feature: 'policycheck'   },
-  { divider: true },
-  { href: '/dashboard/notifications',icon:'🔔', label: 'Thông báo tự động',  needFb: true,  feature: 'notifications' },
-  { href: '/dashboard/team',        icon: '👥', label: 'Nhân viên',          needFb: false, feature: 'team'          },
-  { href: '/dashboard/affiliate',   icon: '🤝', label: 'Affiliate',          needFb: false, feature: 'affiliate'     },
-  { divider: true },
-  { href: '/dashboard/support',     icon: '🎫', label: 'Hỗ trợ kỹ thuật',   needFb: false, feature: 'support'       },
-  { href: 'https://adsmeta.gonetwork.vn/huong-dan', icon: '📖', label: 'Hướng dẫn', external: true },
-]
+function getNav(dt) {
+  const n = dt.nav || {}
+  return [
+    { href: '/dashboard',             icon: '📊', labelKey: 'campaigns',    needFb: true,  feature: 'campaigns'     },
+    { href: '/dashboard/profit',      icon: '💰', labelKey: 'profit',       needFb: false, feature: 'profit'        },
+    { href: '/dashboard/report',      icon: '📈', labelKey: 'report',       needFb: true,  feature: 'report'        },
+    { href: '/dashboard/autocare',    icon: '💚', labelKey: 'autocare',     needFb: true,  feature: 'autocare'      },
+    { href: '/dashboard/autoset',     icon: '⚙️', labelKey: 'autoset',      needFb: true,  feature: 'autoset'       },
+    { href: '/dashboard/automated-rules', icon: '📋', labelKey: 'rules',    needFb: true,  feature: 'autoset'       },
+    { href: '/dashboard/policycheck', icon: '🛡️', labelKey: 'policycheck',  needFb: false, feature: 'policycheck'   },
+    { divider: true },
+    { href: '/dashboard/notifications',icon:'🔔', labelKey: 'notifications', needFb: true, feature: 'notifications' },
+    { href: '/dashboard/team',        icon: '👥', labelKey: 'team',          needFb: false, feature: 'team'         },
+    { href: '/dashboard/affiliate',   icon: '🤝', labelKey: 'affiliate',     needFb: false, feature: 'affiliate'    },
+    { divider: true },
+    { href: '/dashboard/support',     icon: '🎫', labelKey: 'support',       needFb: false, feature: 'support'      },
+    { href: 'https://adsmeta.gonetwork.vn/huong-dan', icon: '📖', labelKey: 'guide', external: true },
+  ].map(item => item.divider ? item : { ...item, label: n[item.labelKey] || item.labelKey })
+}
 
 const PLAN_COLOR = {
   trial:    'rgba(96,165,250,.2)',
@@ -36,10 +39,12 @@ const PLAN_TEXT = {
 
 export default function DashboardLayout({ children, title = 'Dashboard' }) {
   const { user, logout, planName, isExpired } = useAuth()
-  const { lang, setLang } = useLang()
+  const { lang, setLang, t } = useLang()
   const router  = useRouter()
   const [collapsed, setCollapsed] = useState(false)
   const [theme, setTheme]         = useState('light')
+  const dt = t.dashboard || {}
+  const NAV = getNav(dt)
 
   useEffect(() => {
     const saved = localStorage.getItem('gmap_theme') || 'light'
@@ -80,28 +85,28 @@ export default function DashboardLayout({ children, title = 'Dashboard' }) {
           <div className="topbar-mid">
             {!fbConnected && (
               <Link href="/settings/connect-facebook" className="fb-connect-btn">
-                🔗 Kết nối Facebook Ads
+                {dt.topbar?.fbConnect || '🔗 Kết nối Facebook Ads'}
               </Link>
             )}
             {fbConnected && (
-              <span className="fb-ok-badge">✅ Facebook đã kết nối</span>
+              <span className="fb-ok-badge">{dt.topbar?.fbConnected || '✅ Facebook đã kết nối'}</span>
             )}
           </div>
 
           <div className="topbar-right">
             {isExpired && (
-              <Link href="/mua-goi" className="expired-badge">⚠️ Tài khoản hết hạn</Link>
+              <Link href="/mua-goi" className="expired-badge">{dt.topbar?.expired || '⚠️ Tài khoản hết hạn'}</Link>
             )}
             <span className="plan-badge" style={{ background: PLAN_COLOR[user?.plan], color: PLAN_TEXT[user?.plan] }}>
-              {planName}
+              {dt.plan?.[user?.plan] || planName}
             </span>
             <span className="user-name">{user?.name}</span>
-            <button className="icon-btn lang-btn" onClick={() => setLang(lang === 'vi' ? 'en' : 'vi')} title="Switch language">
+            <button className="icon-btn lang-btn" onClick={() => setLang(lang === 'vi' ? 'en' : 'vi')} title={dt.topbar?.switchLang || 'Switch language'}>
               {lang === 'vi' ? '🇬🇧 EN' : '🇻🇳 VI'}
             </button>
-            <button className="icon-btn" onClick={toggleTheme} title="Đổi theme">{theme === 'dark' ? '☀️' : '🌙'}</button>
-            <Link href="/settings" className="icon-btn" title="Cài đặt">⚙️</Link>
-            <button className="icon-btn logout-btn" onClick={logout} title="Đăng xuất">↪</button>
+            <button className="icon-btn" onClick={toggleTheme} title={dt.topbar?.toggleTheme || 'Toggle theme'}>{theme === 'dark' ? '☀️' : '🌙'}</button>
+            <Link href="/settings" className="icon-btn" title={dt.topbar?.settings || 'Settings'}>⚙️</Link>
+            <button className="icon-btn logout-btn" onClick={logout} title={dt.topbar?.logout || 'Log out'}>↪</button>
           </div>
         </header>
 
@@ -124,7 +129,7 @@ export default function DashboardLayout({ children, title = 'Dashboard' }) {
                     </a>
                   )
                 }
-                const lockTitle = fbLocked ? 'Cần kết nối Facebook Ads' : planLocked ? 'Nâng cấp gói để sử dụng' : item.label
+                const lockTitle = fbLocked ? (dt.sidebar?.fbNeeded || 'Cần kết nối Facebook Ads') : planLocked ? (dt.sidebar?.upgradePlan || 'Nâng cấp gói để sử dụng') : item.label
                 const lockHref  = fbLocked ? '/settings/connect-facebook' : planLocked ? '/mua-goi' : item.href
                 return (
                   <Link key={item.href} href={locked ? lockHref : item.href}

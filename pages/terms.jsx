@@ -23,7 +23,7 @@ const CONTENT = {
       {
         icon: '💳',
         heading: '3. Thanh toán và chính sách hoàn tiền',
-        body: 'Thanh toán được thực hiện qua chuyển khoản ngân hàng trước khi nhận key. Sau khi key đã được cấp và kích hoạt thành công, chúng tôi không hỗ trợ hoàn tiền với bất kỳ lý do nào. Chúng tôi cung cấp gói dùng thử 1 ngày miễn phí để bạn trải nghiệm đầy đủ tính năng trước khi quyết định mua. Vui lòng kiểm tra kỹ trước khi thanh toán.',
+        body: 'Thanh toán được thực hiện qua chuyển khoản ngân hàng trước khi nhận key. Sau khi key đã được cấp và kích hoạt thành công, chúng tôi không hỗ trợ hoàn tiền với bất kỳ lý do nào. Chúng tôi cung cấp gói dùng thử 3 ngày miễn phí để bạn trải nghiệm đầy đủ tính năng trước khi quyết định mua. Vui lòng kiểm tra kỹ trước khi thanh toán.',
       },
       {
         icon: '⚠️',
