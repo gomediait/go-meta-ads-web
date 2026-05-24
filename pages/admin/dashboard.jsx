@@ -1204,12 +1204,11 @@ function CheckKeyTab() {
 }
 
 // ─── WEB AFFILIATES TAB (SaaS) ────────────────────────────────────────────────
-const ADMIN_TOKEN = typeof window !== 'undefined' ? localStorage.getItem('admin_token') || '' : ''
-
 function webAdminPost(action, body = {}) {
+  const token = typeof window !== 'undefined' ? atob(localStorage.getItem('gmap_admin_token') || '') : ''
   return fetch('/api/admin/affiliates', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-admin-token': localStorage.getItem('admin_token') || '' },
+    headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
     body: JSON.stringify({ action, ...body }),
   }).then(r => r.json())
 }
