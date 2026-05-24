@@ -3119,9 +3119,10 @@ function WebUsersTab() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filterPlan, setFilterPlan] = useState('all')
-  const [editing, setEditing] = useState(null) // { id, email, plan, expire_at }
+  const [editing, setEditing] = useState(null)
   const [editForm, setEditForm] = useState({})
   const [saving, setSaving] = useState(false)
+  const [prevPlan, setPrevPlan] = useState('')
   const [toast, setToast] = useState(null)
   const [page] = useState(1)
 
@@ -3162,10 +3163,13 @@ function WebUsersTab() {
   async function handleSavePlan() {
     setSaving(true)
     try {
-      const d = await callApi('update_plan', {
+      const d = await callApi('update_user', {
         user_id: editing.id,
         plan: editForm.plan,
         expire_at: editForm.expire_at || null,
+        name: editForm.name,
+        phone: editForm.phone,
+        status: editForm.status,
       })
       if (!d.ok) return showToast(d.error || 'Lỗi', 'error')
       showToast('Đã cập nhật thành công')
@@ -3296,7 +3300,17 @@ function WebUsersTab() {
                       <td style={{ padding: '10px 14px' }}>
                         <div style={{ display: 'flex', gap: 6 }}>
                           <button
-                            onClick={() => { setEditing(u); setEditForm({ plan: u.plan, expire_at: u.expire_at ? u.expire_at.slice(0, 10) : '' }) }}
+                            onClick={() => {
+                              setEditing(u)
+                              setPrevPlan(u.plan)
+                              setEditForm({
+                                plan: u.plan,
+                                expire_at: u.expire_at ? u.expire_at.slice(0, 10) : '',
+                                name: u.name || '',
+                                phone: u.phone || '',
+                                status: u.status || 'active',
+                              })
+                            }}
                             style={{ background: 'rgba(0,199,222,0.1)', color: '#00c7de', border: '1px solid rgba(0,199,222,0.3)', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
                           >✏️ Sửa</button>
                           {u.fb_connected && (
@@ -3322,27 +3336,90 @@ function WebUsersTab() {
 
       {/* Edit Modal */}
       {editing && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: '#fff', borderRadius: 16, padding: 32, width: 420, boxShadow: '0 20px 60px rgba(0,0,0,.3)' }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: '#1a2332', marginBottom: 6 }}>Cập nhật tài khoản</h3>
-            <p style={{ fontSize: 13, color: '#64748b', marginBottom: 20 }}>{editing.email}</p>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ background: '#fff', borderRadius: 16, padding: 28, width: '100%', maxWidth: 480, boxShadow: '0 20px 60px rgba(0,0,0,.3)', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <div>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: '#1a2332', marginBottom: 2 }}>Cập nhật tài khoản</h3>
+                <p style={{ fontSize: 12, color: '#94a3b8' }}>{editing.email}</p>
+              </div>
+              <button onClick={() => setEditing(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#94a3b8', lineHeight: 1 }}>×</button>
+            </div>
 
+            {/* Section: Thông tin */}
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 10, paddingBottom: 6, borderBottom: '1px solid #f1f5f9' }}>
+              Thông tin cá nhân
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Họ tên</label>
+                <input style={{ ...inp, width: '100%' }} placeholder="Nguyễn Văn A"
+                  value={editForm.name || ''} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Số điện thoại</label>
+                <input style={{ ...inp, width: '100%' }} placeholder="0912345678"
+                  value={editForm.phone || ''} onChange={e => setEditForm(p => ({ ...p, phone: e.target.value }))} />
+              </div>
+            </div>
+
+            {/* Section: Trạng thái */}
             <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Gói dịch vụ</label>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#64748b', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Trạng thái tài khoản</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {[
+                  { value: 'active', label: '✅ Hoạt động', bg: '#d1fae5', color: '#065f46', border: '#6ee7b7' },
+                  { value: 'locked', label: '🔒 Khoá', bg: '#fee2e2', color: '#991b1b', border: '#fca5a5' },
+                ].map(opt => (
+                  <button key={opt.value} type="button"
+                    onClick={() => setEditForm(p => ({ ...p, status: opt.value }))}
+                    style={{
+                      padding: '6px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                      background: editForm.status === opt.value ? opt.bg : '#f8fafc',
+                      color: editForm.status === opt.value ? opt.color : '#94a3b8',
+                      border: `1.5px solid ${editForm.status === opt.value ? opt.border : '#e2e8f0'}`,
+                    }}
+                  >{opt.label}</button>
+                ))}
+              </div>
+            </div>
+
+            {/* Section: Gói & Hạn */}
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 10, paddingBottom: 6, borderBottom: '1px solid #f1f5f9' }}>
+              Gói dịch vụ & Thời hạn
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#64748b', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Gói dịch vụ</label>
               <select
                 style={{ ...inp, width: '100%' }}
                 value={editForm.plan}
-                onChange={e => setEditForm(p => ({ ...p, plan: e.target.value }))}
+                onChange={e => {
+                  const newPlan = e.target.value
+                  setEditForm(p => {
+                    // Auto-suggest 30 days from today if switching from trial to paid and no expiry set or already expired
+                    const needsExpiry = newPlan !== 'trial' && prevPlan === 'trial'
+                    const isExpiredOrEmpty = !p.expire_at || new Date(p.expire_at) < new Date()
+                    const newExpiry = (needsExpiry && isExpiredOrEmpty)
+                      ? new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)
+                      : p.expire_at
+                    return { ...p, plan: newPlan, expire_at: newExpiry }
+                  })
+                }}
               >
                 <option value="trial">Dùng thử</option>
                 <option value="personal">Personal</option>
                 <option value="business">Business</option>
                 <option value="agency">Agency</option>
               </select>
+              {editForm.plan !== 'trial' && prevPlan === 'trial' && (
+                <div style={{ fontSize: 11, color: '#f59e0b', marginTop: 4 }}>
+                  ⚠️ Đã tự điền +30 ngày. Điều chỉnh ngày hết hạn nếu cần.
+                </div>
+              )}
             </div>
 
-            <div style={{ marginBottom: 24 }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#64748b', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
                 Ngày hết hạn <span style={{ fontWeight: 400, textTransform: 'none', color: '#94a3b8' }}>(để trống = không giới hạn)</span>
               </label>
               <input
@@ -3358,36 +3435,29 @@ function WebUsersTab() {
                   { label: '+180 ngày', days: 180 },
                   { label: '+1 năm', days: 365 },
                 ].map(({ label, days }) => (
-                  <button
-                    key={days}
-                    type="button"
+                  <button key={days} type="button"
                     onClick={() => {
-                      const base = editForm.expire_at
-                        ? new Date(editForm.expire_at + 'T00:00:00')
-                        : new Date()
+                      const base = editForm.expire_at ? new Date(editForm.expire_at + 'T00:00:00') : new Date()
                       base.setDate(base.getDate() + days)
                       setEditForm(p => ({ ...p, expire_at: base.toISOString().slice(0, 10) }))
                     }}
                     style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}
                   >{label}</button>
                 ))}
-                <button
-                  type="button"
+                <button type="button"
                   onClick={() => setEditForm(p => ({ ...p, expire_at: '' }))}
                   style={{ background: '#f1f5f9', color: '#64748b', border: '1px solid #e2e8f0', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
                 >Xoá hạn</button>
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button onClick={() => setEditing(null)} style={{ ...inp, cursor: 'pointer', background: '#f1f5f9', color: '#475569', border: 'none', padding: '10px 20px', fontWeight: 600 }}>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', borderTop: '1px solid #f1f5f9', paddingTop: 16 }}>
+              <button onClick={() => setEditing(null)}
+                style={{ ...inp, cursor: 'pointer', background: '#f1f5f9', color: '#475569', border: 'none', padding: '10px 20px', fontWeight: 600 }}>
                 Huỷ
               </button>
-              <button
-                onClick={handleSavePlan}
-                disabled={saving}
-                style={{ ...inp, cursor: 'pointer', background: '#00c7de', color: '#fff', border: 'none', padding: '10px 20px', fontWeight: 700 }}
-              >
+              <button onClick={handleSavePlan} disabled={saving}
+                style={{ ...inp, cursor: 'pointer', background: '#00c7de', color: '#fff', border: 'none', padding: '10px 24px', fontWeight: 700 }}>
                 {saving ? 'Đang lưu...' : '💾 Lưu thay đổi'}
               </button>
             </div>

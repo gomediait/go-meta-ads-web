@@ -99,9 +99,9 @@ export default async function handler(req, res) {
     })
   }
 
-  // ─── UPDATE PLAN / EXPIRY ──────────────────────────────────────
-  if (action === 'update_plan') {
-    const { user_id, plan, expire_at } = body
+  // ─── UPDATE USER (plan, expiry, name, phone, status) ──────────
+  if (action === 'update_plan' || action === 'update_user') {
+    const { user_id, plan, expire_at, name, phone, status } = body
     if (!user_id) return res.status(400).json({ ok: false, error: 'Thiếu user_id' })
 
     const validPlans = ['trial', 'personal', 'business', 'agency']
@@ -112,6 +112,9 @@ export default async function handler(req, res) {
     const update = { updated_at: new Date().toISOString() }
     if (plan) update.plan = plan
     if (expire_at !== undefined) update.expire_at = expire_at || null
+    if (name?.trim()) update.name = name.trim()
+    if (phone?.trim()) update.phone = phone.trim()
+    if (status === 'active' || status === 'locked') update.status = status
 
     const { error } = await sb.from('users').update(update).eq('id', user_id)
     if (error) return res.status(500).json({ ok: false, error: error.message })
