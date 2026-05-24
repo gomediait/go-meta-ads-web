@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Link from 'next/link'
@@ -7,18 +7,24 @@ import { useAuth } from '../lib/AuthContext'
 export default function Register() {
   const { register } = useAuth()
   const router = useRouter()
-  const [form, setForm]   = useState({ name: '', email: '', password: '', confirm: '' })
+  const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', confirm: '', referral_code: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    const ref = router.query.ref
+    if (ref) setForm(f => ({ ...f, referral_code: ref }))
+  }, [router.query.ref])
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
     if (form.password !== form.confirm) return setError('Mật khẩu xác nhận không khớp')
     if (form.password.length < 6) return setError('Mật khẩu tối thiểu 6 ký tự')
+    if (!form.phone.trim()) return setError('Vui lòng nhập số điện thoại')
     setLoading(true)
     try {
-      await register(form.email, form.password, form.name)
+      await register(form.email, form.password, form.name, form.phone, form.referral_code)
       router.push('/dashboard')
     } catch (err) {
       setError(err.message)
@@ -35,7 +41,7 @@ export default function Register() {
           <div className="auth-logo">
             <img src="/logo.png" alt="logo" onError={e => e.target.style.display='none'} />
             <h1>Tạo tài khoản miễn phí</h1>
-            <p>Dùng thử 7 ngày — không cần thẻ tín dụng</p>
+            <p>Dùng thử 3 ngày — không cần thẻ tín dụng</p>
           </div>
 
           <form onSubmit={handleSubmit}>
@@ -45,9 +51,14 @@ export default function Register() {
                 value={form.name} onChange={e => setForm(f => ({...f, name: e.target.value}))} required />
             </div>
             <div className="field">
-              <label>Email</label>
-              <input type="email" placeholder="email@example.com" autoComplete="email"
+              <label>Email <span className="field-hint">Gmail, Outlook, email công ty...</span></label>
+              <input type="email" placeholder="email@gmail.com" autoComplete="email"
                 value={form.email} onChange={e => setForm(f => ({...f, email: e.target.value}))} required />
+            </div>
+            <div className="field">
+              <label>Số điện thoại</label>
+              <input type="tel" placeholder="0912 345 678" autoComplete="tel"
+                value={form.phone} onChange={e => setForm(f => ({...f, phone: e.target.value}))} required />
             </div>
             <div className="field">
               <label>Mật khẩu</label>
@@ -58,6 +69,11 @@ export default function Register() {
               <label>Xác nhận mật khẩu</label>
               <input type="password" placeholder="Nhập lại mật khẩu" autoComplete="new-password"
                 value={form.confirm} onChange={e => setForm(f => ({...f, confirm: e.target.value}))} required />
+            </div>
+            <div className="field">
+              <label>Mã giới thiệu <span className="field-hint">(tùy chọn)</span></label>
+              <input type="text" placeholder="Nhập mã nếu có" style={{ textTransform: 'uppercase' }}
+                value={form.referral_code} onChange={e => setForm(f => ({...f, referral_code: e.target.value.toUpperCase()}))} />
             </div>
 
             {error && <div className="err-msg">{error}</div>}
@@ -94,11 +110,12 @@ export default function Register() {
         .auth-logo p  { font-size: 12px; color: #00c48c; font-weight: 600; }
 
         .field { margin-bottom: 12px; }
-        .field label { display: block; font-size: 12px; font-weight: 600; color: #6b7a99; margin-bottom: 5px; text-transform: uppercase; letter-spacing: .4px; }
+        .field label { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: #6b7a99; margin-bottom: 5px; text-transform: uppercase; letter-spacing: .4px; }
+        .field-hint { font-size: 10px; color: #3b82f6; text-transform: none; font-weight: 400; letter-spacing: 0; }
         .field input {
           width: 100%; background: #161b27; border: 1.5px solid #2a3347;
           border-radius: 9px; padding: 10px 14px; font-size: 14px; color: #e8eaf0;
-          outline: none; transition: border-color .15s;
+          outline: none; transition: border-color .15s; font-family: inherit;
         }
         .field input:focus { border-color: #3b82f6; }
 
@@ -107,7 +124,7 @@ export default function Register() {
         .submit-btn {
           width: 100%; background: #fe5f01; border: none; border-radius: 10px;
           padding: 13px; font-size: 15px; font-weight: 700; color: #fff;
-          cursor: pointer; transition: opacity .15s; margin-top: 6px;
+          cursor: pointer; transition: opacity .15s; margin-top: 6px; font-family: inherit;
         }
         .submit-btn:hover:not(:disabled) { opacity: .88; }
         .submit-btn:disabled { opacity: .5; cursor: not-allowed; }

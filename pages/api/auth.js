@@ -1,5 +1,6 @@
 import { getSupabase } from '../../lib/supabase'
 import { hashPassword, verifyPassword, signToken, setSessionCookie, clearSessionCookie, getUserFromReq } from '../../lib/auth'
+import { isDisposableEmail } from '../../lib/planLimits'
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -11,27 +12,50 @@ export default async function handler(req, res) {
   // ─── REGISTER ───────────────────────────────────────────────
   if (action === 'register') {
     if (req.method !== 'POST') return res.status(405).end()
-    const { email, password, name } = req.body || {}
+    const { email, password, name, phone, referral_code } = req.body || {}
     if (!email || !password || !name)
       return res.status(400).json({ error: 'Vui lòng điền đầy đủ thông tin' })
+    if (!phone || !/^[0-9]{9,11}$/.test(phone.replace(/\s/g, '')))
+      return res.status(400).json({ error: 'Vui lòng nhập số điện thoại hợp lệ (9–11 chữ số)' })
     if (password.length < 6)
       return res.status(400).json({ error: 'Mật khẩu tối thiểu 6 ký tự' })
 
-    const { data: existing } = await db.from('users').select('id').eq('email', email).single()
+    const emailLower = email.toLowerCase().trim()
+    if (isDisposableEmail(emailLower))
+      return res.status(400).json({ error: 'Vui lòng sử dụng email chính thống (Gmail, Outlook, email công ty...). Không chấp nhận email tạm thời.' })
+
+    const { data: existing } = await db.from('users').select('id').eq('email', emailLower).single()
     if (existing) return res.status(409).json({ error: 'Email đã được đăng ký' })
 
+    // Verify referral code if provided
+    let referredBy = null
+    if (referral_code?.trim()) {
+      const { data: aff } = await db.from('affiliates')
+        .select('referral_code')
+        .eq('referral_code', referral_code.trim().toUpperCase())
+        .eq('status', 'active')
+        .single()
+      if (aff) referredBy = referral_code.trim().toUpperCase()
+    }
+
     const { data: user, error } = await db.from('users').insert({
-      email: email.toLowerCase().trim(),
+      email: emailLower,
       password_hash: hashPassword(password),
       name: name.trim(),
+      phone: phone.trim(),
       plan: 'trial',
       status: 'active',
-      expire_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // trial 7 ngày
-    }).select('id,email,name,plan,status,expire_at,avatar').single()
+      referred_by: referredBy,
+      expire_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // trial 3 ngày
+    }).select('id,email,name,plan,status,expire_at,avatar,phone').single()
 
     if (error) return res.status(500).json({ error: 'Lỗi tạo tài khoản' })
 
-    const token = signToken({ id: user.id, email: user.email, plan: user.plan })
+    // Generate session_id
+    const sid = crypto.randomUUID()
+    await db.from('users').update({ session_id: sid }).eq('id', user.id)
+
+    const token = signToken({ id: user.id, email: user.email, plan: user.plan, sid })
     setSessionCookie(res, token)
     return res.json({ ok: true, user })
   }
@@ -44,7 +68,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Vui lòng nhập email và mật khẩu' })
 
     const { data: user } = await db.from('users')
-      .select('id,email,name,plan,status,expire_at,avatar,password_hash')
+      .select('id,email,name,plan,status,expire_at,avatar,phone,password_hash')
       .eq('email', email.toLowerCase().trim()).single()
 
     if (!user || !verifyPassword(password, user.password_hash || ''))
@@ -52,8 +76,12 @@ export default async function handler(req, res) {
     if (user.status !== 'active')
       return res.status(403).json({ error: 'Tài khoản đã bị khoá' })
 
+    // Generate new session_id — invalidates any other active session
+    const sid = crypto.randomUUID()
+    await db.from('users').update({ session_id: sid }).eq('id', user.id)
+
     const { password_hash, ...safeUser } = user
-    const token = signToken({ id: user.id, email: user.email, plan: user.plan })
+    const token = signToken({ id: user.id, email: user.email, plan: user.plan, sid })
     setSessionCookie(res, token)
     return res.json({ ok: true, user: safeUser })
   }
@@ -65,18 +93,25 @@ export default async function handler(req, res) {
     if (!payload) return res.status(401).json({ error: 'Chưa đăng nhập' })
 
     const { data: user } = await db.from('users')
-      .select('id,email,name,plan,status,expire_at,avatar,facebook_id,shop_code')
+      .select('id,email,name,plan,status,expire_at,avatar,facebook_id,shop_code,session_id,phone')
       .eq('id', payload.id).single()
 
     if (!user) return res.status(404).json({ error: 'Không tìm thấy tài khoản' })
     if (user.status !== 'active') return res.status(403).json({ error: 'Tài khoản bị khoá' })
+
+    // Session_id check — kick out if another device logged in
+    if (payload.sid && user.session_id && payload.sid !== user.session_id) {
+      clearSessionCookie(res)
+      return res.status(401).json({ error: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.' })
+    }
 
     // Kiểm tra FB connection
     const { data: fbConn } = await db.from('fb_connections')
       .select('fb_name,fb_email,token_expires_at,connected_at')
       .eq('user_id', user.id).single()
 
-    return res.json({ ok: true, user: { ...user, fb_connected: !!fbConn, fb_info: fbConn || null } })
+    const { session_id, ...safeUser } = user
+    return res.json({ ok: true, user: { ...safeUser, fb_connected: !!fbConn, fb_info: fbConn || null } })
   }
 
   // ─── LOGOUT ─────────────────────────────────────────────────

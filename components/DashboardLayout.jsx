@@ -3,19 +3,21 @@ import { useRouter } from 'next/router'
 import Link from 'next/link'
 import Head from 'next/head'
 import { useAuth } from '../lib/AuthContext'
+import { isPlanAllowed } from '../lib/planLimits'
 
 const NAV = [
-  { href: '/dashboard',             icon: '📊', label: 'Quản lý chiến dịch', needFb: true  },
-  { href: '/dashboard/profit',      icon: '💰', label: 'Kiểm soát lãi lỗ',  needFb: false },
-  { href: '/dashboard/report',      icon: '📈', label: 'Report',             needFb: true  },
-  { href: '/dashboard/autocare',    icon: '💚', label: 'Auto Care',          needFb: true  },
-  { href: '/dashboard/autoset',     icon: '⚙️', label: 'Tự động Set QC',     needFb: true  },
-  { href: '/dashboard/policycheck', icon: '🛡️', label: 'Kiểm tra Vi phạm',   needFb: false },
+  { href: '/dashboard',             icon: '📊', label: 'Quản lý chiến dịch', needFb: true,  feature: 'campaigns'     },
+  { href: '/dashboard/profit',      icon: '💰', label: 'Kiểm soát lãi lỗ',  needFb: false, feature: 'profit'        },
+  { href: '/dashboard/report',      icon: '📈', label: 'Report',             needFb: true,  feature: 'report'        },
+  { href: '/dashboard/autocare',    icon: '💚', label: 'Auto Care',          needFb: true,  feature: 'autocare'      },
+  { href: '/dashboard/autoset',     icon: '⚙️', label: 'Tự động Set QC',     needFb: true,  feature: 'autoset'       },
+  { href: '/dashboard/policycheck', icon: '🛡️', label: 'Kiểm tra Vi phạm',   needFb: false, feature: 'policycheck'   },
   { divider: true },
-  { href: '/dashboard/notifications',icon:'🔔', label: 'Thông báo tự động',  needFb: true  },
-  { href: '/dashboard/team',        icon: '👥', label: 'Nhân viên',          needFb: false },
+  { href: '/dashboard/notifications',icon:'🔔', label: 'Thông báo tự động',  needFb: true,  feature: 'notifications' },
+  { href: '/dashboard/team',        icon: '👥', label: 'Nhân viên',          needFb: false, feature: 'team'          },
+  { href: '/dashboard/affiliate',   icon: '🤝', label: 'Affiliate',          needFb: false, feature: 'affiliate'     },
   { divider: true },
-  { href: '/dashboard/support',     icon: '🎫', label: 'Hỗ trợ kỹ thuật',   needFb: false },
+  { href: '/dashboard/support',     icon: '🎫', label: 'Hỗ trợ kỹ thuật',   needFb: false, feature: 'support'       },
   { href: 'https://adsmeta.gonetwork.vn/huong-dan', icon: '📖', label: 'Hướng dẫn', external: true },
 ]
 
@@ -99,8 +101,10 @@ export default function DashboardLayout({ children, title = 'Dashboard' }) {
             <div className="sidebar-inner">
               {NAV.map((item, i) => {
                 if (item.divider) return <div key={i} className="sidebar-divider" />
-                const isActive = !item.external && router.pathname === item.href
-                const locked   = item.needFb && !fbConnected
+                const isActive   = !item.external && router.pathname === item.href
+                const fbLocked   = item.needFb && !fbConnected
+                const planLocked = item.feature && !isPlanAllowed(user?.plan || 'trial', item.feature)
+                const locked     = fbLocked || planLocked
 
                 if (item.external) {
                   return (
@@ -110,10 +114,12 @@ export default function DashboardLayout({ children, title = 'Dashboard' }) {
                     </a>
                   )
                 }
+                const lockTitle = fbLocked ? 'Cần kết nối Facebook Ads' : planLocked ? 'Nâng cấp gói để sử dụng' : item.label
+                const lockHref  = fbLocked ? '/settings/connect-facebook' : planLocked ? '/mua-goi' : item.href
                 return (
-                  <Link key={item.href} href={locked ? '/settings/connect-facebook' : item.href}
+                  <Link key={item.href} href={locked ? lockHref : item.href}
                     className={`sidebar-btn${isActive ? ' active' : ''}${locked ? ' locked' : ''}`}
-                    title={locked ? 'Cần kết nối Facebook Ads' : item.label}>
+                    title={lockTitle}>
                     <span className="sb-icon">{item.icon}</span>
                     <span className="sb-label">{item.label}{locked ? ' 🔒' : ''}</span>
                   </Link>

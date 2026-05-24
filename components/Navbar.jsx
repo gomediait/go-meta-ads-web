@@ -71,10 +71,10 @@ export default function Navbar() {
               ))}
             </div>
 
-            <a href="/quan-ly" className="hide-mobile" style={{ fontSize: 13, fontWeight: 500, color: 'var(--text2)', padding: '8px 12px', borderRadius: 8, transition: 'color 0.2s' }}
+            <a href="/login" className="hide-mobile" style={{ fontSize: 13, fontWeight: 500, color: 'var(--text2)', padding: '8px 12px', borderRadius: 8, transition: 'color 0.2s' }}
               onMouseOver={e => e.target.style.color = 'var(--teal)'}
               onMouseOut={e  => e.target.style.color = 'var(--text2)'}>
-              {t.nav.lookupKey}
+              {t.nav.login || 'Đăng nhập'}
             </a>
 
             <a href="/register" className="btn btn-teal btn-sm hide-mobile">
@@ -130,10 +130,16 @@ export default function Navbar() {
             ))}
           </div>
 
-          <a href="/register" onClick={() => setMenuOpen(false)}
-            className="btn btn-teal btn-block" style={{ marginTop: 16 }}>
-            🚀 {t.nav.tryFree}
-          </a>
+          <div style={{ display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
+            <a href="/login" onClick={() => setMenuOpen(false)}
+              className="btn btn-block" style={{ flex: 1, background: 'rgba(255,255,255,0.08)', color: 'var(--text2)', border: '1px solid var(--border2)' }}>
+              {t.nav.login || 'Đăng nhập'}
+            </a>
+            <a href="/register" onClick={() => setMenuOpen(false)}
+              className="btn btn-teal btn-block" style={{ flex: 1 }}>
+              🚀 {t.nav.tryFree}
+            </a>
+          </div>
         </div>
       )}
 

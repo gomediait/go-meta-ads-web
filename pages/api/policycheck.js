@@ -67,11 +67,11 @@ export default async function handler(req, res) {
   if (dbUser.expire_at && new Date(dbUser.expire_at) < new Date()) {
     return res.status(403).json({ ok: false, error: 'Tài khoản đã hết hạn. Vui lòng gia hạn để tiếp tục.' })
   }
-  if (!['business', 'agency'].includes(dbUser.plan)) {
-    return res.status(403).json({ ok: false, error: 'Tính năng này yêu cầu gói Business trở lên', upgrade: true })
+  const POLICY_LIMITS = { trial: 0, personal: 5, business: 10, agency: 30 }
+  const dailyLimit = POLICY_LIMITS[dbUser.plan] ?? 0
+  if (dailyLimit === 0) {
+    return res.status(403).json({ ok: false, error: 'Tính năng này yêu cầu gói Personal trở lên', upgrade: true })
   }
-
-  const dailyLimit = dbUser.plan === 'agency' ? 100 : 30
   const usageToday = await getUsageToday(user.id)
   if (usageToday >= dailyLimit) {
     return res.status(429).json({

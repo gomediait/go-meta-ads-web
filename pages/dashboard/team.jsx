@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
 import { useAuth } from '../../lib/AuthContext'
 import Link from 'next/link'
+import { isPlanAllowed, getMaxTeamMembers } from '../../lib/planLimits'
 
 export default function Team() {
-  const { user, isPro } = useAuth()
+  const { user } = useAuth()
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
   const [addEmail, setAddEmail] = useState('')
@@ -12,6 +13,11 @@ export default function Team() {
   const [adding, setAdding] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+
+  const plan = user?.plan || 'trial'
+  const canUseTeam = isPlanAllowed(plan, 'team')
+  const maxMembers = getMaxTeamMembers(plan)
+  const atLimit = maxMembers !== Infinity && members.length >= maxMembers
 
   useEffect(() => {
     fetchMembers()
@@ -32,6 +38,7 @@ export default function Team() {
   async function handleAdd(e) {
     e.preventDefault()
     if (!addEmail.trim()) return
+    if (atLimit) { setError(`Gói ${plan} giới hạn ${maxMembers} nhân viên. Nâng cấp để thêm nhiều hơn.`); return }
     setError(''); setSuccess(''); setAdding(true)
     try {
       const r = await fetch('/api/team', {
@@ -75,7 +82,7 @@ export default function Team() {
           </div>
         </div>
 
-        {!isPro ? (
+        {!canUseTeam ? (
           <div className="upgrade-card">
             <div className="uc-icon">🔒</div>
             <div className="uc-title">Tính năng dành cho gói Business trở lên</div>
@@ -84,19 +91,32 @@ export default function Team() {
           </div>
         ) : (
           <>
+            {/* Quota indicator */}
+            {maxMembers !== Infinity && (
+              <div className="quota-bar">
+                <span>Nhân viên: <strong>{members.length}/{maxMembers}</strong></span>
+                {atLimit && (
+                  <Link href="/mua-goi" style={{ fontSize: 12, color: '#fe5f01', fontWeight: 700, textDecoration: 'none', marginLeft: 12 }}>
+                    Nâng cấp để thêm →
+                  </Link>
+                )}
+              </div>
+            )}
+
             {/* Add member form */}
             <div className="card add-card">
               <div className="card-title"><span>➕</span> Thêm thành viên</div>
               <form className="add-form" onSubmit={handleAdd}>
                 <input type="email" placeholder="Email nhân viên" className="add-email"
-                  value={addEmail} onChange={e => setAddEmail(e.target.value)} required />
-                <select className="add-role" value={addRole} onChange={e => setAddRole(e.target.value)}>
+                  value={addEmail} onChange={e => setAddEmail(e.target.value)} required
+                  disabled={atLimit} />
+                <select className="add-role" value={addRole} onChange={e => setAddRole(e.target.value)} disabled={atLimit}>
                   <option value="viewer">Viewer — Chỉ xem</option>
                   <option value="manager">Manager — Xem & chỉnh sửa</option>
                   <option value="admin">Admin — Toàn quyền</option>
                 </select>
-                <button type="submit" className="add-btn" disabled={adding}>
-                  {adding ? '⏳' : '+ Thêm'}
+                <button type="submit" className="add-btn" disabled={adding || atLimit}>
+                  {adding ? '⏳' : atLimit ? '🔒 Đã đủ' : '+ Thêm'}
                 </button>
               </form>
               {error   && <div className="msg-err">{error}</div>}
@@ -139,6 +159,7 @@ export default function Team() {
               <div className="card-title" style={{ marginBottom: 12 }}><span>📋</span> Bảng phân quyền</div>
               <div className="pt-wrap">
                 {[
+                  { feature: 'Vai trò',               admin: 'Admin',  manager: 'Manager', viewer: 'Viewer' },
                   { feature: 'Xem dashboard',         admin: true,  manager: true,  viewer: true  },
                   { feature: 'Kiểm soát lãi lỗ',      admin: true,  manager: true,  viewer: true  },
                   { feature: 'Xem báo cáo',            admin: true,  manager: true,  viewer: true  },
@@ -148,10 +169,12 @@ export default function Team() {
                   { feature: 'Quản lý nhóm',           admin: true,  manager: false, viewer: false },
                   { feature: 'Kết nối Facebook Ads',   admin: true,  manager: false, viewer: false },
                 ].map((row, i) => (
-                  <div key={i} className="pt-row">
+                  <div key={i} className={`pt-row${i === 0 ? ' header' : ''}`}>
                     <div className="pt-feat">{row.feature}</div>
                     {['admin', 'manager', 'viewer'].map(r => (
-                      <div key={r} className="pt-cell">{row[r] ? '✅' : '—'}</div>
+                      <div key={r} className="pt-cell">
+                        {typeof row[r] === 'boolean' ? (row[r] ? '✅' : '—') : row[r]}
+                      </div>
                     ))}
                   </div>
                 ))}
@@ -167,6 +190,8 @@ export default function Team() {
         .ph-icon { font-size: 32px; }
         h1 { font-size: 18px; font-weight: 700; color: var(--txt); margin-bottom: 4px; }
         p  { font-size: 13px; color: var(--mut); }
+
+        .quota-bar { background: var(--s2); border: 1px solid var(--bd); border-radius: 10px; padding: 10px 16px; font-size: 13px; color: var(--mut); margin-bottom: 12px; display: flex; align-items: center; }
 
         .upgrade-card { display: flex; flex-direction: column; align-items: center; gap: 12px; background: var(--s1); border: 1px solid var(--bd); border-radius: 16px; padding: 48px 32px; text-align: center; }
         .uc-icon { font-size: 40px; }
@@ -204,11 +229,10 @@ export default function Team() {
         .member-remove { background: transparent; border: 1px solid transparent; border-radius: 7px; padding: 4px 8px; font-size: 12px; color: var(--mut); cursor: pointer; transition: all .15s; flex-shrink: 0; }
         .member-remove:hover { border-color: var(--red); color: var(--red); }
 
-        /* Permissions table */
         .perm-table { background: var(--s1); border: 1px solid var(--bd); border-radius: 14px; padding: 18px; }
         .pt-wrap { border: 1px solid var(--bd); border-radius: 10px; overflow: hidden; }
         .pt-row { display: grid; grid-template-columns: 1fr 80px 80px 80px; border-bottom: 1px solid var(--bd); }
-        .pt-row:first-child { background: var(--s2); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--mut); }
+        .pt-row.header { background: var(--s2); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--mut); }
         .pt-row:last-child { border-bottom: none; }
         .pt-feat { padding: 9px 14px; font-size: 13px; color: var(--txt); }
         .pt-cell { padding: 9px 14px; font-size: 13px; text-align: center; color: var(--mut); }

@@ -2,6 +2,22 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import DashboardLayout from '../../components/DashboardLayout'
 import { useAuth } from '../../lib/AuthContext'
+import { isPlanAllowed } from '../../lib/planLimits'
+
+function PlanGate({ feature }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', textAlign: 'center', padding: 40 }}>
+      <div style={{ fontSize: 64, marginBottom: 16 }}>🔒</div>
+      <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8 }}>Tính năng này yêu cầu nâng cấp gói</h2>
+      <p style={{ color: 'var(--mut)', marginBottom: 24, maxWidth: 400 }}>
+        {feature} chỉ dành cho gói <strong>Personal</strong> trở lên. Nâng cấp ngay để sử dụng đầy đủ tính năng.
+      </p>
+      <Link href="/mua-goi" style={{ background: '#fe5f01', color: '#fff', padding: '12px 28px', borderRadius: 10, fontWeight: 700, textDecoration: 'none', fontSize: 15 }}>
+        Nâng cấp ngay →
+      </Link>
+    </div>
+  )
+}
 
 const DEFAULTS = {
   enabled: false,
@@ -89,6 +105,10 @@ export default function AutoCare() {
   function fmtDate(str) {
     if (!str) return 'Chưa chạy'
     return new Date(str).toLocaleDateString('vi-VN')
+  }
+
+  if (!isPlanAllowed(user?.plan, 'autocare')) {
+    return <DashboardLayout title="Auto Care"><PlanGate feature="Auto Care" /></DashboardLayout>
   }
 
   return (
