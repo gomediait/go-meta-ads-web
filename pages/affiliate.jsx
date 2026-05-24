@@ -5,307 +5,58 @@ import Footer from '../components/Footer'
 import Reveal from '../components/Reveal'
 import { useLang } from '../lib/LangContext'
 
-const API_AFFILIATE = 'https://go-meta-ads-backend.vercel.app/api/affiliate'
-
-// ─── COMMISSION CARDS ─────────────────────────────────────────────────────────
-const COMMISSION_CARDS_VI = [
-  { pct: '5%', label: 'Gói Cá nhân', sub: 'Tháng đầu tiên', color: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe' },
-  { pct: '7%', label: 'Gói Doanh nghiệp', sub: 'Tháng đầu tiên', color: '#0c2a72', bg: '#f0f4ff', border: '#c7d7ff' },
-  { pct: '9%', label: 'Gói Agency', sub: 'Tháng đầu tiên', color: '#fe5f01', bg: '#fff5f0', border: '#fed7aa' },
-  { pct: '3%', label: 'Gia hạn', sub: 'Mỗi lần gia hạn', color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' },
+// ─── Commission rates (updated for web SaaS) ─────────────────────────────────
+const COMMISSION_VI = [
+  { pct: '10%', label: 'Gói Cá nhân',     sub: 'Mỗi lần mua mới',    color: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe' },
+  { pct: '12%', label: 'Gói Doanh nghiệp', sub: 'Mỗi lần mua mới',   color: '#0c2a72', bg: '#f0f4ff', border: '#c7d7ff' },
+  { pct: '15%', label: 'Gói Agency',       sub: 'Mỗi lần mua mới',    color: '#fe5f01', bg: '#fff5f0', border: '#fed7aa' },
+  { pct: '3%',  label: 'Gia hạn',          sub: 'Mỗi lần gia hạn',    color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' },
+]
+const COMMISSION_EN = [
+  { pct: '10%', label: 'Personal Plan',   sub: 'Each new purchase',    color: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe' },
+  { pct: '12%', label: 'Business Plan',   sub: 'Each new purchase',    color: '#0c2a72', bg: '#f0f4ff', border: '#c7d7ff' },
+  { pct: '15%', label: 'Agency Plan',     sub: 'Each new purchase',    color: '#fe5f01', bg: '#fff5f0', border: '#fed7aa' },
+  { pct: '3%',  label: 'Renewal',         sub: 'Each renewal payment', color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' },
 ]
 
-const COMMISSION_CARDS_EN = [
-  { pct: '5%', label: 'Personal Plan', sub: 'First month', color: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe' },
-  { pct: '7%', label: 'Business Plan', sub: 'First month', color: '#0c2a72', bg: '#f0f4ff', border: '#c7d7ff' },
-  { pct: '9%', label: 'Agency Plan', sub: 'First month', color: '#fe5f01', bg: '#fff5f0', border: '#fed7aa' },
-  { pct: '3%', label: 'Renewal', sub: 'Each renewal', color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' },
+const HOW_VI = [
+  { num: '01', icon: '🎯', title: 'Mua gói trả phí',         desc: 'Đăng ký tài khoản Go Meta Ads Pro và mua bất kỳ gói trả phí (Personal, Business hoặc Agency).' },
+  { num: '02', icon: '🔗', title: 'Đăng ký trong Dashboard', desc: 'Vào Dashboard → Affiliate → nhập thông tin ngân hàng → nhận mã & link riêng của bạn.' },
+  { num: '03', icon: '🛒', title: 'Chia link, kiếm tiền',    desc: 'Cookie tracking 30 ngày — bạn bè click link rồi mua bất kỳ lúc nào đều tính hoa hồng cho bạn.' },
+  { num: '04', icon: '💸', title: 'Nhận tiền tự động',       desc: 'Hoa hồng được xác nhận hàng tháng và chuyển khoản ngân hàng — tự động, không cần nhắc.' },
+]
+const HOW_EN = [
+  { num: '01', icon: '🎯', title: 'Purchase a paid plan',      desc: 'Register a Go Meta Ads Pro account and purchase any paid plan (Personal, Business or Agency).' },
+  { num: '02', icon: '🔗', title: 'Register in Dashboard',     desc: 'Go to Dashboard → Affiliate → enter bank details → receive your personal code & link.' },
+  { num: '03', icon: '🛒', title: 'Share link, earn money',    desc: '30-day cookie tracking — anyone who clicks your link and buys anytime earns you commission.' },
+  { num: '04', icon: '💸', title: 'Auto monthly payout',       desc: 'Commissions are confirmed monthly and bank-transferred automatically — no chasing needed.' },
 ]
 
-// ─── HOW IT WORKS STEPS ───────────────────────────────────────────────────────
-const HOW_STEPS_VI = [
-  { num: '01', icon: '📋', title: 'Đăng ký affiliate', desc: 'Điền form bên dưới với key đã mua và thông tin ngân hàng để nhận hoa hồng.' },
-  { num: '02', icon: '🔗', title: 'Nhận link riêng', desc: 'Hệ thống cấp mã & link cá nhân — VD: adsmeta.gonetwork.vn?ref=ABC123' },
-  { num: '03', icon: '🛒', title: 'Khách mua qua link', desc: 'Cookie tracking 30 ngày — khách click link rồi mua bất kỳ lúc nào đều tính hoa hồng.' },
-  { num: '04', icon: '💸', title: 'Nhận tiền hàng tháng', desc: 'Hoa hồng tổng hợp và chuyển khoản ngân hàng theo tháng — tự động, không cần nhắc.' },
-]
-
-const HOW_STEPS_EN = [
-  { num: '01', icon: '📋', title: 'Register as affiliate', desc: 'Fill in the form below with your purchased key and bank details to receive commissions.' },
-  { num: '02', icon: '🔗', title: 'Get your personal link', desc: 'The system generates your code & personal link — e.g. adsmeta.gonetwork.vn?ref=ABC123' },
-  { num: '03', icon: '🛒', title: 'Customer buys via your link', desc: '30-day cookie tracking — any purchase after clicking your link counts as commission.' },
-  { num: '04', icon: '💸', title: 'Receive monthly payments', desc: 'Commission is summarized and bank-transferred monthly — automatic, no chasing needed.' },
-]
-
-// ─── REGISTER FORM ────────────────────────────────────────────────────────────
-function RegisterForm({ isEN }) {
-  const [form, setForm] = useState({
-    key: '', name: '', phone: '', email: '',
-    bank_name: '', bank_account: '', bank_owner: '',
-  })
+function LookupSection({ isEN }) {
+  const [code, setCode]     = useState('')
   const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(null)
-  const [error, setError] = useState('')
+  const [result, setResult]  = useState(null)
+  const [error, setError]    = useState('')
 
-  const set = field => e =>
-    setForm(prev => ({ ...prev, [field]: field === 'key' ? e.target.value.toUpperCase() : e.target.value }))
-
-  const handleSubmit = async (e) => {
+  async function handleLookup(e) {
     e.preventDefault()
-    setLoading(true)
-    setSuccess(null)
-    setError('')
+    setLoading(true); setResult(null); setError('')
     try {
-      const res = await fetch(API_AFFILIATE, {
+      const res = await fetch('/api/affiliate-lookup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'register', ...form }),
+        body: JSON.stringify({ code: code.trim().toUpperCase() }),
       })
       const data = await res.json()
-      if (data.ok) {
-        setSuccess(data)
-        setForm({ key: '', name: '', phone: '', email: '', bank_name: '', bank_account: '', bank_owner: '' })
-      } else {
-        setError(data.error || (isEN
-          ? 'Registration failed. Please check your key and information.'
-          : 'Đăng ký thất bại. Kiểm tra lại key và thông tin.'))
-      }
+      if (data.ok) setResult(data)
+      else setError(data.error || (isEN ? 'Affiliate code not found.' : 'Không tìm thấy mã affiliate.'))
     } catch {
-      setError(isEN
-        ? 'Cannot connect to server. Please try again later.'
-        : 'Không thể kết nối máy chủ. Vui lòng thử lại sau.')
-    } finally {
-      setLoading(false)
-    }
+      setError(isEN ? 'Cannot connect. Please try again.' : 'Không thể kết nối. Vui lòng thử lại.')
+    } finally { setLoading(false) }
   }
 
   return (
-    <section className="section" style={{ background: '#fff' }} id="register">
-      <div className="container">
-        <Reveal>
-          <div style={{ maxWidth: 640, margin: '0 auto' }}>
-            <div className="card" style={{ padding: 'clamp(28px,4vw,44px)' }}>
-              <div style={{ marginBottom: 24 }}>
-                <h2 style={{ color: '#0c2a72', fontWeight: 900, fontSize: 24, margin: '0 0 10px' }}>
-                  📋 {isEN ? 'Register as Affiliate' : 'Đăng ký Affiliate'}
-                </h2>
-                <div style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 8,
-                  background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)',
-                  borderRadius: 8, padding: '7px 14px', fontSize: 13, color: '#78350f',
-                }}>
-                  <span>⚠️</span>
-                  <span>
-                    {isEN
-                      ? 'Only paid users are eligible to register as affiliates'
-                      : 'Chỉ user đã trả phí mới được đăng ký affiliate'}
-                  </span>
-                </div>
-              </div>
-
-              <form onSubmit={handleSubmit} className="affiliate-form">
-                {/* Personal info section */}
-                <div style={{ fontSize: 12, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid #e2e8f0' }}>
-                  {isEN ? 'Personal Information' : 'Thông tin cá nhân'}
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label" style={{ color: '#0c2a72' }}>
-                    {isEN ? 'Your Key' : 'Key của bạn'} <span style={{ color: '#fe5f01' }}>*</span>
-                  </label>
-                  <input className="form-input" type="text" placeholder="GMAP-XXXX-XXXX-XXXX" value={form.key} onChange={set('key')} required style={{ color: '#1a2332' }} />
-                  <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
-                    {isEN
-                      ? 'Admin key you purchased — used to verify affiliate eligibility'
-                      : 'Key admin đã mua — dùng để xác minh tư cách affiliate'}
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label" style={{ color: '#0c2a72' }}>
-                    {isEN ? 'Full Name' : 'Họ và tên'} <span style={{ color: '#fe5f01' }}>*</span>
-                  </label>
-                  <input
-                    className="form-input"
-                    type="text"
-                    placeholder={isEN ? 'John Doe' : 'Nguyễn Văn A'}
-                    value={form.name}
-                    onChange={set('name')}
-                    required
-                    style={{ color: '#1a2332' }}
-                  />
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }} className="two-col">
-                  <div className="form-group">
-                    <label className="form-label" style={{ color: '#0c2a72' }}>
-                      {isEN ? 'Phone Number' : 'Số điện thoại'} <span style={{ color: '#fe5f01' }}>*</span>
-                    </label>
-                    <input
-                      className="form-input"
-                      type="tel"
-                      placeholder="0901234567"
-                      value={form.phone}
-                      onChange={set('phone')}
-                      required
-                      style={{ color: '#1a2332' }}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label" style={{ color: '#0c2a72' }}>Email</label>
-                    <input
-                      className="form-input"
-                      type="email"
-                      placeholder={isEN ? 'name@email.com' : 'ten@email.com'}
-                      value={form.email}
-                      onChange={set('email')}
-                      style={{ color: '#1a2332' }}
-                    />
-                  </div>
-                </div>
-
-                {/* Bank info section */}
-                <div style={{ fontSize: 12, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.6px', marginTop: 8, marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid #e2e8f0' }}>
-                  {isEN ? 'Bank Details for Receiving Commission' : 'Thông tin ngân hàng nhận tiền'}
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label" style={{ color: '#0c2a72' }}>{isEN ? 'Bank Name' : 'Tên ngân hàng'}</label>
-                  <input
-                    className="form-input"
-                    type="text"
-                    placeholder={isEN ? 'e.g. Vietcombank, MB Bank, Techcombank...' : 'VD: Vietcombank, MB Bank, Techcombank...'}
-                    value={form.bank_name}
-                    onChange={set('bank_name')}
-                    style={{ color: '#1a2332' }}
-                  />
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }} className="two-col">
-                  <div className="form-group">
-                    <label className="form-label" style={{ color: '#0c2a72' }}>
-                      {isEN ? 'Account Number' : 'Số tài khoản'} <span style={{ color: '#fe5f01' }}>*</span>
-                    </label>
-                    <input
-                      className="form-input"
-                      type="text"
-                      placeholder="0123456789"
-                      value={form.bank_account}
-                      onChange={set('bank_account')}
-                      required
-                      style={{ color: '#1a2332' }}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label" style={{ color: '#0c2a72' }}>
-                      {isEN ? 'Account Holder Name' : 'Tên chủ tài khoản'} <span style={{ color: '#fe5f01' }}>*</span>
-                    </label>
-                    <input
-                      className="form-input"
-                      type="text"
-                      placeholder={isEN ? 'JOHN DOE' : 'NGUYEN VAN A'}
-                      value={form.bank_owner}
-                      onChange={set('bank_owner')}
-                      required
-                      style={{ color: '#1a2332' }}
-                    />
-                    <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
-                      {isEN ? 'UPPERCASE without accents' : 'Viết IN HOA không dấu'}
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="btn btn-navy btn-block"
-                  style={{ fontFamily: 'inherit', fontSize: 16, padding: '14px', marginTop: 8, opacity: loading ? 0.7 : 1 }}
-                >
-                  {loading
-                    ? <><span className="spinner" />{isEN ? 'Registering...' : 'Đang đăng ký...'}</>
-                    : (isEN ? '🚀 Register as Affiliate →' : '🚀 Đăng ký Affiliate →')}
-                </button>
-              </form>
-
-              {error && (
-                <div className="alert alert-error" style={{ marginTop: 16 }}>{error}</div>
-              )}
-
-              {success && (
-                <div style={{
-                  marginTop: 24, background: 'rgba(16,185,129,0.06)',
-                  border: '1.5px solid rgba(16,185,129,0.25)',
-                  borderRadius: 'var(--radius)', padding: 28, textAlign: 'center',
-                }}>
-                  <div style={{ fontSize: 44, marginBottom: 12 }}>🎉</div>
-                  <div style={{ fontWeight: 900, color: '#059669', fontSize: 18, marginBottom: 8 }}>
-                    {isEN ? 'Registration successful!' : 'Đăng ký thành công!'}
-                  </div>
-                  <div style={{ color: '#64748b', fontSize: 14, marginBottom: 16 }}>
-                    {isEN ? 'Your affiliate code:' : 'Mã affiliate của bạn:'}
-                  </div>
-                  <div style={{
-                    fontFamily: 'monospace', fontWeight: 900, fontSize: 26,
-                    color: '#0c2a72', background: 'rgba(12,42,114,0.08)',
-                    padding: '12px 28px', borderRadius: 10,
-                    display: 'inline-block', letterSpacing: '3px',
-                    border: '1px solid rgba(12,42,114,0.15)',
-                  }}>
-                    {success.referral_code || 'N/A'}
-                  </div>
-                  <div style={{ color: '#64748b', fontSize: 13, marginTop: 14 }}>
-                    {isEN ? 'Your link:' : 'Link của bạn:'}{' '}
-                    <strong style={{ color: '#0c2a72' }}>
-                      adsmeta.gonetwork.vn?ref={success.referral_code}
-                    </strong>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </Reveal>
-      </div>
-    </section>
-  )
-}
-
-// ─── LOOKUP COMMISSION ────────────────────────────────────────────────────────
-function LookupCommission({ isEN }) {
-  const [key, setKey] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState(null)
-  const [error, setError] = useState('')
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setLoading(true)
-    setResult(null)
-    setError('')
-    try {
-      const res = await fetch(API_AFFILIATE, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'lookup', key: key.trim().toUpperCase() }),
-      })
-      const data = await res.json()
-      if (data.ok) {
-        setResult(data)
-      } else {
-        setError(data.error || (isEN
-          ? 'No affiliate account found for this key.'
-          : 'Không tìm thấy tài khoản affiliate với key này.'))
-      }
-    } catch {
-      setError(isEN
-        ? 'Cannot connect to server. Please try again later.'
-        : 'Không thể kết nối máy chủ. Vui lòng thử lại sau.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <section style={{ background: 'var(--gray)', padding: '80px 0' }} id="dashboard">
+    <section style={{ background: 'var(--gray)', padding: '80px 0' }} id="lookup">
       <div className="container">
         <Reveal>
           <div style={{ maxWidth: 560, margin: '0 auto' }}>
@@ -314,19 +65,23 @@ function LookupCommission({ isEN }) {
                 📊 {isEN ? 'Commission Lookup' : 'Tra cứu hoa hồng'}
               </div>
               <h2 style={{ margin: 0 }}>
-                {isEN ? 'Check your commission' : 'Kiểm tra hoa hồng của bạn'}
+                {isEN ? 'Check your commission balance' : 'Kiểm tra hoa hồng của bạn'}
               </h2>
+              <p style={{ color: '#64748b', fontSize: 14, marginTop: 10 }}>
+                {isEN ? 'Enter your affiliate referral code to see your stats.' : 'Nhập mã affiliate của bạn để xem thống kê hoa hồng.'}
+              </p>
             </div>
 
             <div className="card" style={{ padding: 'clamp(24px,4vw,36px)' }}>
-              <form onSubmit={handleSubmit} style={{ display: 'flex', gap: 12 }}>
+              <form onSubmit={handleLookup} style={{ display: 'flex', gap: 12 }}>
                 <input
                   className="form-input"
                   type="text"
-                  placeholder={isEN ? 'Enter your key...' : 'Nhập key của bạn...'}
-                  value={key}
-                  onChange={e => setKey(e.target.value.toUpperCase())}
+                  placeholder={isEN ? 'Enter referral code (e.g. ABC123)' : 'Nhập mã affiliate (VD: ABC123)'}
+                  value={code}
+                  onChange={e => setCode(e.target.value.toUpperCase())}
                   required
+                  maxLength={10}
                   style={{ flex: 1 }}
                 />
                 <button
@@ -339,47 +94,32 @@ function LookupCommission({ isEN }) {
                 </button>
               </form>
 
-              {error && (
-                <div className="alert alert-error" style={{ marginTop: 16 }}>{error}</div>
-              )}
+              {error && <div className="alert alert-error" style={{ marginTop: 16 }}>{error}</div>}
 
               {result && (
                 <div style={{ marginTop: 24 }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }} className="lookup-grid">
-                    <div style={{
-                      background: 'rgba(12,42,114,0.08)', borderRadius: 10, padding: '18px 20px',
-                      border: '1px solid rgba(12,42,114,0.12)',
-                    }}>
-                      <div style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
-                        {isEN ? 'Affiliate Code' : 'Mã Affiliate'}
-                      </div>
-                      <div style={{ fontFamily: 'monospace', fontWeight: 900, fontSize: 18, color: 'var(--navy)' }}>
-                        {result.referral_code || '—'}
-                      </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                    <div style={{ background: 'rgba(12,42,114,0.08)', borderRadius: 10, padding: '18px 20px', border: '1px solid rgba(12,42,114,0.12)' }}>
+                      <div style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 600, marginBottom: 6, textTransform: 'uppercase' }}>{isEN ? 'Affiliate Code' : 'Mã Affiliate'}</div>
+                      <div style={{ fontFamily: 'monospace', fontWeight: 900, fontSize: 20, color: 'var(--navy)' }}>{result.referral_code}</div>
                     </div>
-                    <div style={{
-                      background: 'rgba(16,185,129,0.08)', borderRadius: 10, padding: '18px 20px',
-                      border: '1px solid rgba(16,185,129,0.2)',
-                    }}>
-                      <div style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
-                        {isEN ? 'Total Commission' : 'Tổng hoa hồng'}
-                      </div>
+                    <div style={{ background: 'rgba(16,185,129,0.08)', borderRadius: 10, padding: '18px 20px', border: '1px solid rgba(16,185,129,0.2)' }}>
+                      <div style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 600, marginBottom: 6, textTransform: 'uppercase' }}>{isEN ? 'Total Commission' : 'Đã nhận'}</div>
                       <div style={{ fontWeight: 900, fontSize: 18, color: '#16a34a' }}>
-                        {result.total_earned != null
-                          ? Number(result.total_earned).toLocaleString('vi-VN') + 'đ'
-                          : '—'}
+                        {Number(result.total_earned || 0).toLocaleString('vi-VN')}đ
                       </div>
                     </div>
                   </div>
-
-                  <div style={{
-                    background: 'var(--gray)', borderRadius: 10, padding: '14px 18px',
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    border: '1px solid var(--gray2)',
-                  }}>
-                    <span style={{ color: '#64748b', fontSize: 14 }}>
-                      {isEN ? 'Account status' : 'Trạng thái tài khoản'}
-                    </span>
+                  {result.pending_earned > 0 && (
+                    <div style={{ background: 'rgba(245,158,11,0.08)', borderRadius: 10, padding: '14px 18px', border: '1px solid rgba(245,158,11,0.2)', marginBottom: 12 }}>
+                      <span style={{ fontSize: 13, color: '#92400e' }}>
+                        ⏳ {isEN ? 'Pending payout' : 'Chờ xác nhận'}:{' '}
+                        <strong>{Number(result.pending_earned).toLocaleString('vi-VN')}đ</strong>
+                      </span>
+                    </div>
+                  )}
+                  <div style={{ background: 'var(--gray)', borderRadius: 10, padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid var(--gray2)' }}>
+                    <span style={{ color: '#64748b', fontSize: 14 }}>{isEN ? 'Account status' : 'Trạng thái'}</span>
                     <span style={{
                       background: result.status === 'active' ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.1)',
                       color: result.status === 'active' ? '#059669' : '#dc2626',
@@ -387,10 +127,14 @@ function LookupCommission({ isEN }) {
                       borderRadius: 'var(--radius-full)',
                       border: result.status === 'active' ? '1px solid rgba(16,185,129,0.25)' : '1px solid rgba(239,68,68,0.25)',
                     }}>
-                      {result.status === 'active'
-                        ? (isEN ? '✓ Active' : '✓ Đang hoạt động')
-                        : (isEN ? '✕ Inactive' : '✕ Không hoạt động')}
+                      {result.status === 'active' ? (isEN ? '✓ Active' : '✓ Đang hoạt động') : (isEN ? '✕ Inactive' : '✕ Không hoạt động')}
                     </span>
+                  </div>
+                  <div style={{ marginTop: 16, textAlign: 'center', fontSize: 13, color: '#64748b' }}>
+                    {isEN ? 'For detailed stats, log in to your' : 'Để xem thống kê chi tiết, hãy đăng nhập vào'}{' '}
+                    <a href="/dashboard/affiliate" style={{ color: '#0c2a72', fontWeight: 700 }}>
+                      {isEN ? 'Affiliate Dashboard' : 'Dashboard Affiliate'}
+                    </a>
                   </div>
                 </div>
               )}
@@ -402,23 +146,19 @@ function LookupCommission({ isEN }) {
   )
 }
 
-// ─── PAGE ─────────────────────────────────────────────────────────────────────
-export default function Affiliate() {
+export default function AffiliatePage() {
   const { lang } = useLang()
   const isEN = lang === 'en'
-
-  const COMMISSION_CARDS = isEN ? COMMISSION_CARDS_EN : COMMISSION_CARDS_VI
-  const HOW_STEPS = isEN ? HOW_STEPS_EN : HOW_STEPS_VI
+  const COMMISSION = isEN ? COMMISSION_EN : COMMISSION_VI
+  const HOW = isEN ? HOW_EN : HOW_VI
 
   return (
     <>
       <Head>
-        <title>{isEN
-          ? 'Affiliate — Go Meta Ads Pro | Earn Referral Commission'
-          : 'Affiliate — Go Meta Ads Pro | Kiếm hoa hồng giới thiệu'}</title>
+        <title>{isEN ? 'Affiliate — Go Meta Ads Pro | Earn Commission' : 'Affiliate — Go Meta Ads Pro | Kiếm hoa hồng giới thiệu'}</title>
         <meta name="description" content={isEN
-          ? 'Join the Go Meta Ads Pro affiliate program — earn up to 9% commission each time you refer a customer.'
-          : 'Tham gia chương trình affiliate Go Meta Ads Pro — nhận hoa hồng đến 9% mỗi lần giới thiệu khách mua gói.'
+          ? 'Join the Go Meta Ads Pro affiliate program — earn up to 15% commission each time you refer a customer.'
+          : 'Tham gia chương trình affiliate Go Meta Ads Pro — nhận hoa hồng đến 15% mỗi lần giới thiệu khách mua gói.'
         } />
       </Head>
       <Navbar />
@@ -427,8 +167,7 @@ export default function Affiliate() {
       <section style={{
         background: 'linear-gradient(135deg, var(--navy) 0%, #0e1e50 55%, #1a0a00 100%)',
         paddingTop: 'calc(var(--header-h) + 20px)',
-        paddingBottom: 80,
-        color: '#fff', textAlign: 'center',
+        paddingBottom: 80, color: '#fff', textAlign: 'center',
         position: 'relative', overflow: 'hidden',
       }}>
         <div style={{ position: 'absolute', top: -80, right: -80, width: 340, height: 340, borderRadius: '50%', background: 'rgba(254,95,1,0.1)', pointerEvents: 'none' }} />
@@ -440,28 +179,26 @@ export default function Affiliate() {
           </div>
 
           <h1 style={{ margin: '0 0 20px', fontSize: 'clamp(28px,5vw,48px)', lineHeight: 1.2 }}>
-            {isEN ? 'Refer — Earn automatic commission' : 'Giới thiệu — Nhận hoa hồng tự động'}
+            {isEN ? 'Refer friends — Earn automatic commission' : 'Giới thiệu bạn bè — Nhận hoa hồng tự động'}
           </h1>
 
           <p style={{ fontSize: 'clamp(15px,2.5vw,18px)', opacity: 0.85, lineHeight: 1.8, maxWidth: 620, margin: '0 auto 40px' }}>
             {isEN ? (
               <>Already using Go Meta Ads Pro? Share your link with colleagues &amp; friends.
-                Every time they purchase a key, you earn commission up to{' '}
-                <strong style={{ color: '#fbbf24' }}>9% first month</strong> +{' '}
-                <strong style={{ color: '#fbbf24' }}>3% each renewal</strong>.</>
+                Earn up to <strong style={{ color: '#fbbf24' }}>15% per new subscription</strong> +{' '}
+                <strong style={{ color: '#fbbf24' }}>3% per renewal</strong>.</>
             ) : (
-              <>Đã dùng Go Meta Ads Pro? Chia link cho đồng nghiệp &amp; bạn bè.
-                Mỗi khi họ mua key, bạn nhận hoa hồng đến{' '}
-                <strong style={{ color: '#fbbf24' }}>9% tháng đầu</strong> +{' '}
+              <>Đang dùng Go Meta Ads Pro? Chia link cho đồng nghiệp &amp; bạn bè.
+                Nhận hoa hồng đến <strong style={{ color: '#fbbf24' }}>15% mỗi gói mới</strong> +{' '}
                 <strong style={{ color: '#fbbf24' }}>3% mỗi lần gia hạn</strong>.</>
             )}
           </p>
 
           <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <a href="#register" className="btn btn-primary btn-lg" style={{ fontFamily: 'inherit' }}>
-              {isEN ? 'Register now →' : 'Đăng ký ngay →'}
+            <a href="/dashboard/affiliate" className="btn btn-primary btn-lg" style={{ fontFamily: 'inherit' }}>
+              {isEN ? 'Register as Affiliate →' : 'Đăng ký Affiliate →'}
             </a>
-            <a href="#dashboard" className="btn btn-glass btn-lg" style={{ fontFamily: 'inherit' }}>
+            <a href="#lookup" className="btn btn-glass btn-lg" style={{ fontFamily: 'inherit' }}>
               {isEN ? 'Check commission' : 'Tra cứu hoa hồng'}
             </a>
           </div>
@@ -474,9 +211,9 @@ export default function Affiliate() {
             overflow: 'hidden', maxWidth: 540, marginLeft: 'auto', marginRight: 'auto',
           }}>
             {[
-              { val: isEN ? 'up to 9%' : 'đến 9%', label: isEN ? 'First month commission' : 'Hoa hồng tháng đầu' },
+              { val: isEN ? 'up to 15%' : 'đến 15%', label: isEN ? 'New subscription' : 'Gói mua mới' },
               { val: '3%', label: isEN ? 'Renewal commission' : 'Hoa hồng gia hạn' },
-              { val: isEN ? '30 days' : '30 ngày', label: isEN ? 'Cookie tracking' : 'Cookie tracking' },
+              { val: isEN ? '30 days' : '30 ngày', label: 'Cookie tracking' },
             ].map((s, i) => (
               <div key={i} style={{
                 flex: 1, padding: '20px 14px', textAlign: 'center',
@@ -495,29 +232,27 @@ export default function Affiliate() {
         <div className="container">
           <Reveal>
             <div className="section-header">
-              <div className="badge" style={{ color: '#0c2a72', background: 'rgba(12,42,114,0.08)', border: '1px solid rgba(12,42,114,0.15)' }}>💰 {isEN ? 'Commission Rates' : 'Tỉ lệ hoa hồng'}</div>
-              <h2 style={{ color: '#0c2a72' }}>{isEN ? 'Attractive commissions, automatic payouts' : 'Hoa hồng hấp dẫn, tự động thanh toán'}</h2>
-              <p style={{ color: '#64748b' }}>{isEN
-                ? 'Commission calculated per plan purchased — paid monthly via bank transfer.'
-                : 'Hoa hồng tính theo từng gói khách mua — thanh toán hàng tháng qua chuyển khoản ngân hàng.'}</p>
+              <div className="badge" style={{ color: '#0c2a72', background: 'rgba(12,42,114,0.08)', border: '1px solid rgba(12,42,114,0.15)' }}>
+                💰 {isEN ? 'Commission Rates' : 'Tỉ lệ hoa hồng'}
+              </div>
+              <h2 style={{ color: '#0c2a72' }}>{isEN ? 'Competitive commissions, auto payouts' : 'Hoa hồng cạnh tranh, tự động thanh toán'}</h2>
+              <p style={{ color: '#64748b' }}>
+                {isEN
+                  ? 'Commission calculated per plan purchased — confirmed and paid monthly via bank transfer.'
+                  : 'Hoa hồng tính theo từng gói khách mua — xác nhận hàng tháng và chuyển khoản ngân hàng tự động.'}
+              </p>
             </div>
           </Reveal>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 20 }} className="commission-grid">
-            {COMMISSION_CARDS.map((c, i) => (
+            {COMMISSION.map((c, i) => (
               <Reveal key={c.label} delay={i * 80}>
                 <div style={{
                   background: c.bg, borderRadius: 'var(--radius-lg)',
                   padding: '32px 20px', textAlign: 'center',
-                  border: `1px solid ${c.border}`,
-                  transition: 'var(--transition)',
-                }}
-                  className="commission-card"
-                >
-                  <div style={{
-                    fontSize: 48, fontWeight: 900, color: c.color,
-                    lineHeight: 1, marginBottom: 14,
-                  }}>{c.pct}</div>
+                  border: `1px solid ${c.border}`, transition: 'var(--transition)',
+                }} className="commission-card">
+                  <div style={{ fontSize: 48, fontWeight: 900, color: c.color, lineHeight: 1, marginBottom: 14 }}>{c.pct}</div>
                   <div style={{ fontWeight: 800, color: '#1a2332', fontSize: 15, marginBottom: 4 }}>{c.label}</div>
                   <div style={{ fontSize: 13, color: '#64748b', fontWeight: 500 }}>{c.sub}</div>
                 </div>
@@ -538,13 +273,11 @@ export default function Affiliate() {
           </Reveal>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 24, position: 'relative' }} className="how-grid">
-            {/* connector line desktop */}
             <div className="how-connector" style={{
               position: 'absolute', top: 36, left: '12.5%', right: '12.5%',
               height: 2, background: 'rgba(12,42,114,0.15)', zIndex: 0,
             }} />
-
-            {HOW_STEPS.map((s, i) => (
+            {HOW.map((s, i) => (
               <Reveal key={i} delay={i * 80}>
                 <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
                   <div style={{
@@ -566,11 +299,56 @@ export default function Affiliate() {
         </div>
       </section>
 
-      {/* ─── REGISTER FORM ─── */}
-      <RegisterForm isEN={isEN} />
+      {/* ─── REGISTER CTA ─── */}
+      <section className="section" style={{ background: '#fff' }} id="register">
+        <div className="container">
+          <Reveal>
+            <div style={{ maxWidth: 640, margin: '0 auto' }}>
+              <div className="card" style={{ padding: 'clamp(28px,4vw,44px)', textAlign: 'center' }}>
+                <div style={{ fontSize: 52, marginBottom: 16 }}>🤝</div>
+                <h2 style={{ color: '#0c2a72', fontWeight: 900, fontSize: 24, margin: '0 0 12px' }}>
+                  {isEN ? 'Ready to earn commission?' : 'Sẵn sàng kiếm hoa hồng?'}
+                </h2>
+                <p style={{ color: '#64748b', fontSize: 15, lineHeight: 1.7, marginBottom: 24 }}>
+                  {isEN
+                    ? 'Log in to your account and go to Dashboard → Affiliate to register your bank details and get your personal referral link.'
+                    : 'Đăng nhập vào tài khoản, vào Dashboard → Affiliate để nhập thông tin ngân hàng và nhận link giới thiệu cá nhân của bạn.'}
+                </p>
+
+                <div style={{
+                  background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)',
+                  borderRadius: 10, padding: '12px 18px', fontSize: 13, color: '#78350f',
+                  marginBottom: 28, textAlign: 'left',
+                }}>
+                  <strong>⚠️ {isEN ? 'Requirement' : 'Điều kiện'}:</strong>{' '}
+                  {isEN
+                    ? 'Only paid plan users (Personal, Business, Agency) can register as affiliates.'
+                    : 'Chỉ tài khoản đã mua gói trả phí (Personal, Business, Agency) mới được đăng ký affiliate.'}
+                </div>
+
+                <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+                  <a href="/dashboard/affiliate" className="btn btn-navy btn-lg" style={{ fontFamily: 'inherit' }}>
+                    🚀 {isEN ? 'Go to Dashboard → Affiliate' : 'Vào Dashboard → Affiliate'}
+                  </a>
+                  <a href="/register" className="btn btn-lg" style={{ fontFamily: 'inherit', background: 'var(--gray)', color: 'var(--navy)', border: '1px solid var(--gray2)' }}>
+                    {isEN ? 'Create account first' : 'Tạo tài khoản trước'}
+                  </a>
+                </div>
+
+                <div style={{ marginTop: 24, fontSize: 13, color: '#94a3b8' }}>
+                  {isEN ? 'No account yet?' : 'Chưa có tài khoản?'}{' '}
+                  <a href="/register" style={{ color: '#0c2a72', fontWeight: 700 }}>
+                    {isEN ? 'Try free 3 days →' : 'Dùng thử 3 ngày miễn phí →'}
+                  </a>
+                </div>
+              </div>
+            </div>
+          </Reveal>
+        </div>
+      </section>
 
       {/* ─── LOOKUP ─── */}
-      <LookupCommission isEN={isEN} />
+      <LookupSection isEN={isEN} />
 
       {/* ─── BOTTOM CTA ─── */}
       <section style={{
@@ -587,8 +365,8 @@ export default function Affiliate() {
                 ? 'Just share your link — the system handles everything else automatically'
                 : 'Chỉ cần chia link — phần còn lại hệ thống tự động xử lý cho bạn'}
             </p>
-            <a href="#register" className="btn btn-primary btn-lg" style={{ fontFamily: 'inherit' }}>
-              {isEN ? 'Register Affiliate for free →' : 'Đăng ký Affiliate miễn phí →'}
+            <a href="/dashboard/affiliate" className="btn btn-primary btn-lg" style={{ fontFamily: 'inherit' }}>
+              {isEN ? 'Register Affiliate now →' : 'Đăng ký Affiliate ngay →'}
             </a>
           </Reveal>
         </div>
@@ -597,7 +375,7 @@ export default function Affiliate() {
       <Footer />
 
       <style>{`
-        /* Fix form input borders - .form-input dùng var(--border2) = nearly invisible */
+        .commission-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-lg); }
         .form-input {
           border: 1.5px solid #d1d5db !important;
           background: #ffffff !important;
@@ -609,9 +387,6 @@ export default function Affiliate() {
           outline: none;
         }
         .form-input::placeholder { color: #94a3b8 !important; }
-        /* Form labels */
-        .affiliate-form .form-label { color: #0c2a72 !important; }
-        .commission-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-lg); }
         @media (max-width: 900px) {
           .commission-grid { grid-template-columns: 1fr 1fr !important; }
           .how-grid { grid-template-columns: 1fr 1fr !important; }
@@ -620,11 +395,6 @@ export default function Affiliate() {
         @media (max-width: 600px) {
           .commission-grid { grid-template-columns: 1fr 1fr !important; }
           .how-grid { grid-template-columns: 1fr !important; }
-          .two-col { grid-template-columns: 1fr !important; }
-          .lookup-grid { grid-template-columns: 1fr !important; }
-        }
-        @media (max-width: 400px) {
-          .commission-grid { grid-template-columns: 1fr 1fr !important; }
         }
       `}</style>
     </>

@@ -95,7 +95,7 @@ export default function Home() {
         <meta name="description" content="Theo dõi CPA từng sản phẩm, đồng bộ target cho cả team, cảnh báo thông minh 7 ngày. Hơn 2,800+ tài khoản ads đang dùng mỗi ngày." />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta property="og:title" content="Go Meta Ads Pro — Đồng bộ CPA, Biết ngay Lãi hay Lỗ" />
-        <meta property="og:description" content="Chrome Extension quản lý Facebook Ads thông minh — CPA realtime, cảnh báo tự động, báo cáo lãi/lỗ." />
+        <meta property="og:description" content="Nền tảng web SaaS quản lý Facebook Ads thông minh — CPA realtime, cảnh báo tự động, báo cáo lãi/lỗ, Auto Care & Tự động Set QC." />
         <link rel="icon" href="/logo.png" />
       </Head>
 
