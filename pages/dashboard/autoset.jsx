@@ -19,178 +19,220 @@ function PlanGate({ feature }) {
   )
 }
 
-const METRICS = [
-  { value: 'spend',       label: 'Chi phí (₫)',         unit: '₫' },
-  { value: 'cpa',         label: 'CPA (₫/đơn)',         unit: '₫' },
-  { value: 'roas',        label: 'ROAS',                unit: '' },
-  { value: 'purchases',   label: 'Số đơn hàng',         unit: 'đơn' },
-  { value: 'ctr',         label: 'CTR (%)',              unit: '%' },
-  { value: 'impressions', label: 'Lượt hiển thị',       unit: '' },
+const PLAN_NAMES = { trial: 'Trial', personal: 'Personal', business: 'Business', agency: 'Agency' }
+const PLAN_MAX_PAGES = { trial: 0, personal: 1, business: 2, agency: 10 }
+
+const OBJECTIVES = [
+  { value: 'OUTCOME_TRAFFIC',    label: 'Tăng traffic' },
+  { value: 'OUTCOME_ENGAGEMENT', label: 'Tương tác bài viết' },
+  { value: 'OUTCOME_AWARENESS',  label: 'Nhận diện thương hiệu' },
 ]
-
-const OPERATORS = [
-  { value: 'gt',  label: '>' },
-  { value: 'lt',  label: '<' },
-  { value: 'gte', label: '≥' },
-  { value: 'lte', label: '≤' },
-]
-
-const ACTIONS = [
-  { value: 'pause',         label: '⏸ Dừng adset (PAUSE)',     hasScale: false },
-  { value: 'scale_budget',  label: '📈 Tăng ngân sách',         hasScale: true },
-  { value: 'reduce_budget', label: '📉 Giảm ngân sách',         hasScale: true },
-]
-
-const TIME_RANGES = [
-  { value: 'today',    label: 'Hôm nay' },
-  { value: 'last_3d',  label: '3 ngày qua' },
-  { value: 'last_7d',  label: '7 ngày qua' },
-  { value: 'last_14d', label: '14 ngày qua' },
-  { value: 'last_30d', label: '30 ngày qua' },
-]
-
-const EMPTY_RULE = {
-  name: '',
-  conditions: [{ metric: 'cpa', operator: 'gt', value: '' }],
-  action: 'pause',
-  scale_factor: 1.2,
-  account_id: 'all',
-  time_range: 'today',
-}
-
-function formatNum(n) {
-  if (n == null) return 'N/A'
-  return Number(n).toLocaleString('vi-VN')
-}
 
 export default function AutoSet() {
   const { user } = useAuth()
   const fbConnected = user?.fb_connected
+  const plan = user?.plan || 'trial'
+  const planName = PLAN_NAMES[plan] || plan
+  const maxPages = PLAN_MAX_PAGES[plan] ?? 0
 
-  const [rules, setRules] = useState([])
-  const [accounts, setAccounts] = useState([])
+  const [config, setConfig] = useState({ pages: [], default_account: null, max_pages: maxPages })
   const [loading, setLoading] = useState(true)
-  const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ ...EMPTY_RULE, conditions: [{ metric: 'cpa', operator: 'gt', value: '' }] })
-  const [saving, setSaving] = useState(false)
-  const [running, setRunning] = useState(false)
-  const [runResults, setRunResults] = useState(null)
+  const [scanning, setScanning] = useState(false)
   const [toast, setToast] = useState(null)
+  const [scanResults, setScanResults] = useState([])
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [addForm, setAddForm] = useState({
+    page_id: '', page_name: '', hashtag: '', daily_budget: '100000', objective: 'OUTCOME_TRAFFIC'
+  })
+  const [myFbPages, setMyFbPages] = useState([])
+  const [loadingMyPages, setLoadingMyPages] = useState(false)
+  const [creatingAd, setCreatingAd] = useState(null)
+  const [savingAccount, setSavingAccount] = useState(false)
+  const [selectedAccount, setSelectedAccount] = useState('')
+  const [adAccounts, setAdAccounts] = useState([])
+  const [history, setHistory] = useState([])
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [loadingHistory, setLoadingHistory] = useState(false)
+  const [savingPage, setSavingPage] = useState(false)
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type })
     setTimeout(() => setToast(null), 3500)
   }
 
-  const fetchRules = useCallback(async () => {
+  const fetchConfig = useCallback(async () => {
     try {
-      const r = await fetch('/api/fb/autoset')
+      const r = await fetch('/api/fb/autoset-config')
       const d = await r.json()
-      if (d.ok) setRules(d.rules)
+      if (d.ok) {
+        setConfig({ pages: d.pages || [], default_account: d.default_account, max_pages: d.max_pages })
+        setSelectedAccount(d.default_account || '')
+      }
     } catch {}
   }, [])
 
-  const fetchAccounts = useCallback(async () => {
+  const fetchAdAccounts = useCallback(async () => {
     try {
       const r = await fetch('/api/fb/campaigns?date_preset=today&status=ALL')
       const d = await r.json()
-      if (d.ok) setAccounts(d.accounts || [])
+      if (d.ok) setAdAccounts(d.accounts || [])
     } catch {}
   }, [])
 
   useEffect(() => {
     if (!fbConnected) { setLoading(false); return }
-    Promise.all([fetchRules(), fetchAccounts()]).finally(() => setLoading(false))
-  }, [fbConnected, fetchRules, fetchAccounts])
+    Promise.all([fetchConfig(), fetchAdAccounts()]).finally(() => setLoading(false))
+  }, [fbConnected, fetchConfig, fetchAdAccounts])
 
-  function updateCondition(idx, field, val) {
-    setForm(prev => {
-      const conds = [...prev.conditions]
-      conds[idx] = { ...conds[idx], [field]: val }
-      return { ...prev, conditions: conds }
-    })
-  }
-
-  function addCondition() {
-    setForm(prev => ({
-      ...prev,
-      conditions: [...prev.conditions, { metric: 'spend', operator: 'gt', value: '' }]
-    }))
-  }
-
-  function removeCondition(idx) {
-    setForm(prev => ({
-      ...prev,
-      conditions: prev.conditions.filter((_, i) => i !== idx)
-    }))
-  }
-
-  async function handleSave() {
-    if (!form.name.trim()) return showToast('Vui lòng đặt tên cho rule', 'error')
-    const invalid = form.conditions.some(c => !c.value || isNaN(Number(c.value)))
-    if (invalid) return showToast('Vui lòng nhập giá trị hợp lệ cho tất cả điều kiện', 'error')
-
-    setSaving(true)
+  async function handleSaveAccount() {
+    if (!selectedAccount) return showToast('Vui lòng chọn tài khoản quảng cáo', 'error')
+    setSavingAccount(true)
     try {
-      const body = {
-        action: 'create',
-        name: form.name,
-        conditions: form.conditions.map(c => ({ ...c, value: Number(c.value) })),
-        action: form.action,
-        scale_factor: Number(form.scale_factor) || 1.2,
-        account_id: form.account_id,
-        time_range: form.time_range,
-      }
-      const r = await fetch('/api/fb/autoset', {
+      const r = await fetch('/api/fb/autoset-config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
+        body: JSON.stringify({ action: 'save_account', default_ad_account_id: selectedAccount })
       })
       const d = await r.json()
-      if (!d.ok) return showToast(d.error || 'Lỗi lưu rule', 'error')
-      showToast('Đã tạo rule thành công')
-      setShowForm(false)
-      setForm({ ...EMPTY_RULE, conditions: [{ metric: 'cpa', operator: 'gt', value: '' }] })
-      fetchRules()
+      if (!d.ok) return showToast(d.error || 'Lỗi lưu tài khoản', 'error')
+      showToast('Đã lưu tài khoản mặc định')
+      fetchConfig()
     } catch { showToast('Lỗi kết nối', 'error') }
-    finally { setSaving(false) }
+    finally { setSavingAccount(false) }
   }
 
-  async function toggleRule(id, enabled) {
-    await fetch('/api/fb/autoset', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'update', id, enabled: !enabled })
-    })
-    fetchRules()
-  }
-
-  async function deleteRule(id, name) {
-    if (!confirm(`Xoá rule "${name}"?`)) return
-    await fetch('/api/fb/autoset', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'delete', id })
-    })
-    showToast('Đã xoá rule')
-    fetchRules()
-  }
-
-  async function handleRun() {
-    setRunning(true)
-    setRunResults(null)
+  async function openAddModal() {
+    setShowAddModal(true)
+    setAddForm({ page_id: '', page_name: '', hashtag: '', daily_budget: '100000', objective: 'OUTCOME_TRAFFIC' })
+    setMyFbPages([])
+    setLoadingMyPages(true)
     try {
-      const r = await fetch('/api/fb/autoset-run', { method: 'POST' })
+      const r = await fetch('/api/fb/autoset-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'get_my_pages' })
+      })
       const d = await r.json()
-      if (!d.ok) return showToast(d.error || 'Lỗi chạy rules', 'error')
-      setRunResults(d)
-      showToast(`Đã chạy xong — ${d.total_affected} adset bị tác động`)
-      fetchRules()
+      if (d.ok) setMyFbPages(d.pages || [])
+      else showToast(d.error || 'Không tải được pages', 'error')
     } catch { showToast('Lỗi kết nối', 'error') }
-    finally { setRunning(false) }
+    finally { setLoadingMyPages(false) }
   }
 
-  const actionInfo = ACTIONS.find(a => a.value === form.action)
+  function handlePageSelect(e) {
+    const pageId = e.target.value
+    const found = myFbPages.find(p => p.id === pageId)
+    setAddForm(prev => ({ ...prev, page_id: pageId, page_name: found?.name || '' }))
+  }
+
+  async function handleAddPage() {
+    if (!addForm.page_id) return showToast('Vui lòng chọn Facebook Page', 'error')
+    const accountId = addForm.ad_account_id || config.default_account || selectedAccount
+    if (!accountId) return showToast('Vui lòng chọn tài khoản quảng cáo', 'error')
+
+    setSavingPage(true)
+    try {
+      const r = await fetch('/api/fb/autoset-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'add_page',
+          page_id: addForm.page_id,
+          page_name: addForm.page_name,
+          hashtag: addForm.hashtag.trim() || null,
+          daily_budget: Number(addForm.daily_budget) || 100000,
+          objective: addForm.objective,
+          ad_account_id: accountId,
+        })
+      })
+      const d = await r.json()
+      if (!d.ok) return showToast(d.error || 'Lỗi thêm page', 'error')
+      showToast('Đã thêm page thành công')
+      setShowAddModal(false)
+      fetchConfig()
+    } catch { showToast('Lỗi kết nối', 'error') }
+    finally { setSavingPage(false) }
+  }
+
+  async function handleRemovePage(page_id, page_name) {
+    if (!confirm(`Xoá page "${page_name}" khỏi danh sách?`)) return
+    try {
+      const r = await fetch('/api/fb/autoset-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'remove_page', page_id })
+      })
+      const d = await r.json()
+      if (!d.ok) return showToast(d.error || 'Lỗi xoá page', 'error')
+      showToast('Đã xoá page')
+      fetchConfig()
+    } catch { showToast('Lỗi kết nối', 'error') }
+  }
+
+  async function handleScan() {
+    setScanning(true)
+    setScanResults([])
+    try {
+      const r = await fetch('/api/fb/autoset-scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'scan' })
+      })
+      const d = await r.json()
+      if (!d.ok) return showToast(d.error || 'Lỗi quét bài viết', 'error')
+      setScanResults(d.posts || [])
+      if ((d.posts || []).length === 0) showToast('Không có bài viết mới')
+      else showToast(`Tìm thấy ${d.posts.length} bài viết mới`)
+    } catch { showToast('Lỗi kết nối', 'error') }
+    finally { setScanning(false) }
+  }
+
+  async function handleCreateAd(post) {
+    setCreatingAd(post.id)
+    try {
+      const r = await fetch('/api/fb/autoset-scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create_ad',
+          post_id: post.id,
+          page_id: post.page_id,
+          page_name: post.page_name,
+          ad_account_id: post.ad_account_id || config.default_account,
+          daily_budget: post.daily_budget,
+          objective: post.objective,
+          post_message: post.message || post.story || '',
+        })
+      })
+      const d = await r.json()
+      if (!d.ok) return showToast(d.error || 'Lỗi tạo ads', 'error')
+      showToast(`Đã tạo ads! Campaign: ${d.campaign_id}`)
+      setScanResults(prev => prev.filter(p => p.id !== post.id))
+    } catch { showToast('Lỗi kết nối', 'error') }
+    finally { setCreatingAd(null) }
+  }
+
+  async function loadHistory() {
+    setLoadingHistory(true)
+    try {
+      const r = await fetch('/api/fb/autoset-scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'history' })
+      })
+      const d = await r.json()
+      if (d.ok) setHistory(d.history || [])
+    } catch {}
+    finally { setLoadingHistory(false) }
+  }
+
+  function toggleHistory() {
+    const next = !historyOpen
+    setHistoryOpen(next)
+    if (next && history.length === 0) loadHistory()
+  }
+
+  const isConfigured = config.pages.length > 0 && (config.default_account || config.pages.some(p => p.ad_account_id))
 
   if (!fbConnected) {
     return (
@@ -216,263 +258,332 @@ export default function AutoSet() {
       <div className="as-page">
 
         {toast && (
-          <div className={`toast ${toast.type}`}>{toast.msg}</div>
+          <div className={`as-toast ${toast.type}`}>{toast.msg}</div>
         )}
 
-        {/* Header */}
+        {/* A. Header */}
         <div className="page-header">
           <div className="ph-left">
             <span className="ph-icon">⚙️</span>
             <div>
-              <h1>Tự động Set QC</h1>
-              <p>Tạo rules tự động kiểm soát và tối ưu adset theo điều kiện</p>
+              <h1>Tự động set quảng cáo</h1>
+              <p>Cấu hình page + tài khoản quảng cáo. Sau đó dùng nút &ldquo;Quét bài viết mới&rdquo; để tự động tạo Campaign + Adset + Ad cho mỗi post có hashtag sản phẩm.</p>
             </div>
           </div>
-          <div className="ph-actions">
-            <button className="btn-run" onClick={handleRun} disabled={running || !rules.filter(r => r.enabled).length}>
-              {running ? '⏳ Đang chạy...' : '▶ Chạy Rules Ngay'}
-            </button>
-            <button className="btn-add" onClick={() => { setShowForm(true); setRunResults(null) }}>
-              + Tạo Rule mới
+        </div>
+
+        {/* Status banner + scan button */}
+        <div className={`status-banner ${isConfigured ? 'configured' : 'not-configured'}`}>
+          <span className="status-dot" />
+          <span className="status-text">
+            {isConfigured
+              ? `Đã cấu hình ${config.pages.length} page. Sẵn sàng quét bài viết.`
+              : 'Chưa cấu hình — hãy thêm ít nhất 1 page và chọn tài khoản quảng cáo.'}
+          </span>
+          <button
+            className="btn-scan"
+            onClick={handleScan}
+            disabled={!isConfigured || scanning}
+          >
+            {scanning ? '⏳ Đang quét...' : '🔍 Quét bài viết mới'}
+          </button>
+        </div>
+
+        {/* B. Default Ad Account */}
+        <div className="section-card">
+          <div className="section-title">🏪 Tài khoản quảng cáo mặc định</div>
+          <div className="section-desc">Tài khoản quảng cáo dùng để tạo Campaign mới.</div>
+          <div className="account-row">
+            <select
+              className="inp"
+              value={selectedAccount}
+              onChange={e => setSelectedAccount(e.target.value)}
+            >
+              <option value="">-- Chọn tài khoản --</option>
+              {adAccounts.map(a => (
+                <option key={a.account_id} value={a.account_id}>
+                  {a.account_name || a.account_id}
+                </option>
+              ))}
+            </select>
+            <button className="btn-save-acc" onClick={handleSaveAccount} disabled={savingAccount}>
+              {savingAccount ? 'Đang lưu...' : 'Lưu'}
             </button>
           </div>
         </div>
 
-        {/* Create form */}
-        {showForm && (
-          <div className="form-card">
-            <div className="form-title">Tạo Rule mới</div>
-
-            <div className="form-row">
-              <label>Tên Rule</label>
-              <input
-                type="text" placeholder="VD: Dừng adset CPA cao"
-                value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                className="inp"
-              />
+        {/* C. Pages section */}
+        <div className="section-card">
+          <div className="section-header">
+            <div>
+              <div className="section-title">📋 Pages đã cấu hình ({config.pages.length}/{config.max_pages})</div>
             </div>
-
-            <div className="form-row">
-              <label>Thời gian đánh giá</label>
-              <select value={form.time_range} onChange={e => setForm(p => ({ ...p, time_range: e.target.value }))} className="inp">
-                {TIME_RANGES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-              </select>
-            </div>
-
-            <div className="form-row">
-              <label>Tài khoản áp dụng</label>
-              <select value={form.account_id} onChange={e => setForm(p => ({ ...p, account_id: e.target.value }))} className="inp">
-                <option value="all">Tất cả tài khoản</option>
-                {accounts.map(a => <option key={a.account_id} value={a.account_id}>{a.account_name || a.account_id}</option>)}
-              </select>
-            </div>
-
-            <div className="form-row">
-              <label>Điều kiện (ALL phải đúng)</label>
-              <div className="conditions">
-                {form.conditions.map((c, i) => (
-                  <div key={i} className="condition-row">
-                    <select value={c.metric} onChange={e => updateCondition(i, 'metric', e.target.value)} className="cond-sel">
-                      {METRICS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-                    </select>
-                    <select value={c.operator} onChange={e => updateCondition(i, 'operator', e.target.value)} className="cond-op">
-                      {OPERATORS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
-                    <input
-                      type="number" placeholder="Giá trị" min="0"
-                      value={c.value} onChange={e => updateCondition(i, 'value', e.target.value)}
-                      className="cond-val"
-                    />
-                    <span className="cond-unit">{METRICS.find(m => m.value === c.metric)?.unit}</span>
-                    {form.conditions.length > 1 && (
-                      <button className="cond-del" onClick={() => removeCondition(i)}>✕</button>
-                    )}
-                  </div>
-                ))}
-                <button className="add-cond-btn" onClick={addCondition}>+ Thêm điều kiện</button>
-              </div>
-            </div>
-
-            <div className="form-row">
-              <label>Hành động thực hiện</label>
-              <select value={form.action} onChange={e => setForm(p => ({ ...p, action: e.target.value }))} className="inp">
-                {ACTIONS.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
-              </select>
-            </div>
-
-            {actionInfo?.hasScale && (
-              <div className="form-row">
-                <label>{form.action === 'scale_budget' ? 'Tăng ngân sách theo hệ số' : 'Giảm ngân sách theo hệ số'}</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <input
-                    type="number" min="1.01" max="3" step="0.05"
-                    value={form.scale_factor}
-                    onChange={e => setForm(p => ({ ...p, scale_factor: e.target.value }))}
-                    className="inp" style={{ maxWidth: 120 }}
-                  />
-                  <span style={{ fontSize: 13, color: 'var(--mut)' }}>
-                    (= {Math.round((Number(form.scale_factor || 1) - 1) * 100)}% {form.action === 'scale_budget' ? 'tăng' : 'giảm'})
-                  </span>
-                </div>
-              </div>
-            )}
-
-            <div className="form-btns">
-              <button className="btn-cancel" onClick={() => setShowForm(false)}>Huỷ</button>
-              <button className="btn-save" onClick={handleSave} disabled={saving}>
-                {saving ? 'Đang lưu...' : '💾 Lưu Rule'}
-              </button>
-            </div>
+            <button
+              className="btn-add-page"
+              onClick={openAddModal}
+              disabled={config.pages.length >= config.max_pages}
+            >
+              + Thêm page
+            </button>
           </div>
-        )}
 
-        {/* Run results */}
-        {runResults && (
-          <div className="results-card">
-            <div className="res-title">
-              Kết quả chạy — {runResults.total_affected} adset bị tác động
+          {loading ? (
+            <div className="loading-text">Đang tải...</div>
+          ) : config.pages.length === 0 ? (
+            <div className="empty-pages">
+              <div style={{ fontSize: 32 }}>📄</div>
+              <div style={{ fontWeight: 600, fontSize: 14 }}>Chưa có page nào</div>
+              <div style={{ fontSize: 12, color: 'var(--mut)' }}>Thêm Facebook Page để tự động quét bài viết có hashtag</div>
             </div>
-            {runResults.results.map((r, i) => (
-              <div key={i} className="res-rule">
-                <div className="res-rule-name">
-                  {r.rule_name}
-                  <span className="res-summary">{r.summary}</span>
-                </div>
-                {r.affected.length > 0 && (
-                  <table className="res-table">
-                    <thead>
-                      <tr><th>Adset</th><th>Chi phí</th><th>Đơn</th><th>CPA</th><th>ROAS</th><th>Kết quả</th></tr>
-                    </thead>
-                    <tbody>
-                      {r.affected.map((a, j) => (
-                        <tr key={j}>
-                          <td className="adset-name">{a.adset_name}</td>
-                          <td>{formatNum(a.metrics.spend)}₫</td>
-                          <td>{a.metrics.purchases}</td>
-                          <td>{a.metrics.cpa != null ? `${formatNum(a.metrics.cpa)}₫` : 'N/A'}</td>
-                          <td>{a.metrics.roas}</td>
-                          <td><span className="res-badge">{a.result}</span></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Rules list */}
-        {loading ? (
-          <div className="loading">Đang tải...</div>
-        ) : rules.length === 0 ? (
-          <div className="empty">
-            <div style={{ fontSize: 40 }}>⚙️</div>
-            <div style={{ fontWeight: 700 }}>Chưa có rule nào</div>
-            <div style={{ fontSize: 13, color: 'var(--mut)' }}>Tạo rule đầu tiên để tự động kiểm soát adset theo điều kiện bạn đặt ra</div>
-            <button className="btn-add" onClick={() => setShowForm(true)}>+ Tạo Rule đầu tiên</button>
-          </div>
-        ) : (
-          <div className="rules-list">
-            {rules.map(rule => (
-              <div key={rule.id} className={`rule-card ${rule.enabled ? 'active' : 'disabled'}`}>
-                <div className="rule-header">
-                  <div className="rule-left">
-                    <button
-                      className={`toggle-btn ${rule.enabled ? 'on' : 'off'}`}
-                      onClick={() => toggleRule(rule.id, rule.enabled)}
-                      title={rule.enabled ? 'Đang bật — click để tắt' : 'Đang tắt — click để bật'}
-                    >
-                      <span className="toggle-thumb" />
-                    </button>
-                    <div>
-                      <div className="rule-name">{rule.name}</div>
-                      <div className="rule-meta">
-                        {TIME_RANGES.find(t => t.value === rule.time_range)?.label || rule.time_range}
-                        {' · '}
-                        {rule.account_id === 'all' ? 'Tất cả tài khoản' : rule.account_id}
-                        {rule.last_run_at && <> · Chạy lần cuối: {new Date(rule.last_run_at).toLocaleString('vi-VN')}</>}
-                      </div>
+          ) : (
+            <div className="pages-list">
+              {config.pages.map(page => (
+                <div key={page.page_id} className="page-card">
+                  <div className="page-info">
+                    <div className="page-name">{page.page_name}</div>
+                    <div className="page-meta">
+                      {page.hashtag && <span className="hashtag-badge">{page.hashtag}</span>}
+                      <span className="budget-text">
+                        {Number(page.daily_budget || 0).toLocaleString('vi-VN')}₫/ngày
+                      </span>
+                      <span className="obj-text">
+                        {OBJECTIVES.find(o => o.value === page.objective)?.label || page.objective}
+                      </span>
                     </div>
                   </div>
-                  <button className="del-btn" onClick={() => deleteRule(rule.id, rule.name)}>🗑</button>
+                  <button className="btn-remove" onClick={() => handleRemovePage(page.page_id, page.page_name)}>
+                    Xoá
+                  </button>
                 </div>
+              ))}
+            </div>
+          )}
 
-                <div className="rule-body">
-                  <div className="rule-conditions">
-                    {(rule.conditions || []).map((c, i) => {
-                      const m = METRICS.find(x => x.value === c.metric)
-                      const op = OPERATORS.find(x => x.value === c.operator)
-                      return (
-                        <span key={i} className="cond-tag">
-                          {m?.label} {op?.label} {Number(c.value).toLocaleString('vi-VN')}{m?.unit}
+          <div className="plan-hint">
+            Gói {planName}: tối đa {config.max_pages} page. Đã dùng: {config.pages.length}.
+          </div>
+        </div>
+
+        {/* D. Scan results */}
+        {scanResults.length > 0 && (
+          <div className="section-card">
+            <div className="section-header">
+              <div className="section-title">📬 Bài viết mới — {scanResults.length} bài chưa có quảng cáo</div>
+              <button className="btn-select-all" onClick={() => {}}>✓ Chọn tất cả</button>
+            </div>
+            <div className="posts-list">
+              {scanResults.map(post => (
+                <div key={post.id} className="post-card">
+                  <div className="post-info">
+                    <div className="post-message">
+                      {(post.message || post.story || '(Không có nội dung)').slice(0, 120)}
+                      {(post.message || post.story || '').length > 120 ? '...' : ''}
+                    </div>
+                    <div className="post-meta">
+                      <span className="post-page">{post.page_name}</span>
+                      {post.created_time && (
+                        <span className="post-time">
+                          {new Date(post.created_time).toLocaleString('vi-VN')}
                         </span>
-                      )
-                    })}
+                      )}
+                    </div>
                   </div>
-                  <div className="rule-action-badge">
-                    {ACTIONS.find(a => a.value === rule.action)?.label}
-                    {(rule.action === 'scale_budget' || rule.action === 'reduce_budget') &&
-                      ` ×${rule.scale_factor}`}
-                  </div>
+                  <button
+                    className="btn-create-ad"
+                    onClick={() => handleCreateAd(post)}
+                    disabled={creatingAd === post.id}
+                  >
+                    {creatingAd === post.id ? '⏳ Đang tạo...' : 'Tạo ads'}
+                  </button>
                 </div>
-
-                {rule.last_run_summary && (
-                  <div className="rule-last-result">{rule.last_run_summary}</div>
-                )}
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
 
-        <div className="hint">
-          <strong>💡 Lưu ý:</strong> Rules chạy tự động 1 lần/ngày (22:00 giờ Việt Nam) hoặc khi bạn nhấn "Chạy Rules Ngay".
-          Các điều kiện trong 1 rule đều phải đúng cùng lúc (AND logic).
+        {/* E. History section */}
+        <div className="section-card">
+          <div className="section-header" style={{ cursor: 'pointer' }} onClick={toggleHistory}>
+            <div className="section-title">📋 Lịch sử tạo ads</div>
+            <span className="toggle-arrow">{historyOpen ? '▲' : '▼'}</span>
+          </div>
+          {historyOpen && (
+            loadingHistory ? (
+              <div className="loading-text">Đang tải lịch sử...</div>
+            ) : history.length === 0 ? (
+              <div className="empty-pages" style={{ padding: '20px 0' }}>
+                <div style={{ fontSize: 12, color: 'var(--mut)' }}>Chưa có lịch sử tạo ads</div>
+              </div>
+            ) : (
+              <table className="history-table">
+                <thead>
+                  <tr>
+                    <th>Nội dung bài</th>
+                    <th>Campaign ID</th>
+                    <th>Thời gian</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {history.map((h, i) => (
+                    <tr key={i}>
+                      <td className="hist-msg">{(h.post_message || '').slice(0, 60)}</td>
+                      <td className="hist-campaign">{h.campaign_id}</td>
+                      <td className="hist-time">
+                        {h.created_at ? new Date(h.created_at).toLocaleString('vi-VN') : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )
+          )}
         </div>
+
+        {/* Add Page Modal */}
+        {showAddModal && (
+          <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setShowAddModal(false) }}>
+            <div className="modal-box">
+              <div className="modal-title">Thêm Facebook Page</div>
+
+              <div className="form-row">
+                <label>Chọn Facebook Page</label>
+                {loadingMyPages ? (
+                  <div className="loading-text">Đang tải pages...</div>
+                ) : (
+                  <select className="inp" value={addForm.page_id} onChange={handlePageSelect}>
+                    <option value="">-- Chọn page --</option>
+                    {myFbPages.map(p => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              <div className="form-row">
+                <label>Tài khoản quảng cáo</label>
+                <select
+                  className="inp"
+                  value={addForm.ad_account_id || config.default_account || ''}
+                  onChange={e => setAddForm(prev => ({ ...prev, ad_account_id: e.target.value }))}
+                >
+                  <option value="">-- Dùng mặc định --</option>
+                  {adAccounts.map(a => (
+                    <option key={a.account_id} value={a.account_id}>
+                      {a.account_name || a.account_id}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-row">
+                <label>Hashtag lọc</label>
+                <input
+                  type="text"
+                  className="inp"
+                  placeholder="Để trống = lấy tất cả bài"
+                  value={addForm.hashtag}
+                  onChange={e => setAddForm(prev => ({ ...prev, hashtag: e.target.value }))}
+                />
+              </div>
+
+              <div className="form-row">
+                <label>Ngân sách/ngày (VND)</label>
+                <input
+                  type="number"
+                  className="inp"
+                  min="10000"
+                  step="10000"
+                  value={addForm.daily_budget}
+                  onChange={e => setAddForm(prev => ({ ...prev, daily_budget: e.target.value }))}
+                />
+              </div>
+
+              <div className="form-row">
+                <label>Mục tiêu chiến dịch</label>
+                <select
+                  className="inp"
+                  value={addForm.objective}
+                  onChange={e => setAddForm(prev => ({ ...prev, objective: e.target.value }))}
+                >
+                  {OBJECTIVES.map(o => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="modal-btns">
+                <button className="btn-cancel" onClick={() => setShowAddModal(false)}>Huỷ</button>
+                <button className="btn-save-modal" onClick={handleAddPage} disabled={savingPage}>
+                  {savingPage ? 'Đang lưu...' : 'Lưu'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
 
       <style jsx>{`
-        .as-page { padding: 24px; max-width: 900px; position: relative; }
+        .as-page { padding: 24px; max-width: 860px; position: relative; }
 
-        .toast {
+        .as-toast {
           position: fixed; top: 16px; right: 16px; z-index: 9999;
           max-width: 260px; padding: 9px 14px; border-radius: 8px;
           background: #10b981; color: #fff; font-size: 12px; font-weight: 600;
           line-height: 1.4; box-shadow: 0 3px 12px rgba(0,0,0,.18);
           animation: fadeIn .2s ease; pointer-events: none;
         }
-        .toast.error { background: #ef4444; }
+        .as-toast.error { background: #ef4444; }
         @keyframes fadeIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
 
-        .page-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
-        .ph-left { display: flex; align-items: center; gap: 14px; }
-        .ph-icon { font-size: 32px; }
+        /* Header */
+        .page-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 16px; }
+        .ph-left { display: flex; align-items: flex-start; gap: 14px; }
+        .ph-icon { font-size: 32px; flex-shrink: 0; }
         h1 { font-size: 18px; font-weight: 700; color: var(--txt); margin-bottom: 4px; }
-        p  { font-size: 13px; color: var(--mut); }
-        .ph-actions { display: flex; gap: 10px; }
+        p { font-size: 13px; color: var(--mut); line-height: 1.6; max-width: 560px; }
 
-        .btn-add {
+        /* Status banner */
+        .status-banner {
+          display: flex; align-items: center; gap: 10px;
+          padding: 12px 16px; border-radius: 12px; margin-bottom: 20px;
+          flex-wrap: wrap;
+        }
+        .status-banner.not-configured { background: rgba(254,95,1,.08); border: 1px solid rgba(254,95,1,.3); }
+        .status-banner.configured { background: rgba(16,185,129,.08); border: 1px solid rgba(16,185,129,.3); }
+        .status-dot {
+          width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+        }
+        .not-configured .status-dot { background: #fe5f01; }
+        .configured .status-dot { background: var(--grn); }
+        .status-text { flex: 1; font-size: 13px; color: var(--txt); }
+        .btn-scan {
+          background: var(--primary); color: #fff; border: none;
+          border-radius: 9px; padding: 8px 16px; font-size: 13px; font-weight: 700;
+          cursor: pointer; font-family: inherit; transition: opacity .15s; flex-shrink: 0;
+        }
+        .btn-scan:hover:not(:disabled) { opacity: .88; }
+        .btn-scan:disabled { opacity: .45; cursor: not-allowed; }
+
+        /* Section card */
+        .section-card {
+          background: var(--s1); border: 1px solid var(--bd); border-radius: 14px;
+          padding: 18px 20px; margin-bottom: 16px;
+        }
+        .section-title { font-size: 14px; font-weight: 700; color: var(--txt); margin-bottom: 4px; }
+        .section-desc { font-size: 12px; color: var(--mut); margin-bottom: 12px; }
+        .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+
+        /* Account row */
+        .account-row { display: flex; gap: 10px; align-items: center; }
+        .account-row .inp { flex: 1; }
+        .btn-save-acc {
           background: var(--primary); color: #fff; border: none;
           border-radius: 9px; padding: 9px 18px; font-size: 13px; font-weight: 700;
-          cursor: pointer; transition: opacity .15s; font-family: inherit;
+          cursor: pointer; font-family: inherit; white-space: nowrap; flex-shrink: 0;
         }
-        .btn-add:hover { opacity: .88; }
-        .btn-run {
-          background: var(--s2); color: var(--txt); border: 1px solid var(--bd);
-          border-radius: 9px; padding: 9px 18px; font-size: 13px; font-weight: 600;
-          cursor: pointer; transition: all .15s; font-family: inherit;
-        }
-        .btn-run:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
-        .btn-run:disabled { opacity: .45; cursor: not-allowed; }
+        .btn-save-acc:disabled { opacity: .5; cursor: not-allowed; }
 
-        /* Form */
-        .form-card {
-          background: var(--s1); border: 1px solid var(--primary); border-radius: 14px;
-          padding: 20px; margin-bottom: 20px;
-        }
-        .form-title { font-size: 14px; font-weight: 700; color: var(--txt); margin-bottom: 16px; }
-        .form-row { margin-bottom: 14px; }
-        .form-row label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--mut); margin-bottom: 6px; }
         .inp {
           width: 100%; background: var(--s2); border: 1.5px solid var(--bd); border-radius: 9px;
           padding: 9px 12px; font-size: 14px; color: var(--txt); outline: none; font-family: inherit;
@@ -480,72 +591,103 @@ export default function AutoSet() {
         }
         .inp:focus { border-color: var(--primary); }
 
-        .conditions { display: flex; flex-direction: column; gap: 8px; }
-        .condition-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-        .cond-sel { flex: 1.6; min-width: 160px; background: var(--s2); border: 1.5px solid var(--bd); border-radius: 8px; padding: 8px 10px; font-size: 13px; color: var(--txt); outline: none; font-family: inherit; }
-        .cond-op  { width: 60px; flex-shrink: 0; background: var(--s2); border: 1.5px solid var(--bd); border-radius: 8px; padding: 8px 6px; font-size: 14px; color: var(--txt); outline: none; font-family: inherit; text-align: center; }
-        .cond-val { flex: 1; min-width: 90px; background: var(--s2); border: 1.5px solid var(--bd); border-radius: 8px; padding: 8px 10px; font-size: 13px; color: var(--txt); outline: none; font-family: inherit; }
-        .cond-unit { font-size: 12px; color: var(--mut); flex-shrink: 0; min-width: 20px; }
-        .cond-del { background: none; border: none; color: var(--red); cursor: pointer; font-size: 14px; padding: 4px; flex-shrink: 0; }
-        .cond-del:hover { opacity: .7; }
-        .add-cond-btn { background: none; border: 1px dashed var(--bd); color: var(--mut); border-radius: 8px; padding: 7px 14px; font-size: 12px; cursor: pointer; font-family: inherit; transition: all .15s; width: fit-content; margin-top: 4px; }
-        .add-cond-btn:hover { border-color: var(--primary); color: var(--primary); }
+        /* Add page button */
+        .btn-add-page {
+          background: var(--primary); color: #fff; border: none;
+          border-radius: 9px; padding: 8px 16px; font-size: 13px; font-weight: 700;
+          cursor: pointer; font-family: inherit;
+        }
+        .btn-add-page:disabled { opacity: .4; cursor: not-allowed; }
 
-        .form-btns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 4px; }
-        .btn-cancel { background: transparent; border: 1px solid var(--bd); color: var(--mut); border-radius: 9px; padding: 9px 18px; font-size: 13px; cursor: pointer; font-family: inherit; }
-        .btn-save { background: var(--primary); color: #fff; border: none; border-radius: 9px; padding: 9px 20px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
-        .btn-save:disabled { opacity: .5; cursor: not-allowed; }
+        /* Pages list */
+        .pages-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+        .page-card {
+          display: flex; align-items: center; justify-content: space-between;
+          background: var(--s2); border: 1px solid var(--bd); border-radius: 10px;
+          padding: 10px 14px; gap: 12px;
+        }
+        .page-info { flex: 1; min-width: 0; }
+        .page-name { font-size: 13px; font-weight: 700; color: var(--txt); margin-bottom: 4px; }
+        .page-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .hashtag-badge {
+          background: rgba(254,95,1,.12); color: var(--primary);
+          border-radius: 20px; padding: 2px 8px; font-size: 11px; font-weight: 600;
+        }
+        .budget-text { font-size: 12px; color: var(--mut); }
+        .obj-text { font-size: 12px; color: var(--mut); }
+        .btn-remove {
+          background: transparent; border: 1px solid var(--red); color: var(--red);
+          border-radius: 7px; padding: 5px 12px; font-size: 12px; cursor: pointer;
+          font-family: inherit; white-space: nowrap; flex-shrink: 0;
+        }
+        .btn-remove:hover { background: rgba(239,68,68,.08); }
 
-        /* Results */
-        .results-card { background: var(--s1); border: 1px solid var(--bd); border-radius: 14px; padding: 16px; margin-bottom: 20px; }
-        .res-title { font-size: 13px; font-weight: 700; color: var(--txt); margin-bottom: 12px; }
-        .res-rule { margin-bottom: 16px; }
-        .res-rule-name { font-size: 13px; font-weight: 600; color: var(--txt); margin-bottom: 8px; }
-        .res-summary { font-size: 12px; color: var(--mut); font-weight: 400; margin-left: 8px; }
-        .res-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-        .res-table th { background: var(--s2); padding: 6px 10px; text-align: left; color: var(--mut); font-size: 11px; text-transform: uppercase; letter-spacing: .4px; }
-        .res-table td { padding: 7px 10px; border-bottom: 1px solid var(--bd); color: var(--txt); }
-        .adset-name { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .res-badge { background: rgba(16,185,129,.12); color: var(--grn); font-size: 11px; padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
-
-        /* Rule cards */
-        .rules-list { display: flex; flex-direction: column; gap: 12px; }
-        .rule-card { background: var(--s1); border: 1px solid var(--bd); border-radius: 14px; padding: 16px; transition: opacity .2s; }
-        .rule-card.disabled { opacity: .55; }
-        .rule-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-        .rule-left { display: flex; align-items: center; gap: 12px; }
-        .rule-name { font-size: 14px; font-weight: 700; color: var(--txt); }
-        .rule-meta { font-size: 12px; color: var(--mut); margin-top: 2px; }
-        .del-btn { background: none; border: none; color: var(--mut); cursor: pointer; font-size: 16px; padding: 4px; }
-        .del-btn:hover { color: var(--red); }
-
-        /* Toggle switch */
-        .toggle-btn { width: 40px; height: 22px; border-radius: 11px; border: none; cursor: pointer; position: relative; transition: background .2s; padding: 0; flex-shrink: 0; }
-        .toggle-btn.on  { background: var(--grn); }
-        .toggle-btn.off { background: var(--bd); }
-        .toggle-thumb { position: absolute; top: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left .2s; }
-        .toggle-btn.on  .toggle-thumb { left: 21px; }
-        .toggle-btn.off .toggle-thumb { left: 3px; }
-
-        .rule-body { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-        .rule-conditions { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; }
-        .cond-tag { background: var(--s2); border: 1px solid var(--bd); border-radius: 20px; padding: 3px 10px; font-size: 12px; color: var(--txt); }
-        .rule-action-badge { background: rgba(99,102,241,.12); color: #818cf8; border-radius: 8px; padding: 5px 12px; font-size: 12px; font-weight: 600; white-space: nowrap; }
-        .rule-last-result { font-size: 12px; color: var(--mut); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--bd); }
-
-        .empty {
-          display: flex; flex-direction: column; align-items: center; gap: 10px;
-          background: var(--s1); border: 1px dashed var(--bd); border-radius: 16px;
-          padding: 48px 32px; text-align: center; margin-bottom: 16px;
+        .empty-pages {
+          display: flex; flex-direction: column; align-items: center; gap: 6px;
+          padding: 28px 16px; text-align: center; color: var(--txt); margin-bottom: 12px;
         }
 
-        .loading { color: var(--mut); font-size: 13px; padding: 24px; text-align: center; }
+        .plan-hint { font-size: 12px; color: var(--mut); margin-top: 8px; }
 
-        .hint {
-          margin-top: 20px; padding: 12px 16px; background: rgba(99,102,241,.06);
-          border: 1px solid rgba(99,102,241,.2); border-radius: 10px;
-          font-size: 12px; color: var(--mut); line-height: 1.6;
+        /* Scan results / posts */
+        .posts-list { display: flex; flex-direction: column; gap: 8px; }
+        .post-card {
+          display: flex; align-items: center; justify-content: space-between;
+          background: var(--s2); border: 1px solid var(--bd); border-radius: 10px;
+          padding: 12px 14px; gap: 12px;
         }
+        .post-info { flex: 1; min-width: 0; }
+        .post-message { font-size: 13px; color: var(--txt); line-height: 1.5; margin-bottom: 4px; word-break: break-word; }
+        .post-meta { display: flex; gap: 10px; align-items: center; }
+        .post-page { font-size: 11px; font-weight: 700; color: var(--primary); }
+        .post-time { font-size: 11px; color: var(--mut); }
+        .btn-create-ad {
+          background: var(--primary); color: #fff; border: none;
+          border-radius: 9px; padding: 7px 14px; font-size: 12px; font-weight: 700;
+          cursor: pointer; font-family: inherit; white-space: nowrap; flex-shrink: 0;
+        }
+        .btn-create-ad:disabled { opacity: .5; cursor: not-allowed; }
+
+        .btn-select-all {
+          background: transparent; border: 1px solid var(--bd); color: var(--txt);
+          border-radius: 8px; padding: 6px 12px; font-size: 12px; cursor: pointer;
+          font-family: inherit;
+        }
+
+        /* History */
+        .toggle-arrow { font-size: 12px; color: var(--mut); }
+        .history-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .history-table th { background: var(--s2); padding: 6px 10px; text-align: left; color: var(--mut); font-size: 11px; text-transform: uppercase; letter-spacing: .4px; }
+        .history-table td { padding: 8px 10px; border-bottom: 1px solid var(--bd); color: var(--txt); }
+        .hist-msg { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .hist-campaign { font-family: monospace; font-size: 11px; color: var(--mut); }
+        .hist-time { white-space: nowrap; color: var(--mut); }
+
+        .loading-text { font-size: 13px; color: var(--mut); padding: 12px 0; }
+
+        /* Modal */
+        .modal-overlay {
+          position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 1000;
+          display: flex; align-items: center; justify-content: center; padding: 20px;
+        }
+        .modal-box {
+          background: var(--s1); border-radius: 16px; padding: 24px;
+          width: 100%; max-width: 460px; box-shadow: 0 20px 60px rgba(0,0,0,.3);
+        }
+        .modal-title { font-size: 16px; font-weight: 700; color: var(--txt); margin-bottom: 18px; }
+        .form-row { margin-bottom: 14px; }
+        .form-row label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--mut); margin-bottom: 6px; }
+        .modal-btns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 6px; }
+        .btn-cancel {
+          background: transparent; border: 1px solid var(--bd); color: var(--mut);
+          border-radius: 9px; padding: 9px 18px; font-size: 13px; cursor: pointer; font-family: inherit;
+        }
+        .btn-save-modal {
+          background: var(--primary); color: #fff; border: none;
+          border-radius: 9px; padding: 9px 20px; font-size: 13px; font-weight: 700;
+          cursor: pointer; font-family: inherit;
+        }
+        .btn-save-modal:disabled { opacity: .5; cursor: not-allowed; }
       `}</style>
     </DashboardLayout>
   )

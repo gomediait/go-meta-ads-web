@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Head from 'next/head'
 import { useAuth } from '../lib/AuthContext'
 import { isPlanAllowed } from '../lib/planLimits'
+import pkg from '../package.json'
 
 const NAV = [
   { href: '/dashboard',             icon: '📊', label: 'Quản lý chiến dịch', needFb: true,  feature: 'campaigns'     },
@@ -11,6 +12,7 @@ const NAV = [
   { href: '/dashboard/report',      icon: '📈', label: 'Report',             needFb: true,  feature: 'report'        },
   { href: '/dashboard/autocare',    icon: '💚', label: 'Auto Care',          needFb: true,  feature: 'autocare'      },
   { href: '/dashboard/autoset',     icon: '⚙️', label: 'Tự động Set QC',     needFb: true,  feature: 'autoset'       },
+  { href: '/dashboard/automated-rules', icon: '📋', label: 'Quy tắc tự động', needFb: true,  feature: 'autoset'       },
   { href: '/dashboard/policycheck', icon: '🛡️', label: 'Kiểm tra Vi phạm',   needFb: false, feature: 'policycheck'   },
   { divider: true },
   { href: '/dashboard/notifications',icon:'🔔', label: 'Thông báo tự động',  needFb: true,  feature: 'notifications' },
@@ -65,7 +67,10 @@ export default function DashboardLayout({ children, title = 'Dashboard' }) {
           <div className="topbar-logo">
             <img src="/logo.png" alt="logo" onError={e => e.target.style.display='none'} />
             <div>
-              <div className="topbar-name">Go Meta Ads Pro</div>
+              <div className="topbar-name">
+                Go Meta Ads Pro
+                <span className="version-badge">v{pkg.version}</span>
+              </div>
               <div className="topbar-sub">by Go Media Vietnam</div>
             </div>
           </div>
@@ -174,8 +179,15 @@ export default function DashboardLayout({ children, title = 'Dashboard' }) {
         }
         .topbar-logo { display: flex; align-items: center; gap: 8px; }
         .topbar-logo img { height: 28px; border-radius: 6px; }
-        .topbar-name { font-size: 14px; font-weight: 700; color: #fff; }
+        .topbar-name { font-size: 14px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 6px; }
         .topbar-sub  { font-size: 10px; color: rgba(255,255,255,.55); }
+        .version-badge {
+          font-size: 9px; font-weight: 600; letter-spacing: .3px;
+          background: rgba(254,95,1,.25); color: #ff9a60;
+          border: 1px solid rgba(254,95,1,.4);
+          border-radius: 4px; padding: 1px 5px; line-height: 1.5;
+          white-space: nowrap;
+        }
         .topbar-mid  { flex: 1; display: flex; align-items: center; gap: 8px; }
         .topbar-right{ display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 
