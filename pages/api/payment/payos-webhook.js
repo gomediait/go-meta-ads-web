@@ -33,17 +33,17 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(200).json({ code: '00', desc: 'success' })
 
   try {
-    const payos = new PayOS(
-      process.env.PAYOS_CLIENT_ID,
-      process.env.PAYOS_API_KEY,
-      process.env.PAYOS_CHECKSUM_KEY
-    )
+    const payos = new PayOS({
+      clientId:    process.env.PAYOS_CLIENT_ID,
+      apiKey:      process.env.PAYOS_API_KEY,
+      checksumKey: process.env.PAYOS_CHECKSUM_KEY,
+    })
 
     const sb = getSupabase()
 
     let webhookData
     try {
-      webhookData = payos.verifyPaymentWebhookData(req.body)
+      webhookData = await payos.webhooks.verify(req.body)
     } catch {
       // Invalid signature — still return 200 so PayOS doesn't retry endlessly
       return res.status(200).json({ code: '00', desc: 'success' })

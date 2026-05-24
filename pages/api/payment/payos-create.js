@@ -31,11 +31,11 @@ export default async function handler(req, res) {
   if (!amount || amount < 1000) return res.status(400).json({ ok: false, error: 'Số tiền không hợp lệ' })
 
   try {
-    const payos = new PayOS(
-      process.env.PAYOS_CLIENT_ID,
-      process.env.PAYOS_API_KEY,
-      process.env.PAYOS_CHECKSUM_KEY
-    )
+    const payos = new PayOS({
+      clientId:    process.env.PAYOS_CLIENT_ID,
+      apiKey:      process.env.PAYOS_API_KEY,
+      checksumKey: process.env.PAYOS_CHECKSUM_KEY,
+    })
 
     const sb = getSupabase()
     const days = BILLING_DAYS[billing_tab]
@@ -68,7 +68,7 @@ export default async function handler(req, res) {
       cancelUrl: `${SITE_URL}/payment/cancel?order_id=${order.id}`,
     }
 
-    const paymentLink = await payos.createPaymentLink(paymentData)
+    const paymentLink = await payos.paymentRequests.create(paymentData)
     return res.json({ ok: true, checkoutUrl: paymentLink.checkoutUrl, order_id: order.id })
   } catch (e) {
     return res.status(500).json({ ok: false, error: 'Lỗi tạo link thanh toán: ' + e.message })
