@@ -3187,6 +3187,27 @@ function WebUsersTab() {
   )
 }
 
+// ─── Image upload helper (web app endpoint) ──────────────────────────────────
+async function uploadImageWeb(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = async (e) => {
+      try {
+        const r = await fetch('/api/upload-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image_base64: e.target.result }),
+        })
+        const d = await r.json()
+        if (!d.ok) throw new Error(d.error || 'Upload thất bại')
+        resolve({ url: d.url, thumbnail: d.thumbnail || d.url })
+      } catch (err) { reject(err) }
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
 // ─── WEB TICKETS TAB ─────────────────────────────────────────────────────────
 function WebTicketsTab() {
   const [tickets, setTickets] = useState([])
@@ -3194,6 +3215,8 @@ function WebTicketsTab() {
   const [filter, setFilter] = useState('all')
   const [selected, setSelected] = useState(null)
   const [replyText, setReplyText] = useState('')
+  const [replyImages, setReplyImages] = useState([])
+  const [replyUploading, setReplyUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState(null)
 
@@ -3218,13 +3241,26 @@ function WebTicketsTab() {
 
   useEffect(() => { load() }, [filter])
 
+  async function handleReplyImageUpload(e) {
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return
+    setReplyUploading(true)
+    try {
+      const slots = Math.min(files.length, 3 - replyImages.length)
+      const uploaded = await Promise.all(files.slice(0, slots).map(uploadImageWeb))
+      setReplyImages(prev => [...prev, ...uploaded].slice(0, 3))
+    } catch (err) { showToast('Upload ảnh thất bại: ' + err.message, 'error') }
+    finally { setReplyUploading(false); e.target.value = '' }
+  }
+
   async function handleReply() {
-    if (!replyText.trim()) return
+    if (!replyText.trim() && replyImages.length === 0) return
     setSaving(true)
-    const d = await call('reply', { id: selected.id, message: replyText })
+    const d = await call('reply', { id: selected.id, message: replyText, image_urls: replyImages.map(u => u.url) })
     if (!d.ok) { showToast(d.error || 'Lỗi', 'error'); setSaving(false); return }
     setReplyText('')
-    showToast('Đã gửi phản hồi')
+    setReplyImages([])
+    showToast('Đã gửi phản hồi + email cho khách')
     const refreshed = await call('get', { id: selected.id })
     if (refreshed.ok) setSelected(refreshed.ticket)
     load()
@@ -3318,11 +3354,20 @@ function WebTicketsTab() {
               </div>
             </div>
 
-            <div style={{ padding: '16px 18px', maxHeight: 400, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ padding: '16px 18px', maxHeight: 420, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
               {/* Original message */}
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '12px 14px' }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 6 }}>User</div>
                 <div style={{ fontSize: 13, color: '#1a2332', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{selected.message}</div>
+                {selected.image_urls?.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                    {selected.image_urls.map((url, j) => (
+                      <a key={j} href={url} target="_blank" rel="noopener">
+                        <img src={url} style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 6, border: '1px solid #e2e8f0' }} />
+                      </a>
+                    ))}
+                  </div>
+                )}
               </div>
               {/* Replies */}
               {(selected.replies || []).map((r, i) => (
@@ -3330,18 +3375,43 @@ function WebTicketsTab() {
                   <div style={{ fontSize: 11, fontWeight: 700, color: r.from === 'admin' ? '#00c7de' : '#94a3b8', textTransform: 'uppercase', marginBottom: 6 }}>
                     {r.from === 'admin' ? '🛡 Admin' : 'User'}
                   </div>
-                  <div style={{ fontSize: 13, color: '#1a2332', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{r.message}</div>
-                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>{new Date(r.created_at).toLocaleString('vi-VN')}</div>
+                  {r.message && <div style={{ fontSize: 13, color: '#1a2332', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{r.message}</div>}
+                  {r.image_urls?.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                      {r.image_urls.map((url, j) => (
+                        <a key={j} href={url} target="_blank" rel="noopener">
+                          <img src={url} style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 6, border: '1px solid #e2e8f0' }} />
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 6 }}>{new Date(r.created_at).toLocaleString('vi-VN')}</div>
                 </div>
               ))}
             </div>
 
             <div style={{ padding: '14px 18px', borderTop: '1px solid #e2e8f0' }}>
-              <textarea value={replyText} onChange={e => setReplyText(e.target.value)} placeholder="Nhập phản hồi cho user..." rows={3}
+              <textarea value={replyText} onChange={e => setReplyText(e.target.value)} placeholder="Nhập phản hồi cho user (sẽ tự động gửi email cho khách)..." rows={3}
                 style={{ ...inp, width: '100%', resize: 'vertical', marginBottom: 10 }} />
-              <button onClick={handleReply} disabled={saving || !replyText.trim()}
-                style={{ padding: '9px 20px', background: '#00c7de', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: saving || !replyText.trim() ? 0.5 : 1 }}>
-                {saving ? 'Đang gửi...' : '📨 Gửi phản hồi'}
+              {/* Image upload */}
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6 }}>Đính kèm ảnh (tùy chọn)</div>
+                <input type="file" accept="image/*" multiple disabled={replyUploading || replyImages.length >= 3} onChange={handleReplyImageUpload} style={{ fontSize: 12 }} />
+                {replyUploading && <div style={{ fontSize: 12, color: '#00c7de', marginTop: 4 }}>Đang upload...</div>}
+                {replyImages.length > 0 && (
+                  <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+                    {replyImages.map((img, i) => (
+                      <div key={i} style={{ position: 'relative' }}>
+                        <img src={img.thumbnail || img.url} style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 6, border: '1px solid #e2e8f0' }} />
+                        <button onClick={() => setReplyImages(prev => prev.filter((_, idx) => idx !== i))} style={{ position: 'absolute', top: -6, right: -6, width: 18, height: 18, background: '#ef4444', border: 'none', borderRadius: '50%', color: '#fff', fontSize: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>✕</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <button onClick={handleReply} disabled={saving || replyUploading || (!replyText.trim() && replyImages.length === 0)}
+                style={{ padding: '9px 20px', background: '#00c7de', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: saving || replyUploading || (!replyText.trim() && replyImages.length === 0) ? 0.5 : 1 }}>
+                {saving ? 'Đang gửi...' : '📨 Gửi + Email khách'}
               </button>
             </div>
           </div>

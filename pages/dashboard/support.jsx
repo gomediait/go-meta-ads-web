@@ -9,14 +9,12 @@ const STATUS_MAP = {
   resolved:    { label: 'Đã giải quyết', bg: 'rgba(16,185,129,.15)',  color: '#10b981' },
   closed:      { label: 'Đã đóng',       bg: 'rgba(100,116,139,.15)', color: '#94a3b8' },
 }
-
 const PRIORITY_MAP = {
   low:    { label: 'Thấp',       color: '#94a3b8' },
   normal: { label: 'Bình thường', color: 'var(--txt)' },
   high:   { label: 'Cao',        color: '#f59e0b' },
   urgent: { label: 'Khẩn cấp',  color: '#ef4444' },
 }
-
 const ISSUE_TYPES = ['Lỗi phần mềm', 'Hỏi về tính năng', 'Thanh toán / Gói dịch vụ', 'Yêu cầu tính năng mới', 'Khác']
 
 const inpStyle = (extra = {}) => ({
@@ -25,6 +23,61 @@ const inpStyle = (extra = {}) => ({
   ...extra,
 })
 
+/* ─── Upload helper ────────────────────────────────────────────────────────── */
+async function uploadImageBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = async (e) => {
+      try {
+        const r = await fetch('/api/upload-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image_base64: e.target.result }),
+        })
+        const d = await r.json()
+        if (!d.ok) throw new Error(d.error || 'Upload thất bại')
+        resolve({ url: d.url, thumbnail: d.thumbnail || d.url })
+      } catch (err) { reject(err) }
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
+/* ─── ImageGrid ────────────────────────────────────────────────────────────── */
+function ImageGrid({ urls, onRemove }) {
+  const [fullImg, setFullImg] = useState(null)
+  if (!urls?.length) return null
+  return (
+    <>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+        {urls.map((u, i) => (
+          <div key={i} style={{ position: 'relative' }}>
+            <img
+              src={u.thumbnail || u.url || u}
+              alt=""
+              onClick={() => setFullImg(u.url || u)}
+              style={{ width: 76, height: 76, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--bd)', cursor: 'pointer' }}
+            />
+            {onRemove && (
+              <button
+                onClick={() => onRemove(i)}
+                style={{ position: 'absolute', top: -6, right: -6, width: 18, height: 18, background: '#ef4444', border: 'none', borderRadius: '50%', color: '#fff', fontSize: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, lineHeight: 1 }}
+              >✕</button>
+            )}
+          </div>
+        ))}
+      </div>
+      {fullImg && (
+        <div onClick={() => setFullImg(null)} style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-out' }}>
+          <img src={fullImg} alt="" style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 8 }} />
+        </div>
+      )}
+    </>
+  )
+}
+
+/* ─── FieldLabel ───────────────────────────────────────────────────────────── */
 const FieldLabel = ({ children }) => (
   <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.6px', color: 'var(--mut)', marginBottom: 6 }}>
     {children}
@@ -34,10 +87,25 @@ const FieldLabel = ({ children }) => (
 /* ─── TAB 1: GỬI TICKET ───────────────────────────────────────────────────── */
 function SubmitTab({ onCreated }) {
   const [form, setForm] = useState({ subject: '', message: '', priority: 'normal', issue_type: 'Lỗi phần mềm' })
+  const [images, setImages] = useState([])
+  const [uploading, setUploading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState(null)
 
   const set = (k) => (e) => setForm(p => ({ ...p, [k]: e.target.value }))
+
+  async function handleImageUpload(e) {
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return
+    if (images.length >= 3) { alert('Tối đa 3 ảnh'); return }
+    setUploading(true)
+    try {
+      const slots = Math.min(files.length, 3 - images.length)
+      const uploaded = await Promise.all(files.slice(0, slots).map(uploadImageBase64))
+      setImages(prev => [...prev, ...uploaded].slice(0, 3))
+    } catch (err) { alert('Upload ảnh thất bại: ' + err.message) }
+    finally { setUploading(false); e.target.value = '' }
+  }
 
   async function handleSubmit() {
     if (!form.subject.trim()) return setResult({ ok: false, error: 'Vui lòng nhập tiêu đề' })
@@ -48,12 +116,13 @@ function SubmitTab({ onCreated }) {
       const r = await fetch('/api/user/tickets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'create', ...form }),
+        body: JSON.stringify({ action: 'create', ...form, image_urls: images.map(u => u.url) }),
       })
       const d = await r.json()
       if (d.ok) {
         setResult({ ok: true, ticket: d.ticket })
         setForm({ subject: '', message: '', priority: 'normal', issue_type: 'Lỗi phần mềm' })
+        setImages([])
         onCreated?.()
       } else {
         setResult({ ok: false, error: d.error || 'Gửi thất bại' })
@@ -83,14 +152,26 @@ function SubmitTab({ onCreated }) {
           <option value="urgent">Khẩn cấp — ảnh hưởng nghiêm trọng</option>
         </select>
       </div>
-      <div style={{ marginBottom: 20 }}>
+      <div style={{ marginBottom: 16 }}>
         <FieldLabel>Mô tả chi tiết *</FieldLabel>
         <textarea
-          style={inpStyle({ minHeight: 130, resize: 'vertical' })}
+          style={inpStyle({ minHeight: 120, resize: 'vertical' })}
           placeholder="Mô tả chi tiết vấn đề: điều gì đã xảy ra, các bước tái hiện lỗi, kết quả mong đợi..."
           value={form.message}
           onChange={set('message')}
         />
+      </div>
+      <div style={{ marginBottom: 20 }}>
+        <FieldLabel>Đính kèm ảnh (tùy chọn, tối đa 3)</FieldLabel>
+        <input
+          type="file" accept="image/*" multiple
+          disabled={uploading || images.length >= 3}
+          onChange={handleImageUpload}
+          style={{ fontSize: 13, color: 'var(--mut)' }}
+        />
+        {uploading && <div style={{ fontSize: 12, color: 'var(--blue)', marginTop: 6 }}>Đang upload ảnh...</div>}
+        <ImageGrid urls={images} onRemove={i => setImages(prev => prev.filter((_, idx) => idx !== i))} />
+        <div style={{ fontSize: 12, color: 'var(--mut)', marginTop: 6 }}>Đính kèm ảnh screenshot để chúng tôi chẩn đoán nhanh hơn.</div>
       </div>
 
       {result && !result.ok && (
@@ -104,14 +185,14 @@ function SubmitTab({ onCreated }) {
           <div style={{ fontSize: 13, color: 'var(--txt)' }}>
             Mã ticket: <span style={{ fontFamily: 'monospace', fontWeight: 800, letterSpacing: 1 }}>{(result.ticket?.id || '').slice(0, 8).toUpperCase()}</span>
           </div>
-          <div style={{ fontSize: 12, color: 'var(--mut)', marginTop: 4 }}>Chúng tôi sẽ phản hồi trong 2-4 giờ. Xem lại ở tab "Phiếu hỗ trợ".</div>
+          <div style={{ fontSize: 12, color: 'var(--mut)', marginTop: 4 }}>Chúng tôi sẽ phản hồi qua email và trong tab "Phiếu hỗ trợ" trong 2-4 giờ.</div>
         </div>
       )}
 
       <button
         onClick={handleSubmit}
-        disabled={submitting}
-        style={{ width: '100%', padding: 14, background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? .6 : 1, fontFamily: 'inherit' }}
+        disabled={submitting || uploading}
+        style={{ width: '100%', padding: 14, background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting || uploading ? .6 : 1, fontFamily: 'inherit' }}
       >
         {submitting ? 'Đang gửi...' : '📤 Gửi yêu cầu hỗ trợ'}
       </button>
@@ -125,6 +206,8 @@ function LookupTab({ refresh }) {
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(null)
   const [replyText, setReplyText] = useState('')
+  const [replyImages, setReplyImages] = useState([])
+  const [replyUploading, setReplyUploading] = useState(false)
   const [sending, setSending] = useState(false)
   const [toast, setToast] = useState(null)
 
@@ -141,18 +224,36 @@ function LookupTab({ refresh }) {
 
   useEffect(() => { load() }, [load, refresh])
 
+  async function handleImageUpload(e) {
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return
+    setReplyUploading(true)
+    try {
+      const slots = Math.min(files.length, 3 - replyImages.length)
+      const uploaded = await Promise.all(files.slice(0, slots).map(uploadImageBase64))
+      setReplyImages(prev => [...prev, ...uploaded].slice(0, 3))
+    } catch (err) { showToast('Upload ảnh thất bại', 'error') }
+    finally { setReplyUploading(false); e.target.value = '' }
+  }
+
   async function handleReply() {
-    if (!replyText.trim()) return
+    if (!replyText.trim() && replyImages.length === 0) return
     setSending(true)
     try {
       const r = await fetch('/api/user/tickets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'reply', ticket_id: selected.id, message: replyText }),
+        body: JSON.stringify({
+          action: 'reply',
+          ticket_id: selected.id,
+          message: replyText,
+          image_urls: replyImages.map(u => u.url),
+        }),
       })
       const d = await r.json()
       if (!d.ok) return showToast(d.error || 'Lỗi', 'error')
       setReplyText('')
+      setReplyImages([])
       showToast('Đã gửi phản hồi')
       const updated = await fetch('/api/user/tickets').then(r => r.json())
       setTickets(updated.tickets || [])
@@ -187,12 +288,17 @@ function LookupTab({ refresh }) {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+          {/* Tin nhắn gốc */}
           <div style={{ background: 'var(--s2)', border: '1px solid var(--bd)', borderRadius: 12, padding: '12px 16px' }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--mut)', textTransform: 'uppercase', letterSpacing: .5, marginBottom: 6 }}>Bạn</div>
             <div style={{ fontSize: 14, color: 'var(--txt)', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>{selected.message}</div>
+            {selected.image_urls?.length > 0 && (
+              <ImageGrid urls={selected.image_urls} />
+            )}
             <div style={{ fontSize: 11, color: 'var(--mut)', marginTop: 6 }}>{new Date(selected.created_at).toLocaleString('vi-VN')}</div>
           </div>
 
+          {/* Replies */}
           {(selected.replies || []).map((reply, i) => (
             <div key={i} style={{
               background: reply.from === 'admin' ? 'rgba(99,102,241,.07)' : 'var(--s2)',
@@ -202,7 +308,10 @@ function LookupTab({ refresh }) {
               <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .5, marginBottom: 6, color: reply.from === 'admin' ? '#818cf8' : 'var(--mut)' }}>
                 {reply.from === 'admin' ? '🛡 Hỗ trợ Go Meta Ads' : 'Bạn'}
               </div>
-              <div style={{ fontSize: 14, color: 'var(--txt)', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>{reply.message}</div>
+              {reply.message && <div style={{ fontSize: 14, color: 'var(--txt)', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>{reply.message}</div>}
+              {reply.image_urls?.length > 0 && (
+                <ImageGrid urls={reply.image_urls} />
+              )}
               <div style={{ fontSize: 11, color: 'var(--mut)', marginTop: 6 }}>{new Date(reply.created_at).toLocaleString('vi-VN')}</div>
             </div>
           ))}
@@ -223,12 +332,23 @@ function LookupTab({ refresh }) {
               value={replyText}
               onChange={e => setReplyText(e.target.value)}
             />
+            <div style={{ marginTop: 10, marginBottom: 10 }}>
+              <FieldLabel>Đính kèm ảnh (tùy chọn)</FieldLabel>
+              <input
+                type="file" accept="image/*" multiple
+                disabled={replyUploading || replyImages.length >= 3}
+                onChange={handleImageUpload}
+                style={{ fontSize: 13, color: 'var(--mut)' }}
+              />
+              {replyUploading && <div style={{ fontSize: 12, color: 'var(--blue)', marginTop: 4 }}>Đang upload...</div>}
+              <ImageGrid urls={replyImages} onRemove={i => setReplyImages(prev => prev.filter((_, idx) => idx !== i))} />
+            </div>
             <button
               onClick={handleReply}
-              disabled={sending || !replyText.trim()}
-              style={{ marginTop: 10, padding: '9px 20px', background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer', opacity: sending || !replyText.trim() ? .5 : 1, fontFamily: 'inherit' }}
+              disabled={sending || replyUploading || (!replyText.trim() && replyImages.length === 0)}
+              style={{ padding: '9px 20px', background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer', opacity: sending || replyUploading ? .5 : 1, fontFamily: 'inherit' }}
             >
-              {sending ? 'Đang gửi...' : 'Gửi phản hồi'}
+              {sending ? 'Đang gửi...' : '📤 Gửi phản hồi'}
             </button>
           </div>
         )}
@@ -261,6 +381,7 @@ function LookupTab({ refresh }) {
             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--txt)', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.subject}</div>
             <div style={{ fontSize: 12, color: 'var(--mut)' }}>
               {new Date(t.created_at).toLocaleDateString('vi-VN')}
+              {t.image_urls?.length > 0 && ` · 🖼 ${t.image_urls.length} ảnh`}
               {t.replies?.length > 0 && ` · ${t.replies.length} phản hồi`}
               {t.replies?.some(r => r.from === 'admin') && <span style={{ color: 'var(--grn)' }}> · ✅ Có phản hồi</span>}
             </div>
@@ -303,17 +424,12 @@ function ChatTab() {
       setMessages(prev => [...prev, { role: 'bot', text: data.reply || data.message || 'Không có phản hồi từ AI.' }])
     } catch {
       setMessages(prev => [...prev, { role: 'bot', text: 'AI đang bận. Vui lòng thử lại hoặc gửi ticket để được hỗ trợ trực tiếp.' }])
-    } finally {
-      setLoading(false)
-    }
+    } finally { setLoading(false) }
   }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
-      <div
-        ref={chatRef}
-        style={{ height: 420, overflowY: 'auto', background: 'var(--s2)', borderRadius: '10px 10px 0 0', padding: '16px', scrollBehavior: 'smooth' }}
-      >
+      <div ref={chatRef} style={{ height: 420, overflowY: 'auto', background: 'var(--s2)', borderRadius: '10px 10px 0 0', padding: '16px', scrollBehavior: 'smooth' }}>
         {messages.map((m, i) => (
           <div key={i} style={{ display: 'flex', justifyContent: m.role === 'bot' ? 'flex-start' : 'flex-end', marginBottom: 12 }}>
             {m.role === 'bot' && (
@@ -341,7 +457,6 @@ function ChatTab() {
           </div>
         )}
       </div>
-
       <div style={{ display: 'flex', gap: 8, background: 'var(--s1)', borderRadius: '0 0 10px 10px', padding: '10px 12px', borderTop: '1px solid var(--bd)' }}>
         <input
           value={input}
@@ -351,18 +466,13 @@ function ChatTab() {
           disabled={loading}
           style={{ flex: 1, background: 'var(--s2)', border: '1.5px solid var(--bd)', borderRadius: 8, color: 'var(--txt)', padding: '9px 13px', fontSize: 14, fontFamily: 'inherit', outline: 'none' }}
         />
-        <button
-          onClick={send}
-          disabled={loading || !input.trim()}
-          style={{ flexShrink: 0, padding: '9px 18px', background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: 8, fontFamily: 'inherit', fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: loading || !input.trim() ? .5 : 1 }}
-        >
+        <button onClick={send} disabled={loading || !input.trim()} style={{ flexShrink: 0, padding: '9px 18px', background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: 8, fontFamily: 'inherit', fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: loading || !input.trim() ? .5 : 1 }}>
           Gửi
         </button>
       </div>
-      <div style={{ fontSize: 12, color: 'var(--mut)', textAlign: 'center', marginTop: 8, lineHeight: 1.5 }}>
-        AI có thể trả lời chưa chính xác. Với vấn đề khẩn cấp, vui lòng gửi ticket để được hỗ trợ trực tiếp.
+      <div style={{ fontSize: 12, color: 'var(--mut)', textAlign: 'center', marginTop: 8 }}>
+        AI có thể trả lời chưa chính xác. Với vấn đề khẩn cấp, vui lòng gửi ticket.
       </div>
-
       <style jsx>{`
         @keyframes chatbounce {
           0%, 80%, 100% { transform: translateY(0); opacity: .4; }
@@ -395,7 +505,6 @@ export default function Support() {
         <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--txt)', marginBottom: 4 }}>🎫 Hỗ trợ kỹ thuật</h1>
         <p style={{ fontSize: 13, color: 'var(--mut)', marginBottom: 24 }}>Gửi yêu cầu hỗ trợ — chúng tôi phản hồi trong vòng 2-4 giờ</p>
 
-        {/* Tab bar */}
         <div style={{ display: 'flex', borderBottom: '1.5px solid var(--bd)', marginBottom: 24 }}>
           {TABS.map(t => (
             <button
