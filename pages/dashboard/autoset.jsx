@@ -435,14 +435,14 @@ export default function AutoSet() {
         .as-page { padding: 24px; max-width: 900px; position: relative; }
 
         .toast {
-          position: fixed; top: 20px; right: 20px; z-index: 9999;
-          background: var(--grn); color: #fff; border-radius: 10px;
-          padding: 12px 20px; font-size: 13px; font-weight: 600;
-          box-shadow: 0 4px 20px rgba(0,0,0,.25);
-          animation: fadeIn .2s ease;
+          position: fixed; top: 16px; right: 16px; z-index: 9999;
+          max-width: 260px; padding: 9px 14px; border-radius: 8px;
+          background: #10b981; color: #fff; font-size: 12px; font-weight: 600;
+          line-height: 1.4; box-shadow: 0 3px 12px rgba(0,0,0,.18);
+          animation: fadeIn .2s ease; pointer-events: none;
         }
-        .toast.error { background: var(--red); }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+        .toast.error { background: #ef4444; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
 
         .page-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
         .ph-left { display: flex; align-items: center; gap: 14px; }

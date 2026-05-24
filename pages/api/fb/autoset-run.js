@@ -2,7 +2,7 @@ import { getUserFromReq } from '../../../lib/auth'
 import { getSupabase } from '../../../lib/supabase'
 import { getUserFbData, callMeta } from '../../../lib/metaApi'
 
-const META_BASE = 'https://graph.facebook.com/v18.0'
+const META_BASE = 'https://graph.facebook.com/v21.0'
 
 function extractPurchases(actions) {
   if (!actions || !Array.isArray(actions)) return 0

@@ -215,7 +215,7 @@ export default async function handler(req, res) {
       state,
     })
 
-    const auth_url = `https://www.facebook.com/v18.0/dialog/oauth?${params.toString()}`
+    const auth_url = `https://www.facebook.com/v21.0/dialog/oauth?${params.toString()}`
     return res.json({ ok: true, auth_url })
   }
 

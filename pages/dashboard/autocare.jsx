@@ -276,13 +276,15 @@ export default function AutoCare() {
 
         /* Toast */
         .toast {
-          position: fixed; top: 20px; right: 20px; z-index: 9999;
-          padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 600;
-          box-shadow: 0 4px 20px rgba(0,0,0,.2); animation: slideIn .25s ease;
+          position: fixed; top: 16px; right: 16px; z-index: 9999;
+          max-width: 260px; padding: 9px 14px; border-radius: 8px;
+          font-size: 12px; font-weight: 600; line-height: 1.4;
+          box-shadow: 0 3px 12px rgba(0,0,0,.18); animation: slideIn .2s ease;
+          pointer-events: none;
         }
-        .toast-success { background: var(--grn); color: #fff; }
-        .toast-error   { background: var(--red); color: #fff; }
-        @keyframes slideIn { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }
+        .toast-success { background: #10b981; color: #fff; }
+        .toast-error   { background: #ef4444; color: #fff; }
+        @keyframes slideIn { from{opacity:0;transform:translateX(10px)} to{opacity:1;transform:translateX(0)} }
 
         /* FB Required */
         .fb-required {

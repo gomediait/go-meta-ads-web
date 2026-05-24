@@ -2,7 +2,7 @@ import { getUserFromReq } from '../../../lib/auth'
 import { getSupabase } from '../../../lib/supabase'
 import { getUserFbData } from '../../../lib/metaApi'
 
-const META_BASE = 'https://graph.facebook.com/v18.0'
+const META_BASE = 'https://graph.facebook.com/v21.0'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })

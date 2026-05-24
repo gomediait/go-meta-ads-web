@@ -1,9 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Bỏ output: 'export' — dùng Vercel SSR thay vì static export
-  // Lý do: nhiều component dùng browser API (canvas, sessionStorage, IntersectionObserver)
-  // Vercel hỗ trợ SSR natively, không cần static export
   images: { unoptimized: true },
+  // Keep @payos/node as a native require() to avoid CJS/ESM bundling issues
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals = [...(Array.isArray(config.externals) ? config.externals : [config.externals].filter(Boolean)), { '@payos/node': 'commonjs @payos/node' }]
+    }
+    return config
+  },
 }
 module.exports = nextConfig

@@ -26,7 +26,7 @@ export default async function handler(req, res) {
 
   // Exchange code → short-lived user token
   const tokenRes = await fetch(
-    `https://graph.facebook.com/v18.0/oauth/access_token?` +
+    `https://graph.facebook.com/v21.0/oauth/access_token?` +
     new URLSearchParams({ client_id: appId, client_secret: appSecret, redirect_uri: redirectUri, code })
   )
   const tokenData = await tokenRes.json()
@@ -40,7 +40,7 @@ export default async function handler(req, res) {
 
   // Exchange short-lived → long-lived token (60 days)
   const longTokenRes = await fetch(
-    `https://graph.facebook.com/v18.0/oauth/access_token?` +
+    `https://graph.facebook.com/v21.0/oauth/access_token?` +
     new URLSearchParams({
       grant_type: 'fb_exchange_token',
       client_id: appId,
@@ -61,7 +61,7 @@ export default async function handler(req, res) {
 
   // Get FB user profile
   const profileRes = await fetch(
-    `https://graph.facebook.com/v18.0/me?fields=id,name,email&access_token=${longToken}`
+    `https://graph.facebook.com/v21.0/me?fields=id,name,email&access_token=${longToken}`
   )
   const profile = await profileRes.json()
 
@@ -71,7 +71,7 @@ export default async function handler(req, res) {
 
   // Get ad accounts
   const accountsRes = await fetch(
-    `https://graph.facebook.com/v18.0/me/adaccounts?fields=id,name,currency,timezone_name,account_status&access_token=${longToken}&limit=50`
+    `https://graph.facebook.com/v21.0/me/adaccounts?fields=id,name,currency,timezone_name,account_status&access_token=${longToken}&limit=50`
   )
   const accountsData = await accountsRes.json()
 

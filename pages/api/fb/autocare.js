@@ -137,7 +137,7 @@ export default async function handler(req, res) {
             }
 
             try {
-              const url = `https://graph.facebook.com/v18.0/${camp.id}`
+              const url = `https://graph.facebook.com/v21.0/${camp.id}`
               const body = new URLSearchParams({ status: targetStatus, access_token: token }).toString()
               await fetch(url, {
                 method: 'POST',
