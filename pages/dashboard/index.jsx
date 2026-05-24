@@ -54,6 +54,28 @@ const OBJECTIVES = [
 
 const OBJ_LABEL = Object.fromEntries(OBJECTIVES.slice(1).map(o => [o.value, o.label]))
 
+const CUR_SYM = { VND: '₫', USD: '$', EUR: '€', GBP: '£', SGD: 'S$', AUD: 'A$', THB: '฿', MYR: 'RM', PHP: '₱', TWD: 'NT$' }
+const VND_LIKE = new Set(['VND', 'JPY', 'KRW', 'IDR'])  // currencies with no decimal display
+
+function curSym(currency) {
+  return CUR_SYM[currency] || (currency ? currency + ' ' : '₫')
+}
+
+// Format a monetary value with correct currency symbol
+function fmtMoney(v, currency, opts = {}) {
+  const { zero = false } = opts
+  if (v == null || isNaN(v)) return '—'
+  const n = Number(v)
+  if (!zero && n === 0) return '—'
+  const cur = currency || 'VND'
+  const sym = curSym(cur)
+  if (VND_LIKE.has(cur)) {
+    return sym + Math.round(n).toLocaleString('vi-VN')
+  }
+  return sym + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+// For table cells: hide zero as "—"
 function fmtVnd(v) {
   if (v == null || isNaN(v) || v === 0) return '—'
   return Number(v).toLocaleString('vi-VN')
@@ -62,18 +84,16 @@ function fmtNum(v) {
   if (v == null || isNaN(v) || v === 0) return '—'
   return Number(v).toLocaleString('vi-VN')
 }
-// For stats bar: show 0 as "0" not "—"
-function fmtStatVnd(v) {
-  if (v == null || isNaN(v)) return '—'
-  return Number(v).toLocaleString('vi-VN')
-}
 function fmtStatNum(v) {
   if (v == null || isNaN(v)) return '0'
   return Number(v).toLocaleString('vi-VN')
 }
 function fmtCtr(v)  { return v ? Number(v).toFixed(2) + '%' : '0.00%' }
 function fmtRoas(v) { return v ? Number(v).toFixed(2) : '—' }
-function fmtCpm(v)  { return v ? '₫' + Number(v).toLocaleString('vi-VN', { maximumFractionDigits: 0 }) : '—' }
+function fmtCpm(v, currency) {
+  if (!v) return '—'
+  return fmtMoney(v, currency || 'VND')
+}
 function fmtFreq(v) { return v ? Number(v).toFixed(2) : '—' }
 
 function delta(cur, prev) {
@@ -116,12 +136,12 @@ function SkeletonRows({ cols }) {
   </>
 }
 
-function BudgetBar({ budget, spend, pct }) {
+function BudgetBar({ budget, spend, pct, currency }) {
   const color = pct >= 85 ? 'var(--red)' : pct >= 65 ? 'var(--ylw)' : 'var(--grn)'
   return (
     <div className="budget-cell">
       <div className="budget-text">
-        ₫{fmtVnd(budget)}<span className="budget-day"> /ngày</span>
+        {fmtMoney(budget, currency)}<span className="budget-day"> /ngày</span>
         <span className="budget-pct" style={{ color }}> · {pct}%</span>
       </div>
       <div className="budget-bar-track">
@@ -171,15 +191,15 @@ function BudgetModal({ adset, onClose, onSave, saving }) {
         </div>
         <div className="modal-body">
           <div className="modal-adset-name">{adset.name}</div>
-          <div className="modal-current">Hiện tại: <strong>₫{fmtVnd(currentBudget)}/ngày</strong></div>
+          <div className="modal-current">Hiện tại: <strong>{fmtMoney(currentBudget, adset.currency)}/ngày</strong></div>
           <div className="modal-mode-tabs">
             <button className={`mode-tab${mode==='amount'?' active':''}`} onClick={() => setMode('amount')}>Nhập số tiền</button>
             <button className={`mode-tab${mode==='percent'?' active':''}`} onClick={() => setMode('percent')}>Tăng theo %</button>
           </div>
           {mode === 'amount' ? (
             <div className="modal-field">
-              <label className="modal-label">Ngân sách mới (₫)</label>
-              <input type="number" className="modal-input" value={inputVal} onChange={e => setInputVal(e.target.value)} placeholder="VD: 150000" min="1000" />
+              <label className="modal-label">Ngân sách mới ({adset.currency || '₫'})</label>
+              <input type="number" className="modal-input" value={inputVal} onChange={e => setInputVal(e.target.value)} placeholder={adset.currency === 'USD' ? 'VD: 150' : 'VD: 150000'} min="0" />
             </div>
           ) : (
             <div className="modal-field">
@@ -188,7 +208,7 @@ function BudgetModal({ adset, onClose, onSave, saving }) {
             </div>
           )}
           <div className="modal-preview">
-            Ngân sách mới: <strong style={{ color:'var(--grn)' }}>₫{fmtVnd(computedNew)}/ngày</strong>
+            Ngân sách mới: <strong style={{ color:'var(--grn)' }}>{fmtMoney(computedNew, adset.currency)}/ngày</strong>
             {currentBudget > 0 && computedNew > 0 && (
               <span className="modal-delta"> ({computedNew > currentBudget ? '+' : ''}{Math.round((computedNew / currentBudget - 1) * 100)}%)</span>
             )}
@@ -367,22 +387,51 @@ export default function DashboardHome() {
   }, [adsets, filters.search, filters.cpa_max, filters.roas_min, filters.spend_min, sortBy, sortDir])
 
   const stats = useMemo(() => {
-    const active       = filtered.filter(a => a.effective_status === 'ACTIVE').length
-    const totalSpend   = filtered.reduce((s, a) => s + (a.spend      || 0), 0)
-    const totalBudget  = filtered.reduce((s, a) => s + (a.daily_budget|| 0), 0)
-    const totalPurchases= filtered.reduce((s, a) => s + (a.purchases  || 0), 0)
-    const totalRevenue = filtered.reduce((s, a) => s + (a.revenue     || 0), 0)
-    const totalReach   = filtered.reduce((s, a) => s + (a.reach       || 0), 0)
-    const totalImpr    = filtered.reduce((s, a) => s + (a.impressions || 0), 0)
-    const totalClicks  = filtered.reduce((s, a) => s + (a.clicks      || 0), 0)
-    const totalCart    = filtered.reduce((s, a) => s + (a.addToCart   || 0), 0)
-    const avgCpa   = totalPurchases > 0 ? totalSpend / totalPurchases : 0
-    const avgRoas  = totalSpend     > 0 ? totalRevenue / totalSpend   : 0
-    const avgCtr   = totalImpr      > 0 ? (totalClicks / totalImpr * 100) : 0
-    const acctSet  = new Set(filtered.map(a => a.account_id))
-    return { active, totalSpend, totalBudget, totalPurchases, totalRevenue,
-             totalReach, totalImpr, totalClicks, totalCart,
-             avgCpa, avgRoas, avgCtr, accountCount: acctSet.size }
+    const active = filtered.filter(a => a.effective_status === 'ACTIVE').length
+
+    // Aggregate per currency (USD, VND, etc. stay separate)
+    const curMap = {}
+    for (const a of filtered) {
+      const c = a.currency || 'VND'
+      if (!curMap[c]) curMap[c] = { spend: 0, budget: 0, purchases: 0, revenue: 0 }
+      curMap[c].spend    += (a.spend        || 0)
+      curMap[c].budget   += (a.daily_budget || 0)
+      curMap[c].purchases+= (a.purchases    || 0)
+      curMap[c].revenue  += (a.revenue      || 0)
+    }
+    const currencies = Object.keys(curMap)
+
+    // Currency-independent totals
+    const totalPurchases = filtered.reduce((s, a) => s + (a.purchases  || 0), 0)
+    const totalReach     = filtered.reduce((s, a) => s + (a.reach      || 0), 0)
+    const totalImpr      = filtered.reduce((s, a) => s + (a.impressions|| 0), 0)
+    const totalClicks    = filtered.reduce((s, a) => s + (a.clicks     || 0), 0)
+    const avgCtr         = totalImpr > 0 ? (totalClicks / totalImpr * 100) : 0
+    const acctSet        = new Set(filtered.map(a => a.account_id))
+
+    // Build display strings for monetary stats (one line per currency)
+    const spendStr  = currencies.length
+      ? currencies.map(c => fmtMoney(curMap[c].spend,  c, { zero: true })).join(' + ')
+      : '₫0'
+    const budgetStr = currencies.length
+      ? currencies.map(c => fmtMoney(curMap[c].budget, c, { zero: true })).join(' + ')
+      : '₫0'
+    const cpaArr = currencies.map(c => {
+      const { spend, purchases } = curMap[c]
+      return purchases > 0 ? fmtMoney(spend / purchases, c) : null
+    }).filter(Boolean)
+    const cpaStr = cpaArr.length ? cpaArr.join(' / ') : '—'
+    const roasVals = currencies.map(c => {
+      const { spend, revenue } = curMap[c]
+      return spend > 0 && revenue > 0 ? revenue / spend : 0
+    }).filter(r => r > 0)
+    const avgRoas = roasVals.length ? roasVals.reduce((a, b) => a + b, 0) / roasVals.length : 0
+    const revenueStr = currencies.length
+      ? currencies.map(c => fmtMoney(curMap[c].revenue, c, { zero: true })).join(' + ')
+      : '₫0'
+
+    return { active, currencies, curMap, spendStr, budgetStr, cpaStr, revenueStr, avgRoas,
+             totalPurchases, totalReach, totalImpr, totalClicks, avgCtr, accountCount: acctSet.size }
   }, [filtered])
 
   const totalPages  = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
@@ -647,12 +696,12 @@ export default function DashboardHome() {
               </div>
               <div className="stat-sep" />
               <div className="stat-item">
-                <div className="stat-num">₫{fmtStatVnd(Math.round(stats.totalSpend))}</div>
+                <div className="stat-num stat-money">{stats.spendStr}</div>
                 <div className="stat-lbl">Tổng chi tiêu</div>
               </div>
               <div className="stat-sep" />
               <div className="stat-item">
-                <div className="stat-num">₫{fmtStatVnd(Math.round(stats.totalBudget))}</div>
+                <div className="stat-num stat-money">{stats.budgetStr}</div>
                 <div className="stat-lbl">Tổng NS/ngày</div>
               </div>
               <div className="stat-sep" />
@@ -662,7 +711,7 @@ export default function DashboardHome() {
               </div>
               <div className="stat-sep" />
               <div className="stat-item">
-                <div className="stat-num">₫{fmtStatVnd(Math.round(stats.totalRevenue))}</div>
+                <div className="stat-num stat-money">{stats.revenueStr}</div>
                 <div className="stat-lbl">Doanh thu</div>
               </div>
               <div className="stat-sep" />
@@ -672,7 +721,7 @@ export default function DashboardHome() {
               </div>
               <div className="stat-sep" />
               <div className="stat-item">
-                <div className="stat-num">{stats.avgCpa > 0 ? '₫' + fmtStatVnd(Math.round(stats.avgCpa)) : '—'}</div>
+                <div className="stat-num stat-money">{stats.cpaStr}</div>
                 <div className="stat-lbl">CPA TB</div>
               </div>
               <div className="stat-sep" />
@@ -814,17 +863,17 @@ export default function DashboardHome() {
                         </td>
 
                         <td className="td-num">
-                          <div>₫{fmtVnd(Math.round(item.spend))}</div>
+                          <div>{fmtMoney(item.spend, item.currency)}</div>
                           {doComp && <DeltaBadge cur={item.spend} prev={item.yesterday_spend} />}
                         </td>
 
                         <td className="td-budget">
                           {item.daily_budget ? (
                             <div className="budget-wrap" onClick={() => level === 'adset' && setBudgetModal({ adset: item })} title={level==='adset'?'Nhấn để chỉnh':'Campaign budget'}>
-                              <BudgetBar budget={item.daily_budget} spend={item.spend} pct={item.budget_util_pct} />
+                              <BudgetBar budget={item.daily_budget} spend={item.spend} pct={item.budget_util_pct} currency={item.currency} />
                             </div>
                           ) : item.lifetime_budget ? (
-                            <div className="budget-text-small">₫{fmtVnd(item.lifetime_budget)}<span className="budget-day"> trọn đời</span></div>
+                            <div className="budget-text-small">{fmtMoney(item.lifetime_budget, item.currency)}<span className="budget-day"> trọn đời</span></div>
                           ) : (
                             <span className="sub-text">CBO</span>
                           )}
@@ -842,7 +891,7 @@ export default function DashboardHome() {
                         <td className="td-num">
                           {item.cpa > 0 ? (
                             <div>
-                              <span className={isHighCpa ? 'val-red' : ''}>₫{fmtVnd(Math.round(item.cpa))}</span>
+                              <span className={isHighCpa ? 'val-red' : ''}>{fmtMoney(item.cpa, item.currency)}</span>
                               {doComp && <DeltaBadge cur={item.cpa} prev={item.yesterday_cpa} invertColor />}
                             </div>
                           ) : <span className="val-muted">—</span>}
@@ -860,7 +909,7 @@ export default function DashboardHome() {
                         <td className="td-num">
                           {item.revenue > 0 ? (
                             <div>
-                              <span>₫{fmtVnd(Math.round(item.revenue))}</span>
+                              <span>{fmtMoney(item.revenue, item.currency)}</span>
                               {doComp && <DeltaBadge cur={item.revenue} prev={item.yesterday_revenue} />}
                             </div>
                           ) : <span className="val-muted">—</span>}
@@ -868,7 +917,7 @@ export default function DashboardHome() {
 
                         {cols.reach       && <td className="td-num">{fmtNum(item.reach)}</td>}
                         {cols.impressions && <td className="td-num">{fmtNum(item.impressions)}</td>}
-                        {cols.cpm         && <td className="td-num">{fmtCpm(item.cpm)}</td>}
+                        {cols.cpm         && <td className="td-num">{fmtCpm(item.cpm, item.currency)}</td>}
                         {cols.frequency   && <td className="td-num">{fmtFreq(item.frequency)}</td>}
                         {cols.clicks      && <td className="td-num">{fmtNum(item.clicks)}</td>}
                         {cols.linkClicks  && <td className="td-num">{fmtNum(item.linkClicks)}</td>}
@@ -1059,6 +1108,7 @@ export default function DashboardHome() {
         .stat-item { padding: 3px 12px; text-align: center; flex-shrink: 0; }
         .stat-item--btn { padding: 0 10px; }
         .stat-num { font-size: 14px; font-weight: 700; color: var(--txt); line-height: 1.3; white-space: nowrap; }
+        .stat-money { font-size: 12px; white-space: normal; text-align: center; line-height: 1.5; }
         .stat-num.stat-primary { color: var(--blue); }
         .stat-num.stat-green   { color: var(--grn); }
         .stat-lbl { font-size: 10px; color: var(--mut); font-weight: 600; text-transform: uppercase; letter-spacing: .3px; margin-top: 1px; }

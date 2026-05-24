@@ -1,6 +1,6 @@
 import { getUserFromReq } from '../../../lib/auth'
 import { getSupabase } from '../../../lib/supabase'
-import { getUserFbData, callMeta } from '../../../lib/metaApi'
+import { getUserFbData, callMeta, callMetaAll } from '../../../lib/metaApi'
 
 const PURCHASE_TYPES  = ['purchase', 'offsite_conversion.fb_pixel_purchase', 'omni_purchase']
 const CART_TYPES      = ['add_to_cart', 'omni_add_to_cart']
@@ -101,22 +101,19 @@ export default async function handler(req, res) {
         // Fetch insights (covers ALL campaigns with spend, including archived/deleted)
         // + current campaign meta in parallel for budget/status
         const [insRes, metaRes, insResY] = await Promise.all([
-          callMeta(`${account.account_id}/insights`, token, {
+          callMetaAll(`${account.account_id}/insights`, token, {
             fields: `campaign_id,campaign_name,objective,${INSIGHT_FIELDS}`,
             ...timeParams,
             level: 'campaign',
-            limit: '500',
           }),
-          callMeta(`${account.account_id}/campaigns`, token, {
+          callMetaAll(`${account.account_id}/campaigns`, token, {
             fields: 'id,status,effective_status,objective,daily_budget,lifetime_budget,budget_remaining',
             filtering: JSON.stringify([{ field: 'effective_status', operator: 'IN', value: ['ACTIVE', 'PAUSED', 'ARCHIVED'] }]),
-            limit: '500',
           }),
-          doCompare ? callMeta(`${account.account_id}/insights`, token, {
+          doCompare ? callMetaAll(`${account.account_id}/insights`, token, {
             fields: `campaign_id,${INSIGHT_FIELDS}`,
             date_preset: 'yesterday',
             level: 'campaign',
-            limit: '500',
           }) : Promise.resolve(null),
         ])
 
@@ -172,33 +169,32 @@ export default async function handler(req, res) {
           insightFiltering.push({ field: 'campaign.id', operator: 'EQUAL', value: filterCampaignId })
         }
 
+        const adsetMetaFiltering = filterCampaignId
+          ? [
+              { field: 'effective_status', operator: 'IN', value: ['ACTIVE', 'PAUSED', 'CAMPAIGN_PAUSED', 'ARCHIVED'] },
+              { field: 'campaign.id', operator: 'EQUAL', value: filterCampaignId }
+            ]
+          : [{ field: 'effective_status', operator: 'IN', value: ['ACTIVE', 'PAUSED', 'CAMPAIGN_PAUSED', 'ARCHIVED'] }]
+
         const [insRes, metaRes, insResY] = await Promise.all([
-          callMeta(`${account.account_id}/insights`, token, {
+          callMetaAll(`${account.account_id}/insights`, token, {
             fields: `adset_id,adset_name,campaign_id,campaign_name,${INSIGHT_FIELDS}`,
             ...timeParams,
             level: 'adset',
-            limit: '500',
             ...(insightFiltering.length && { filtering: JSON.stringify(insightFiltering) }),
           }),
-          // Current adset meta for budget & status
-          callMeta(`${account.account_id}/adsets`, token, {
+          callMetaAll(`${account.account_id}/adsets`, token, {
             fields: [
               'id', 'status', 'effective_status', 'campaign_id',
               'campaign{id,name,status,effective_status,objective}',
               'daily_budget', 'lifetime_budget', 'budget_remaining'
             ].join(','),
-            filtering: JSON.stringify([{ field: 'effective_status', operator: 'IN', value: ['ACTIVE', 'PAUSED', 'CAMPAIGN_PAUSED', 'ARCHIVED'] }]),
-            limit: '500',
-            ...(filterCampaignId && { filtering: JSON.stringify([
-              { field: 'effective_status', operator: 'IN', value: ['ACTIVE', 'PAUSED', 'CAMPAIGN_PAUSED', 'ARCHIVED'] },
-              { field: 'campaign.id', operator: 'EQUAL', value: filterCampaignId }
-            ]) }),
+            filtering: JSON.stringify(adsetMetaFiltering),
           }),
-          doCompare ? callMeta(`${account.account_id}/insights`, token, {
+          doCompare ? callMetaAll(`${account.account_id}/insights`, token, {
             fields: `adset_id,${INSIGHT_FIELDS}`,
             date_preset: 'yesterday',
             level: 'adset',
-            limit: '500',
             ...(insightFiltering.length && { filtering: JSON.stringify(insightFiltering) }),
           }) : Promise.resolve(null),
         ])
