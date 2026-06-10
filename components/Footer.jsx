@@ -78,11 +78,11 @@ export default function Footer() {
         </div>
       </div>
 
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         .footer-grid { grid-template-columns: 2fr 1fr 1fr 1fr; }
         @media (max-width: 900px) { .footer-grid { grid-template-columns: 1fr 1fr !important; } .footer-grid > div:first-child { grid-column: 1/-1; } }
         @media (max-width: 480px) { .footer-grid { grid-template-columns: 1fr !important; } }
-      `}</style>
+      `}} />
     </footer>
   )
 }

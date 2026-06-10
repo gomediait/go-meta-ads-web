@@ -1135,7 +1135,7 @@ export default function Home() {
 
       <Footer />
 
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         /* ── Problem grid responsive ── */
         .problem-grid {
           grid-template-columns: 3fr 2fr;
@@ -1281,7 +1281,7 @@ export default function Home() {
           .stagger > * { opacity: 1 !important; transform: none !important; }
           *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
         }
-      `}</style>
+      `}} />
     </>
   )
 }
