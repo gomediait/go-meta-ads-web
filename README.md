@@ -1,6 +1,6 @@
 # Go Meta Ads Pro
 
-Web SaaS quản lý Facebook/Meta Ads thông minh — CPA realtime, cảnh báo tự động, báo cáo lãi/lỗ.
+Web SaaS quản lý Facebook/Meta Ads thông minh
 
 ## Tính năng
 
