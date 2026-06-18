@@ -2,7 +2,7 @@ import { getUserFromReq } from '../../../lib/auth'
 import { getSupabase } from '../../../lib/supabase'
 import { getUserFbData, callMeta } from '../../../lib/metaApi'
 
-const META_BASE = 'https://graph.facebook.com/v21.0'
+const META_BASE = 'https://graph.facebook.com/v23.0'
 
 function extractPurchases(actions) {
   if (!actions || !Array.isArray(actions)) return 0
@@ -84,9 +84,7 @@ async function applyAction(adset, rule, token) {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body
     })
-    const oldVnd = Math.round(currentBudgetCents / 100)
-    const newVnd = Math.round(newBudgetCents / 100)
-    return `budget_${oldVnd}_→_${newVnd}`
+    return `budget_${currentBudgetCents}_→_${newBudgetCents}`
   }
 
   return 'unknown_action'

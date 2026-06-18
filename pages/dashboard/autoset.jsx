@@ -47,6 +47,7 @@ export default function AutoSet() {
   const [myFbPages, setMyFbPages] = useState([])
   const [loadingMyPages, setLoadingMyPages] = useState(false)
   const [creatingAd, setCreatingAd] = useState(null)
+  const [pendingAds, setPendingAds] = useState([])
   const [savingAccount, setSavingAccount] = useState(false)
   const [selectedAccount, setSelectedAccount] = useState('')
   const [adAccounts, setAdAccounts] = useState([])
@@ -181,13 +182,20 @@ export default function AutoSet() {
       const d = await r.json()
       if (!d.ok) return showToast(d.error || 'Lỗi quét bài viết', 'error')
       setScanResults(d.posts || [])
-      if ((d.posts || []).length === 0) showToast('Không có bài viết mới')
-      else showToast(`Tìm thấy ${d.posts.length} bài viết mới`)
+      if (d.errors?.length) {
+        d.errors.forEach(e => showToast(`Lỗi page "${e.page_name}": ${e.error_msg}`, 'error'))
+      }
+      if ((d.posts || []).length === 0 && !d.errors?.length) showToast('Không có bài viết mới')
+      else if ((d.posts || []).length > 0) showToast(`Tìm thấy ${d.posts.length} bài viết mới`)
     } catch { showToast('Lỗi kết nối', 'error') }
     finally { setScanning(false) }
   }
 
   async function handleCreateAd(post) {
+    const budget = Number(post.daily_budget) || 100000
+    if (budget > 1000000) {
+      if (!confirm(`Ngân sách ${budget.toLocaleString('vi-VN')}đ/ngày (> 1 triệu). Bạn chắc chắn muốn tạo?`)) return
+    }
     setCreatingAd(post.id)
     try {
       const r = await fetch('/api/fb/autoset-scan', {
@@ -206,10 +214,39 @@ export default function AutoSet() {
       })
       const d = await r.json()
       if (!d.ok) return showToast(d.error || 'Lỗi tạo ads', 'error')
-      showToast(`Đã tạo ads! Campaign: ${d.campaign_id}`)
+      showToast('Đã tạo ads (PAUSED). Bấm "Kích hoạt" để chạy.')
+      setPendingAds(prev => [...prev, {
+        post_id: post.id,
+        page_name: post.page_name,
+        campaign_id: d.campaign_id,
+        adset_id: d.adset_id,
+        ad_id: d.ad_id,
+        daily_budget: budget,
+        adset_real: d.adset_real,
+      }])
       setScanResults(prev => prev.filter(p => p.id !== post.id))
     } catch { showToast('Lỗi kết nối', 'error') }
     finally { setCreatingAd(null) }
+  }
+
+  async function handleActivate(pending) {
+    if (!confirm(`Kích hoạt chiến dịch "${pending.page_name}" — ngân sách ${pending.daily_budget.toLocaleString('vi-VN')}đ/ngày sẽ bắt đầu tiêu. Tiếp tục?`)) return
+    try {
+      const r = await fetch('/api/fb/autoset-scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'activate',
+          campaign_id: pending.campaign_id,
+          adset_id: pending.adset_id,
+          ad_id: pending.ad_id,
+        })
+      })
+      const d = await r.json()
+      if (!d.ok) return showToast(d.error || 'Lỗi kích hoạt', 'error')
+      showToast('Đã kích hoạt! Quảng cáo đang chạy.')
+      setPendingAds(prev => prev.filter(p => p.campaign_id !== pending.campaign_id))
+    } catch { showToast('Lỗi kết nối', 'error') }
   }
 
   async function loadHistory() {
@@ -401,6 +438,35 @@ export default function AutoSet() {
           </div>
         )}
 
+        {/* D2. Pending activation */}
+        {pendingAds.length > 0 && (
+          <div className="section-card">
+            <div className="section-title">⏸️ Chờ kích hoạt — {pendingAds.length} chiến dịch (PAUSED)</div>
+            <div className="section-desc">Chiến dịch đã tạo thành công nhưng chưa chạy. Bấm &ldquo;Kích hoạt&rdquo; để bắt đầu tiêu ngân sách.</div>
+            <div className="posts-list">
+              {pendingAds.map(p => (
+                <div key={p.campaign_id} className="post-card">
+                  <div className="post-info">
+                    <div className="post-message" style={{ fontWeight: 700 }}>{p.page_name}</div>
+                    <div className="post-meta">
+                      <span className="budget-text">{p.daily_budget.toLocaleString('vi-VN')}đ/ngày</span>
+                      <span className="hist-campaign">ID: {p.campaign_id}</span>
+                    </div>
+                    {p.adset_real?.targeting?.targeting_automation && (
+                      <div className="advantage-warn">
+                        ⚠️ Advantage+ Audience đang bật — độ tuổi 18-65 chỉ là gợi ý, Meta có thể mở rộng ngoài khoảng này.
+                      </div>
+                    )}
+                  </div>
+                  <button className="btn-activate" onClick={() => handleActivate(p)}>
+                    ▶ Kích hoạt
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* E. History section */}
         <div className="section-card">
           <div className="section-header" style={{ cursor: 'pointer' }} onClick={toggleHistory}>
@@ -509,6 +575,10 @@ export default function AutoSet() {
                     <option key={o.value} value={o.value}>{o.label}</option>
                   ))}
                 </select>
+              </div>
+
+              <div className="advantage-hint">
+                💡 <strong>Lưu ý Advantage+ Audience:</strong> Meta mặc định coi độ tuổi (18-65) là gợi ý, không phải giới hạn cứng. AI có thể phân phối quảng cáo ngoài khoảng tuổi này để tối ưu hiệu suất.
               </div>
 
               <div className="modal-btns">
@@ -688,6 +758,25 @@ export default function AutoSet() {
           cursor: pointer; font-family: inherit;
         }
         .btn-save-modal:disabled { opacity: .5; cursor: not-allowed; }
+
+        /* Activate button */
+        .btn-activate {
+          background: #10b981; color: #fff; border: none;
+          border-radius: 9px; padding: 8px 16px; font-size: 12px; font-weight: 700;
+          cursor: pointer; font-family: inherit; white-space: nowrap; flex-shrink: 0;
+          transition: opacity .15s;
+        }
+        .btn-activate:hover { opacity: .88; }
+
+        /* Advantage+ warnings */
+        .advantage-warn {
+          font-size: 11px; color: #f59e0b; background: rgba(245,158,11,.08);
+          border-radius: 6px; padding: 4px 8px; margin-top: 4px;
+        }
+        .advantage-hint {
+          font-size: 11px; color: var(--mut); background: var(--s2);
+          border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; line-height: 1.5;
+        }
       `}</style>
     </DashboardLayout>
   )

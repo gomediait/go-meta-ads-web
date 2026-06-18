@@ -64,7 +64,7 @@ export default async function handler(req, res) {
         const fbData = await getUserFbData(user.id, sb)
         if (!fbData) return res.json({ ok: false, error: 'Chưa kết nối Facebook' })
 
-        const url = `https://graph.facebook.com/v21.0/me/accounts?access_token=${fbData.token}&fields=id,name,category&limit=50`
+        const url = `https://graph.facebook.com/v23.0/me/accounts?access_token=${fbData.token}&fields=id,name,category&limit=50`
         const r = await fetch(url)
         const d = await r.json()
 
@@ -87,6 +87,28 @@ export default async function handler(req, res) {
 
         if ((existing || []).length >= max_pages) {
           return res.json({ ok: false, error: `Gói của bạn chỉ cho phép tối đa ${max_pages} page` })
+        }
+
+        // Page audit: kiểm tra quyền truy cập Page
+        const fbData = await getUserFbData(user.id, sb)
+        if (fbData) {
+          const auditRes = await fetch(
+            `https://graph.facebook.com/v23.0/${body.page_id}?fields=access_token&access_token=${fbData.token}`
+          )
+          const auditData = await auditRes.json()
+          if (auditData.error) {
+            return res.json({ ok: false, error: `Không có quyền truy cập Page "${body.page_name}". Kiểm tra lại kết nối Facebook.` })
+          }
+          const pageToken = auditData.access_token
+          if (pageToken) {
+            const postsAudit = await fetch(
+              `https://graph.facebook.com/v23.0/${body.page_id}/posts?limit=1&access_token=${pageToken}`
+            )
+            const postsData = await postsAudit.json()
+            if (postsData.error) {
+              return res.json({ ok: false, error: `Không thể đọc bài viết từ Page "${body.page_name}". Cần quyền pages_read_engagement.` })
+            }
+          }
         }
 
         const { error } = await sb.from('user_autoset_pages').insert({

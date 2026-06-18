@@ -1,7 +1,7 @@
 import { getSupabase } from '../../../lib/supabase'
 import { getUserFbData, callMeta } from '../../../lib/metaApi'
 
-const META_BASE = 'https://graph.facebook.com/v21.0'
+const META_BASE = 'https://graph.facebook.com/v23.0'
 
 function extractPurchases(actions) {
   if (!actions || !Array.isArray(actions)) return 0
@@ -236,7 +236,7 @@ export default async function handler(req, res) {
             }
 
             try {
-              const url = `https://graph.facebook.com/v21.0/${camp.id}`
+              const url = `https://graph.facebook.com/v23.0/${camp.id}`
               const body = new URLSearchParams({ status: targetStatus, access_token: token }).toString()
               await fetch(url, {
                 method: 'POST',

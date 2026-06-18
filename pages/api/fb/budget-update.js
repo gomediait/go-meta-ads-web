@@ -2,7 +2,7 @@ import { getUserFromReq } from '../../../lib/auth'
 import { getSupabase } from '../../../lib/supabase'
 import { getUserFbData } from '../../../lib/metaApi'
 
-const META_BASE = 'https://graph.facebook.com/v21.0'
+const META_BASE = 'https://graph.facebook.com/v23.0'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
@@ -30,8 +30,7 @@ export default async function handler(req, res) {
   const { token } = fbData
 
   try {
-    // Meta API stores budgets in cents (VND * 100)
-    const budgetInCents = Math.round(Number(new_budget) * 100)
+    const budgetInCents = Math.round(Number(new_budget))
     const budgetField = budget_type === 'daily' ? 'daily_budget' : 'lifetime_budget'
 
     const url = `${META_BASE}/${adset_id}`
