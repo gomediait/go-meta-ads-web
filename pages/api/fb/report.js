@@ -1,6 +1,6 @@
 import { getUserFromReq } from '../../../lib/auth'
 import { getSupabase } from '../../../lib/supabase'
-import { getUserFbData, callMeta } from '../../../lib/metaApi'
+import { getUserFbData, callMetaAll } from '../../../lib/metaApi'
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' })
@@ -17,7 +17,11 @@ export default async function handler(req, res) {
     return res.json({ ok: true, data: [], totals: { spend: 0, impressions: 0, clicks: 0, ctr: 0, cpc: 0, reach: 0 } })
   }
 
-  const { token, accounts } = fbData
+  const { token, accounts, conn } = fbData
+
+  if (conn.token_expires_at && new Date(conn.token_expires_at) < new Date()) {
+    return res.status(401).json({ ok: false, error: 'token_expired', message: 'Token Facebook đã hết hạn. Vui lòng kết nối lại.' })
+  }
 
   // Build date params
   const dateParams = {}
@@ -28,11 +32,9 @@ export default async function handler(req, res) {
     dateParams.date_preset = date_preset || 'today'
   }
 
-  const allData = []
-
-  for (const account of accounts) {
-    try {
-      const insightsRes = await callMeta(
+  const results = await Promise.allSettled(
+    accounts.map(account =>
+      callMetaAll(
         `${account.account_id}/insights`,
         token,
         {
@@ -40,11 +42,8 @@ export default async function handler(req, res) {
           level: 'campaign',
           ...dateParams
         }
-      )
-
-      const rows = insightsRes?.data || []
-      for (const row of rows) {
-        allData.push({
+      ).then(insightsRes => {
+        return (insightsRes?.data || []).map(row => ({
           campaign_id: row.campaign_id,
           campaign_name: row.campaign_name,
           account_id: account.account_id,
@@ -58,12 +57,16 @@ export default async function handler(req, res) {
           reach: row.reach ? Number(row.reach) : 0,
           frequency: row.frequency ? Number(row.frequency) : 0,
           actions: row.actions || []
-        })
-      }
-    } catch (err) {
-      console.error('[report] Error for account', account.account_id, err)
-    }
-  }
+        }))
+      })
+    )
+  )
+
+  const allData = results.flatMap(r => {
+    if (r.status === 'fulfilled') return r.value
+    console.error('[report] Error for account:', r.reason)
+    return []
+  })
 
   // Calculate totals
   const totals = allData.reduce((acc, row) => {
