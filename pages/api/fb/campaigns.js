@@ -33,6 +33,27 @@ function extractRevenue(actionValues) {
   return 0
 }
 
+function extractFirstFromArray(arr) {
+  if (!arr || !Array.isArray(arr) || !arr.length) return 0
+  return Number(arr[0].value) || 0
+}
+
+function buildCostMap(costPerActionType) {
+  if (!costPerActionType || !Array.isArray(costPerActionType)) return {}
+  const map = {}
+  for (const item of costPerActionType) {
+    map[item.action_type] = parseFloat(item.value) || 0
+  }
+  return map
+}
+
+function costFromMap(costMap, types) {
+  for (const t of types) {
+    if (costMap[t] != null && costMap[t] > 0) return costMap[t]
+  }
+  return null
+}
+
 function parseInsights(ins) {
   if (!ins) return {}
   const spend       = Number(ins.spend) || 0
@@ -40,9 +61,22 @@ function parseInsights(ins) {
   const clicks      = Number(ins.clicks) || 0
   const ctr         = Number(ins.ctr) || 0
   const reach       = Number(ins.reach) || 0
-  const frequency   = reach > 0 ? impressions / reach : 0
   const cpm         = impressions > 0 ? (spend / impressions * 1000) : 0
-  const linkClicks   = extractAction(ins.actions, ['link_click', 'outbound_click'])
+
+  // frequency: ưu tiên từ Meta (cross-device dedup), fallback tính tay
+  const frequency   = ins.frequency != null ? Number(ins.frequency) || 0
+                    : (reach > 0 ? impressions / reach : 0)
+
+  // inline_link_clicks: chính xác hơn link_click từ actions
+  const inlineLinkClicks = Number(ins.inline_link_clicks) || 0
+  const inlineLinkClickCtr = Number(ins.inline_link_click_ctr) || 0
+
+  // outbound_clicks: click ra ngoài Facebook (array format)
+  const outboundClicks = extractFirstFromArray(ins.outbound_clicks)
+
+  // linkClicks: ưu tiên inline_link_clicks, fallback actions
+  const linkClicks   = inlineLinkClicks || extractAction(ins.actions, ['link_click', 'outbound_click'])
+
   const purchases    = extractAction(ins.actions, PURCHASE_TYPES)
   const addToCart    = extractAction(ins.actions, CART_TYPES)
   const checkout     = extractAction(ins.actions, CHECKOUT_TYPES)
@@ -59,23 +93,29 @@ function parseInsights(ins) {
   const purchaseRoas = ins.purchase_roas
     ? Number(Array.isArray(ins.purchase_roas) ? ins.purchase_roas[0]?.value : ins.purchase_roas) || 0
     : (spend > 0 && revenue > 0 ? revenue / spend : 0)
-  const cpa            = purchases > 0 ? spend / purchases : 0
-  const cpc            = clicks    > 0 ? spend / clicks    : 0
-  const costPerMsg     = messages  > 0 ? spend / messages  : 0
-  const costPerEngage  = engagement > 0 ? spend / engagement : 0
-  const costPerLead    = leads     > 0 ? spend / leads     : 0
+
+  // cost_per_action_type: ưu tiên Meta (attribution chính xác), fallback tính tay
+  const costMap        = buildCostMap(ins.cost_per_action_type)
+  const cpa            = costFromMap(costMap, PURCHASE_TYPES)  ?? (purchases > 0 ? spend / purchases : 0)
+  const cpc            = costFromMap(costMap, ['link_click'])   ?? (clicks > 0 ? spend / clicks : 0)
+  const costPerMsg     = costFromMap(costMap, MSG_TYPES)        ?? (messages > 0 ? spend / messages : 0)
+  const costPerEngage  = costFromMap(costMap, ENGAGE_TYPES)     ?? (engagement > 0 ? spend / engagement : 0)
+  const costPerLead    = costFromMap(costMap, LEAD_TYPES)       ?? (leads > 0 ? spend / leads : 0)
+
   return {
     spend, impressions, clicks, ctr, reach, frequency, cpm,
-    linkClicks, purchases, addToCart, checkout, viewContent, leads,
+    linkClicks, inlineLinkClicks, inlineLinkClickCtr, outboundClicks,
+    purchases, addToCart, checkout, viewContent, leads,
     messages, engagement, reactions, comments, shares, videoViews, thruplays,
-    revenue, roas: purchaseRoas, cpa, cpc, costPerMsg, costPerEngage, costPerLead
+    revenue, roas: purchaseRoas, cpa, cpc, costPerMsg, costPerEngage, costPerLead,
   }
 }
 
-// Safe proven fields — computed locally: cpm, frequency, linkClicks
 const INSIGHT_FIELDS = [
   'spend', 'impressions', 'clicks', 'ctr', 'reach',
-  'actions', 'action_values', 'purchase_roas'
+  'actions', 'action_values', 'purchase_roas',
+  'frequency', 'inline_link_clicks', 'inline_link_click_ctr',
+  'cost_per_action_type', 'outbound_clicks',
 ].join(',')
 
 export default async function handler(req, res) {

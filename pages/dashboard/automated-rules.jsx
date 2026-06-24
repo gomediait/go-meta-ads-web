@@ -37,16 +37,21 @@ const OPERATORS = [
 
 const ACTIONS = [
   { value: 'pause',         label: '⏸ Dừng adset (PAUSE)',     hasScale: false },
+  { value: 'resume',        label: '▶ Bật lại adset (ACTIVE)',  hasScale: false },
   { value: 'scale_budget',  label: '📈 Tăng ngân sách',         hasScale: true },
   { value: 'reduce_budget', label: '📉 Giảm ngân sách',         hasScale: true },
+  { value: 'notify_only',   label: '🔔 Chỉ thông báo',          hasScale: false },
 ]
 
 const TIME_RANGES = [
-  { value: 'today',    label: 'Hôm nay' },
-  { value: 'last_3d',  label: '3 ngày qua' },
-  { value: 'last_7d',  label: '7 ngày qua' },
-  { value: 'last_14d', label: '14 ngày qua' },
-  { value: 'last_30d', label: '30 ngày qua' },
+  { value: 'today',      label: 'Hôm nay' },
+  { value: 'yesterday',  label: 'Hôm qua' },
+  { value: 'last_3d',    label: '3 ngày qua' },
+  { value: 'last_7d',    label: '7 ngày qua' },
+  { value: 'last_14d',   label: '14 ngày qua' },
+  { value: 'last_30d',   label: '30 ngày qua' },
+  { value: 'this_month', label: 'Tháng này' },
+  { value: 'maximum',    label: 'Toàn thời gian' },
 ]
 
 const EMPTY_RULE = {
@@ -54,13 +59,38 @@ const EMPTY_RULE = {
   conditions: [{ metric: 'cpa', operator: 'gt', value: '' }],
   action: 'pause',
   scale_factor: 1.2,
+  budget_cap_min: '',
+  budget_cap_max: '',
   account_id: 'all',
   time_range: 'today',
+  level: 'adset',
 }
 
 function formatNum(n) {
   if (n == null) return 'N/A'
   return Number(n).toLocaleString('vi-VN')
+}
+
+const RESULT_LABELS = {
+  paused: { label: 'Đã dừng', color: '#ef4444' },
+  resumed: { label: 'Đã bật lại', color: '#10b981' },
+  notified: { label: 'Đã thông báo', color: '#3b82f6' },
+  skipped_not_active: { label: 'Bỏ qua (không active)', color: '#94a3b8' },
+  skipped_already_active: { label: 'Bỏ qua (đã active)', color: '#94a3b8' },
+  skipped_campaign_paused: { label: 'Bỏ qua (campaign đang dừng)', color: '#f59e0b' },
+  budget_unchanged_cap: { label: 'NS không đổi (đạt giới hạn)', color: '#94a3b8' },
+  no_budget: { label: 'Không có NS', color: '#94a3b8' },
+}
+
+function ResultBadge({ result }) {
+  const r = RESULT_LABELS[result]
+  if (r) return <span className="res-badge" style={{ color: r.color }}>{r.label}</span>
+  if (result?.startsWith('budget_')) {
+    const parts = result.replace('budget_', '').split('_→_')
+    return <span className="res-badge" style={{ color: '#10b981' }}>NS: {Number(parts[0]).toLocaleString('vi-VN')}₫ → {Number(parts[1]).toLocaleString('vi-VN')}₫</span>
+  }
+  if (result?.startsWith('dry_run_')) return <span className="res-badge" style={{ color: '#3b82f6' }}>Sẽ: {result.replace('dry_run_', '')}</span>
+  return <span className="res-badge">{result}</span>
 }
 
 export default function AutomatedRules() {
@@ -76,6 +106,28 @@ export default function AutomatedRules() {
   const [running, setRunning] = useState(false)
   const [runResults, setRunResults] = useState(null)
   const [toast, setToast] = useState(null)
+
+  // Campaign Tree state
+  const [campaigns, setCampaigns] = useState([])
+  const [selectedCampIds, setSelectedCampIds] = useState([])
+  const [selectedAdsetIds, setSelectedAdsetIds] = useState([])
+  const [expandedCampIds, setExpandedCampIds] = useState(new Set())
+  const [campAdsets, setCampAdsets] = useState({})
+  const [loadingAdsets, setLoadingAdsets] = useState({})
+  const [treeSearch, setTreeSearch] = useState('')
+
+  // History state
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [historyLogs, setHistoryLogs] = useState([])
+  const [loadingHistory, setLoadingHistory] = useState(false)
+
+  // Dry-run state
+  const [dryRunning, setDryRunning] = useState(false)
+  const [dryRunResults, setDryRunResults] = useState(null)
+
+  // Edit state
+  const [editingRuleId, setEditingRuleId] = useState(null)
+  const [expandedLogId, setExpandedLogId] = useState(null)
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type })
@@ -98,10 +150,126 @@ export default function AutomatedRules() {
     } catch {}
   }, [])
 
+  const fetchCampaigns = useCallback(async () => {
+    try {
+      const r = await fetch('/api/fb/campaigns?date_preset=maximum&status=ALL&level=campaign')
+      const d = await r.json()
+      if (d?.ok) setCampaigns(d.adsets || [])
+    } catch {}
+  }, [])
+
   useEffect(() => {
     if (!fbConnected) { setLoading(false); return }
-    Promise.all([fetchRules(), fetchAccounts()]).finally(() => setLoading(false))
-  }, [fbConnected, fetchRules, fetchAccounts])
+    Promise.all([fetchRules(), fetchAccounts(), fetchCampaigns()]).finally(() => setLoading(false))
+  }, [fbConnected, fetchRules, fetchAccounts, fetchCampaigns])
+
+  const loadAdsetsForCampaign = useCallback(async (campId) => {
+    if (campAdsets[campId]) return
+    setLoadingAdsets(prev => ({ ...prev, [campId]: true }))
+    try {
+      const res = await fetch(`/api/fb/campaign-adsets?campaign_id=${campId}`)
+      const data = await res.json()
+      if (data?.ok) setCampAdsets(prev => ({ ...prev, [campId]: data.adsets || [] }))
+    } catch {}
+    finally { setLoadingAdsets(prev => ({ ...prev, [campId]: false })) }
+  }, [campAdsets])
+
+  function toggleTreeExpand(campId) {
+    setExpandedCampIds(prev => {
+      const next = new Set(prev)
+      if (next.has(campId)) { next.delete(campId) } else { next.add(campId); loadAdsetsForCampaign(campId) }
+      return next
+    })
+  }
+
+  function toggleTreeCampaign(campId) {
+    const adsets = campAdsets[campId] || []
+    const adsetIdSet = new Set(adsets.map(a => a.id))
+    if (selectedCampIds.includes(campId)) {
+      setSelectedCampIds(prev => prev.filter(x => x !== campId))
+    } else {
+      setSelectedAdsetIds(prev => prev.filter(id => !adsetIdSet.has(id)))
+      setSelectedCampIds(prev => [...prev, campId])
+    }
+  }
+
+  function toggleTreeAdset(adsetId, campId) {
+    setSelectedCampIds(prev => prev.filter(x => x !== campId))
+    setSelectedAdsetIds(prev =>
+      prev.includes(adsetId) ? prev.filter(x => x !== adsetId) : [...prev, adsetId]
+    )
+  }
+
+  function getTreeCheckState(campId) {
+    if (selectedCampIds.includes(campId)) return 'checked'
+    const adsets = campAdsets[campId] || []
+    if (!adsets.length) return 'unchecked'
+    const count = adsets.filter(a => selectedAdsetIds.includes(a.id)).length
+    if (count === 0) return 'unchecked'
+    if (count === adsets.length) return 'checked'
+    return 'indeterminate'
+  }
+
+  const filteredTreeCampaigns = campaigns.filter(c => {
+    const accountFilter = form.account_id && form.account_id !== 'all'
+    if (accountFilter && c.account_id !== form.account_id) return false
+    if (!treeSearch) return true
+    const q = treeSearch.toLowerCase()
+    if (c.name.toLowerCase().includes(q)) return true
+    return (campAdsets[c.id] || []).some(a => a.name.toLowerCase().includes(q))
+  })
+
+  function startEdit(rule) {
+    setEditingRuleId(rule.id)
+    setForm({
+      name: rule.name,
+      conditions: rule.conditions || [{ metric: 'cpa', operator: 'gt', value: '' }],
+      action: rule.action,
+      scale_factor: rule.scale_factor || 1.2,
+      budget_cap_min: rule.budget_cap_min || '',
+      budget_cap_max: rule.budget_cap_max || '',
+      account_id: rule.account_id || 'all',
+      time_range: rule.time_range || 'today',
+      level: rule.level || 'adset',
+    })
+    setSelectedCampIds(rule.selected_campaigns || [])
+    setSelectedAdsetIds(rule.selected_adsets || [])
+    setTreeSearch('')
+    setShowForm(true)
+    setRunResults(null)
+  }
+
+  async function fetchHistory() {
+    setLoadingHistory(true)
+    try {
+      const r = await fetch('/api/fb/autoset?action=history&limit=50')
+      const d = await r.json()
+      if (d.ok) setHistoryLogs(d.logs || [])
+    } catch {}
+    finally { setLoadingHistory(false) }
+  }
+
+  function toggleHistory() {
+    const next = !historyOpen
+    setHistoryOpen(next)
+    if (next) fetchHistory()
+  }
+
+  async function handleDryRun() {
+    setDryRunning(true)
+    setDryRunResults(null)
+    try {
+      const r = await fetch('/api/fb/autoset-run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dry_run: true })
+      })
+      const d = await r.json()
+      if (d.ok) setDryRunResults(d)
+      else showToast(d.error || 'Lỗi dry-run', 'error')
+    } catch { showToast('Lỗi kết nối', 'error') }
+    finally { setDryRunning(false) }
+  }
 
   function updateCondition(idx, field, val) {
     setForm(prev => {
@@ -132,14 +300,21 @@ export default function AutomatedRules() {
 
     setSaving(true)
     try {
+      const isEdit = !!editingRuleId
       const body = {
-        action: 'create',
+        action: isEdit ? 'update' : 'create',
+        ...(isEdit && { id: editingRuleId }),
         name: form.name,
         conditions: form.conditions.map(c => ({ ...c, value: Number(c.value) })),
-        action: form.action,
+        ruleAction: form.action,
         scale_factor: Number(form.scale_factor) || 1.2,
+        budget_cap_min: Number(form.budget_cap_min) || 0,
+        budget_cap_max: Number(form.budget_cap_max) || 0,
         account_id: form.account_id,
         time_range: form.time_range,
+        level: form.level || 'adset',
+        selected_campaigns: selectedCampIds,
+        selected_adsets: selectedAdsetIds,
       }
       const r = await fetch('/api/fb/autoset', {
         method: 'POST',
@@ -148,9 +323,13 @@ export default function AutomatedRules() {
       })
       const d = await r.json()
       if (!d.ok) return showToast(d.error || 'Lỗi lưu rule', 'error')
-      showToast('Đã tạo rule thành công')
+      showToast(isEdit ? 'Đã cập nhật rule' : 'Đã tạo rule thành công')
       setShowForm(false)
+      setEditingRuleId(null)
       setForm({ ...EMPTY_RULE, conditions: [{ metric: 'cpa', operator: 'gt', value: '' }] })
+      setSelectedCampIds([])
+      setSelectedAdsetIds([])
+      setTreeSearch('')
       fetchRules()
     } catch { showToast('Lỗi kết nối', 'error') }
     finally { setSaving(false) }
@@ -186,6 +365,7 @@ export default function AutomatedRules() {
       setRunResults(d)
       showToast(`Đã chạy xong — ${d.total_affected} adset bị tác động`)
       fetchRules()
+      if (historyOpen) fetchHistory()
     } catch { showToast('Lỗi kết nối', 'error') }
     finally { setRunning(false) }
   }
@@ -229,10 +409,13 @@ export default function AutomatedRules() {
             </div>
           </div>
           <div className="ph-actions">
-            <button className="btn-run" onClick={handleRun} disabled={running || !rules.filter(r => r.enabled).length}>
+            <button className="btn-preview" onClick={handleDryRun} disabled={dryRunning || running || !rules.filter(r => r.enabled).length}>
+              {dryRunning ? '⏳...' : '👁 Xem trước'}
+            </button>
+            <button className="btn-run" onClick={handleRun} disabled={running || dryRunning || !rules.filter(r => r.enabled).length}>
               {running ? '⏳ Đang chạy...' : '▶ Chạy Rules Ngay'}
             </button>
-            <button className="btn-add" onClick={() => { setShowForm(true); setRunResults(null) }}>
+            <button className="btn-add" onClick={() => { setShowForm(true); setRunResults(null); setSelectedCampIds([]); setSelectedAdsetIds([]) }}>
               + Tạo Rule mới
             </button>
           </div>
@@ -241,7 +424,7 @@ export default function AutomatedRules() {
         {/* Create form */}
         {showForm && (
           <div className="form-card">
-            <div className="form-title">Tạo Rule mới</div>
+            <div className="form-title">{editingRuleId ? '✏️ Sửa Rule' : 'Tạo Rule mới'}</div>
 
             <div className="form-row">
               <label>Tên Rule</label>
@@ -250,6 +433,23 @@ export default function AutomatedRules() {
                 value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
                 className="inp"
               />
+            </div>
+
+            <div className="form-row">
+              <label>Áp dụng cho</label>
+              <div className="level-tabs">
+                <button className={`level-tab${form.level === 'adset' ? ' active' : ''}`} onClick={() => setForm(p => ({ ...p, level: 'adset' }))}>
+                  Nhóm QC (Adset)
+                </button>
+                <button className={`level-tab${form.level === 'campaign' ? ' active' : ''}`} onClick={() => setForm(p => ({ ...p, level: 'campaign' }))}>
+                  Chiến dịch (Campaign)
+                </button>
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--mut)', marginTop: 4 }}>
+                {form.level === 'campaign'
+                  ? 'Rule sẽ kiểm tra metrics và tắt/bật/scale ở cấp chiến dịch. Pause campaign = tắt tất cả adsets bên trong.'
+                  : 'Rule sẽ kiểm tra metrics và tắt/bật/scale từng nhóm QC riêng lẻ.'}
+              </div>
             </div>
 
             <div className="form-row">
@@ -301,26 +501,118 @@ export default function AutomatedRules() {
             </div>
 
             {actionInfo?.hasScale && (
+              <>
+                <div className="form-row">
+                  <label>{form.action === 'scale_budget' ? 'Tăng ngân sách theo hệ số' : 'Giảm ngân sách theo hệ số'}</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <input
+                      type="number" min="1.01" max="3" step="0.05"
+                      value={form.scale_factor}
+                      onChange={e => setForm(p => ({ ...p, scale_factor: e.target.value }))}
+                      className="inp" style={{ maxWidth: 120 }}
+                    />
+                    <span style={{ fontSize: 13, color: 'var(--mut)' }}>
+                      (= {Math.round((Number(form.scale_factor || 1) - 1) * 100)}% {form.action === 'scale_budget' ? 'tăng' : 'giảm'})
+                    </span>
+                  </div>
+                </div>
+                <div className="form-row">
+                  <label>Giới hạn ngân sách (₫) — tránh tăng/giảm vô hạn</label>
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 12, color: 'var(--mut)', whiteSpace: 'nowrap' }}>Tối thiểu</span>
+                      <input
+                        type="number" min="0" placeholder="VD: 50000"
+                        value={form.budget_cap_min}
+                        onChange={e => setForm(p => ({ ...p, budget_cap_min: e.target.value }))}
+                        className="inp" style={{ maxWidth: 140 }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 12, color: 'var(--mut)', whiteSpace: 'nowrap' }}>Tối đa</span>
+                      <input
+                        type="number" min="0" placeholder="VD: 500000"
+                        value={form.budget_cap_max}
+                        onChange={e => setForm(p => ({ ...p, budget_cap_max: e.target.value }))}
+                        className="inp" style={{ maxWidth: 140 }}
+                      />
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--mut)', marginTop: 4 }}>Để 0 = không giới hạn. Budget sẽ không vượt quá max hoặc thấp hơn min.</div>
+                </div>
+              </>
+            )}
+
+            {form.action === 'notify_only' && (
               <div className="form-row">
-                <label>{form.action === 'scale_budget' ? 'Tăng ngân sách theo hệ số' : 'Giảm ngân sách theo hệ số'}</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <input
-                    type="number" min="1.01" max="3" step="0.05"
-                    value={form.scale_factor}
-                    onChange={e => setForm(p => ({ ...p, scale_factor: e.target.value }))}
-                    className="inp" style={{ maxWidth: 120 }}
-                  />
-                  <span style={{ fontSize: 13, color: 'var(--mut)' }}>
-                    (= {Math.round((Number(form.scale_factor || 1) - 1) * 100)}% {form.action === 'scale_budget' ? 'tăng' : 'giảm'})
-                  </span>
+                <div style={{ padding: '10px 14px', background: 'rgba(59,130,246,.07)', border: '1px solid rgba(59,130,246,.2)', borderRadius: 9, fontSize: 12, color: 'var(--mut)', lineHeight: 1.6 }}>
+                  ℹ️ Rule sẽ chỉ kiểm tra điều kiện và hiển thị kết quả khi nhấn &ldquo;Chạy Rules Ngay&rdquo;. Không tự động tắt/bật hay thay đổi ngân sách.
                 </div>
               </div>
             )}
 
+            {/* Campaign Tree Selector */}
+            <div className="form-row">
+              <label>Áp dụng cho campaign/adset cụ thể (tuỳ chọn)</label>
+              <input
+                type="text" className="inp" placeholder="Tìm chiến dịch, nhóm QC..."
+                value={treeSearch} onChange={e => setTreeSearch(e.target.value)}
+                style={{ marginBottom: 8 }}
+              />
+              <div className="tree-list">
+                <div className="tree-header">
+                  <span style={{ fontSize: 11, color: 'var(--mut)', fontWeight: 600 }}>
+                    {selectedCampIds.length} chiến dịch, {selectedAdsetIds.length} nhóm QC đã chọn
+                  </span>
+                  <span style={{ fontSize: 11, color: 'var(--mut)' }}>Để trống = tất cả</span>
+                </div>
+                {campaigns.length === 0 && (
+                  <div style={{ padding: 12, fontSize: 12, color: 'var(--mut)', textAlign: 'center' }}>
+                    Đang tải chiến dịch...
+                  </div>
+                )}
+                {campaigns.length > 0 && filteredTreeCampaigns.length === 0 && (
+                  <div style={{ padding: 12, fontSize: 12, color: 'var(--mut)', textAlign: 'center' }}>
+                    Không tìm thấy chiến dịch phù hợp
+                  </div>
+                )}
+                {filteredTreeCampaigns.map(c => {
+                  const checkState = getTreeCheckState(c.id)
+                  const isExpanded = expandedCampIds.has(c.id)
+                  const adsets = campAdsets[c.id] || []
+                  return (
+                    <div key={c.id} className="tree-node">
+                      <div className={`tree-row${checkState !== 'unchecked' ? ' tree-row-sel' : ''}`}>
+                        <button className="tree-expand" onClick={() => toggleTreeExpand(c.id)}>{isExpanded ? '▼' : '▶'}</button>
+                        <input type="checkbox" checked={checkState === 'checked'} ref={el => { if (el) el.indeterminate = checkState === 'indeterminate' }} onChange={() => toggleTreeCampaign(c.id)} />
+                        <div className="tree-info" onClick={() => toggleTreeExpand(c.id)}>
+                          <div className="tree-name">{c.name}</div>
+                          <div className="tree-meta">{c.account_name} <span className={`tree-st ${c.effective_status === 'ACTIVE' ? 'tree-st-on' : 'tree-st-off'}`}>{c.effective_status}</span></div>
+                        </div>
+                      </div>
+                      {isExpanded && (
+                        <div className="tree-adsets">
+                          {loadingAdsets[c.id] ? <div className="tree-loading">Đang tải...</div>
+                          : adsets.length === 0 ? <div className="tree-loading">Không có nhóm QC</div>
+                          : adsets.map(a => (
+                            <label key={a.id} className={`tree-adset-row${selectedAdsetIds.includes(a.id) ? ' tree-row-sel' : ''}`}>
+                              <input type="checkbox" checked={selectedAdsetIds.includes(a.id) || selectedCampIds.includes(c.id)} disabled={selectedCampIds.includes(c.id)} onChange={() => toggleTreeAdset(a.id, c.id)} />
+                              <span className="tree-adset-name">{a.name}</span>
+                              <span className={`tree-st ${a.effective_status === 'ACTIVE' ? 'tree-st-on' : 'tree-st-off'}`}>{a.effective_status}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
             <div className="form-btns">
-              <button className="btn-cancel" onClick={() => setShowForm(false)}>Huỷ</button>
+              <button className="btn-cancel" onClick={() => { setShowForm(false); setEditingRuleId(null) }}>Huỷ</button>
               <button className="btn-save" onClick={handleSave} disabled={saving}>
-                {saving ? 'Đang lưu...' : '💾 Lưu Rule'}
+                {saving ? 'Đang lưu...' : editingRuleId ? '💾 Cập nhật Rule' : '💾 Lưu Rule'}
               </button>
             </div>
           </div>
@@ -338,6 +630,12 @@ export default function AutomatedRules() {
                   {r.rule_name}
                   <span className="res-summary">{r.summary}</span>
                 </div>
+                {r._debug && (
+                  <div style={{ fontSize: 10, color: 'var(--mut)', marginBottom: 6, fontFamily: 'monospace', lineHeight: 1.6 }}>
+                    [Debug] time_range: {r._debug.time_range} | adsets: {r._debug.adsets_total} | có insights: {r._debug.insights_total} | bỏ qua (filter): {r._debug.skipped_filter} | bỏ qua (không data): {r._debug.skipped_no_insights} | bỏ qua (không match): {r._debug.skipped_condition} | match: {r._debug.matched}
+                    {r._log_error && <><br /><span style={{ color: '#ef4444' }}>[Log Error] {r._log_error}</span></>}
+                  </div>
+                )}
                 {r.affected.length > 0 && (
                   <table className="res-table">
                     <thead>
@@ -351,7 +649,7 @@ export default function AutomatedRules() {
                           <td>{a.metrics.purchases}</td>
                           <td>{a.metrics.cpa != null ? `${formatNum(a.metrics.cpa)}₫` : 'N/A'}</td>
                           <td>{a.metrics.roas}</td>
-                          <td><span className="res-badge">{a.result}</span></td>
+                          <td><ResultBadge result={a.result} /></td>
                         </tr>
                       ))}
                     </tbody>
@@ -388,6 +686,8 @@ export default function AutomatedRules() {
                     <div>
                       <div className="rule-name">{rule.name}</div>
                       <div className="rule-meta">
+                        {rule.level === 'campaign' ? '📢 Campaign' : '📦 Adset'}
+                        {' · '}
                         {TIME_RANGES.find(t => t.value === rule.time_range)?.label || rule.time_range}
                         {' · '}
                         {rule.account_id === 'all' ? 'Tất cả tài khoản' : rule.account_id}
@@ -395,7 +695,10 @@ export default function AutomatedRules() {
                       </div>
                     </div>
                   </div>
-                  <button className="del-btn" onClick={() => deleteRule(rule.id, rule.name)}>🗑</button>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <button className="edit-btn" onClick={() => startEdit(rule)} title="Sửa rule">✏️</button>
+                    <button className="del-btn" onClick={() => deleteRule(rule.id, rule.name)}>🗑</button>
+                  </div>
                 </div>
 
                 <div className="rule-body">
@@ -411,9 +714,17 @@ export default function AutomatedRules() {
                     })}
                   </div>
                   <div className="rule-action-badge">
-                    {ACTIONS.find(a => a.value === rule.action)?.label}
+                    {ACTIONS.find(a => a.value === rule.action)?.label || rule.action}
                     {(rule.action === 'scale_budget' || rule.action === 'reduce_budget') &&
                       ` ×${rule.scale_factor}`}
+                    {(rule.action === 'scale_budget' || rule.action === 'reduce_budget') &&
+                      (rule.budget_cap_min > 0 || rule.budget_cap_max > 0) && (
+                        <span style={{ fontSize: 10, opacity: .7, marginLeft: 4 }}>
+                          [{rule.budget_cap_min > 0 ? `min ${Number(rule.budget_cap_min).toLocaleString('vi-VN')}₫` : ''}
+                          {rule.budget_cap_min > 0 && rule.budget_cap_max > 0 ? ' — ' : ''}
+                          {rule.budget_cap_max > 0 ? `max ${Number(rule.budget_cap_max).toLocaleString('vi-VN')}₫` : ''}]
+                        </span>
+                      )}
                   </div>
                 </div>
 
@@ -425,11 +736,107 @@ export default function AutomatedRules() {
           </div>
         )}
 
+        {/* History section */}
+        <div className="history-section">
+          <div className="history-header" onClick={toggleHistory} style={{ cursor: 'pointer' }}>
+            <span style={{ fontWeight: 700, fontSize: 14 }}>📋 Lịch sử chạy</span>
+            <span style={{ fontSize: 12, color: 'var(--mut)' }}>{historyOpen ? '▲' : '▼'}</span>
+          </div>
+          {historyOpen && (
+            loadingHistory ? <div style={{ padding: 12, fontSize: 12, color: 'var(--mut)' }}>Đang tải...</div>
+            : historyLogs.length === 0 ? <div style={{ padding: 12, fontSize: 12, color: 'var(--mut)' }}>Chưa có lịch sử chạy</div>
+            : <div style={{ marginTop: 8 }}>
+                <table className="res-table">
+                  <thead>
+                    <tr><th>Thời gian</th><th>Rule</th><th>Hành động</th><th>Kết quả</th><th></th></tr>
+                  </thead>
+                  <tbody>
+                    {historyLogs.map(log => (
+                      <tr key={log.id} style={{ cursor: 'pointer' }} onClick={() => setExpandedLogId(expandedLogId === log.id ? null : log.id)}>
+                        <td style={{ whiteSpace: 'nowrap', fontSize: 11 }}>{new Date(log.created_at).toLocaleString('vi-VN')}</td>
+                        <td style={{ fontWeight: 600 }}>{log.rule_name}</td>
+                        <td><ResultBadge result={log.action} /></td>
+                        <td>{log.affected_count > 0 ? `${log.affected_count} tác động` : 'Không match'}</td>
+                        <td style={{ fontSize: 10, color: 'var(--mut)' }}>{expandedLogId === log.id ? '▲' : '▼'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {expandedLogId && (() => {
+                  const log = historyLogs.find(l => l.id === expandedLogId)
+                  if (!log?.details?.length) return <div style={{ padding: 10, fontSize: 12, color: 'var(--mut)' }}>Không có chi tiết</div>
+                  return (
+                    <div style={{ margin: '8px 0 12px', padding: '10px 12px', background: 'var(--s2)', borderRadius: 9, border: '1px solid var(--bd)' }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--mut)', marginBottom: 6 }}>Chi tiết — {log.rule_name} ({new Date(log.created_at).toLocaleString('vi-VN')})</div>
+                      <table className="res-table">
+                        <thead><tr><th>Tên</th><th>Chi phí</th><th>CPA</th><th>ROAS</th><th>Kết quả</th></tr></thead>
+                        <tbody>
+                          {log.details.map((d, i) => (
+                            <tr key={i}>
+                              <td className="adset-name">{d.adset_name}</td>
+                              <td>{d.metrics?.spend ? `${formatNum(d.metrics.spend)}₫` : '—'}</td>
+                              <td>{d.metrics?.cpa ? `${formatNum(d.metrics.cpa)}₫` : '—'}</td>
+                              <td>{d.metrics?.roas || '—'}</td>
+                              <td><ResultBadge result={d.result} /></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )
+                })()}
+              </div>
+          )}
+        </div>
+
         <div className="hint">
-          <strong>💡 Lưu ý:</strong> Rules chạy tự động 1 lần/ngày (22:00 giờ Việt Nam) hoặc khi bạn nhấn "Chạy Rules Ngay".
+          <strong>💡 Lưu ý:</strong> Rules chạy tự động mỗi giờ (qua cron) hoặc khi bạn nhấn &ldquo;Chạy Rules Ngay&rdquo;.
           Các điều kiện trong 1 rule đều phải đúng cùng lúc (AND logic).
         </div>
       </div>
+
+      {/* Dry-run modal */}
+      {dryRunResults && (
+        <div className="modal-overlay" onClick={() => setDryRunResults(null)}>
+          <div className="modal-box" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <div style={{ fontWeight: 700, fontSize: 15 }}>👁 Xem trước kết quả — DRY RUN</div>
+              <button className="modal-close" onClick={() => setDryRunResults(null)}>×</button>
+            </div>
+            <div style={{ padding: '8px 0', fontSize: 12, color: '#f59e0b', fontWeight: 600 }}>
+              ⚠️ Không thay đổi gì trên Facebook. Chỉ xem trước.
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>
+              Tổng: {dryRunResults.total_affected} adset sẽ bị tác động
+            </div>
+            {dryRunResults.results?.map((r, i) => (
+              <div key={i} style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 13, fontWeight: 600 }}>{r.rule_name} <span style={{ fontWeight: 400, color: 'var(--mut)', fontSize: 11 }}>{r.summary}</span></div>
+                {r.affected.length > 0 && (
+                  <table className="res-table" style={{ marginTop: 4 }}>
+                    <thead><tr><th>Adset</th><th>Chi phí</th><th>CPA</th><th>ROAS</th><th>Sẽ làm</th></tr></thead>
+                    <tbody>
+                      {r.affected.map((a, j) => (
+                        <tr key={j}>
+                          <td className="adset-name">{a.adset_name}</td>
+                          <td>{formatNum(a.metrics.spend)}₫</td>
+                          <td>{a.metrics.cpa != null ? `${formatNum(a.metrics.cpa)}₫` : '—'}</td>
+                          <td>{a.metrics.roas || '—'}</td>
+                          <td><ResultBadge result={a.result} /></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            ))}
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--bd)' }}>
+              <button className="btn-cancel" onClick={() => setDryRunResults(null)}>Đóng</button>
+              <button className="btn-add" onClick={() => { setDryRunResults(null); handleRun() }}>▶ Chạy thật</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         .as-page { padding: 24px; max-width: 900px; position: relative; }
@@ -443,6 +850,57 @@ export default function AutomatedRules() {
         }
         .toast.error { background: #ef4444; }
         @keyframes fadeIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
+
+        /* Preview button */
+        .btn-preview {
+          background: var(--s2); color: var(--txt); border: 1px solid var(--bd);
+          border-radius: 9px; padding: 9px 14px; font-size: 13px; font-weight: 600;
+          cursor: pointer; transition: all .15s; font-family: inherit;
+        }
+        .btn-preview:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+        .btn-preview:disabled { opacity: .45; cursor: not-allowed; }
+
+        /* Level tabs */
+        .level-tabs { display: flex; gap: 6px; }
+        .level-tab {
+          padding: 7px 16px; border-radius: 9px; border: 1.5px solid var(--bd);
+          background: var(--s2); color: var(--txt); font-size: 13px; font-weight: 600;
+          cursor: pointer; transition: all .15s; font-family: inherit;
+        }
+        .level-tab:hover { background: var(--s3); }
+        .level-tab.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+        /* Campaign Tree */
+        .tree-list { max-height: 300px; overflow-y: auto; border: 1px solid var(--bd); border-radius: 9px; background: var(--s2); }
+        .tree-header { display: flex; justify-content: space-between; padding: 6px 10px; border-bottom: 1px solid var(--bd); position: sticky; top: 0; background: var(--s2); z-index: 1; }
+        .tree-node { border-bottom: 1px solid var(--bd); }
+        .tree-node:last-child { border-bottom: none; }
+        .tree-row { display: flex; align-items: center; gap: 6px; padding: 6px 10px; transition: background .1s; }
+        .tree-row:hover { background: rgba(99,102,241,.04); }
+        .tree-row-sel { background: rgba(99,102,241,.07); }
+        .tree-expand { background: none; border: none; cursor: pointer; font-size: 9px; color: var(--mut); width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .tree-info { min-width: 0; flex: 1; cursor: pointer; }
+        .tree-name { font-size: 12px; font-weight: 600; color: var(--txt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tree-meta { font-size: 10px; color: var(--mut); display: flex; gap: 4px; align-items: center; }
+        .tree-st { font-size: 9px; font-weight: 700; padding: 0 4px; border-radius: 3px; }
+        .tree-st-on { color: #10b981; background: rgba(16,185,129,.1); }
+        .tree-st-off { color: #94a3b8; background: rgba(148,163,184,.1); }
+        .tree-adsets { margin-left: 24px; border-left: 2px solid var(--bd); background: rgba(0,0,0,.01); }
+        .tree-adset-row { display: flex; align-items: center; gap: 6px; padding: 4px 10px; font-size: 11px; cursor: pointer; transition: background .1s; border-bottom: 1px solid rgba(148,163,184,.12); }
+        .tree-adset-row:last-child { border-bottom: none; }
+        .tree-adset-row:hover { background: rgba(99,102,241,.04); }
+        .tree-adset-name { flex: 1; color: var(--txt); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .tree-loading { padding: 6px 10px; font-size: 10px; color: var(--mut); }
+
+        /* History */
+        .history-section { background: var(--s1); border: 1px solid var(--bd); border-radius: 14px; padding: 14px 18px; margin-top: 16px; }
+        .history-header { display: flex; justify-content: space-between; align-items: center; }
+
+        /* Modal */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .modal-box { background: var(--s1); border-radius: 16px; padding: 20px; width: 100%; max-width: 700px; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--mut); }
 
         .page-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
         .ph-left { display: flex; align-items: center; gap: 14px; }
@@ -516,6 +974,8 @@ export default function AutomatedRules() {
         .rule-left { display: flex; align-items: center; gap: 12px; }
         .rule-name { font-size: 14px; font-weight: 700; color: var(--txt); }
         .rule-meta { font-size: 12px; color: var(--mut); margin-top: 2px; }
+        .edit-btn { background: none; border: none; color: var(--mut); cursor: pointer; font-size: 14px; padding: 4px; }
+        .edit-btn:hover { color: var(--primary); }
         .del-btn { background: none; border: none; color: var(--mut); cursor: pointer; font-size: 16px; padding: 4px; }
         .del-btn:hover { color: var(--red); }
 

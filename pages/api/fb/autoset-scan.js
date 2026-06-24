@@ -81,31 +81,51 @@ export default async function handler(req, res) {
 
       const allNewPosts = []
 
+      const diagnostics = []
+
       for (const page of configuredPages) {
         try {
-          const pageTokenRes = await fetch(
-            `${META_BASE}/${page.page_id}?fields=access_token&access_token=${fbData.token}`
-          )
-          const pageTokenData = await pageTokenRes.json()
-          const pageToken = pageTokenData.access_token || fbData.token
+          // 1. Lấy page access token (dùng metaGet để URL-encode đúng)
+          const pageTokenData = await metaGet(page.page_id, fbData.token, { fields: 'access_token,name' })
 
-          const url = `${META_BASE}/${page.page_id}/posts?fields=id,message,story,full_picture,created_time,permalink_url&limit=30&access_token=${pageToken}`
-          const r = await fetch(url)
-          const d = await r.json()
+          if (pageTokenData.error) {
+            console.error('[autoset-scan] Cannot access page', page.page_id, pageTokenData.error)
+            allNewPosts.push({ __error: true, page_id: page.page_id, page_name: page.page_name, error_msg: `Không truy cập được Page: ${pageTokenData.error.message || JSON.stringify(pageTokenData.error)}` })
+            continue
+          }
+
+          const pageToken = pageTokenData.access_token
+          if (!pageToken) {
+            console.warn('[autoset-scan] No page token for', page.page_id, '— thiếu quyền pages_show_list hoặc pages_read_engagement')
+          }
+          const tokenToUse = pageToken || fbData.token
+
+          // 2. Lấy bài viết (dùng metaGet thay vì raw fetch)
+          const d = await metaGet(`${page.page_id}/posts`, tokenToUse, {
+            fields: 'id,message,story,full_picture,created_time,permalink_url',
+            limit: '30',
+          })
 
           if (d.error) {
-            console.error('[autoset-scan] FB API error for page', page.page_id, d.error)
+            console.error('[autoset-scan] Posts API error for page', page.page_id, d.error)
             allNewPosts.push({ __error: true, page_id: page.page_id, page_name: page.page_name, error_msg: d.error.message || JSON.stringify(d.error) })
             continue
           }
-          if (!d.data) continue
 
-          for (const post of d.data) {
-            if (createdPostIds.has(post.id)) continue
+          const fetchedPosts = d.data || []
+          let skippedCreated = 0
+          let skippedHashtag = 0
+
+          if (fetchedPosts.length === 0) {
+            console.warn(`[autoset-scan] Page ${page.page_id} (${page.page_name}): 0 posts returned — kiểm tra quyền pages_read_engagement, hoặc dùng ${pageToken ? 'page token' : 'user token (fallback)'}`)
+          }
+
+          for (const post of fetchedPosts) {
+            if (createdPostIds.has(post.id)) { skippedCreated++; continue }
 
             if (page.hashtag) {
               const text = (post.message || '') + ' ' + (post.story || '')
-              if (!text.includes(page.hashtag)) continue
+              if (!text.includes(page.hashtag)) { skippedHashtag++; continue }
             }
 
             allNewPosts.push({
@@ -117,14 +137,26 @@ export default async function handler(req, res) {
               ad_account_id: page.ad_account_id,
             })
           }
+
+          diagnostics.push({
+            page_id: page.page_id,
+            page_name: page.page_name,
+            fetched: fetchedPosts.length,
+            skipped_created: skippedCreated,
+            skipped_hashtag: skippedHashtag,
+            used_page_token: !!pageToken,
+          })
+
+          console.log(`[autoset-scan] Page ${page.page_name}: ${fetchedPosts.length} fetched, ${skippedCreated} đã có ads, ${skippedHashtag} không khớp hashtag, token: ${pageToken ? 'page' : 'user (fallback)'}`)
         } catch (pageErr) {
           console.error('[autoset-scan] page error:', page.page_id, pageErr)
+          allNewPosts.push({ __error: true, page_id: page.page_id, page_name: page.page_name, error_msg: pageErr.message || 'Lỗi không xác định' })
         }
       }
 
       const errors = allNewPosts.filter(p => p.__error)
       const posts  = allNewPosts.filter(p => !p.__error)
-      return res.json({ ok: true, posts, errors })
+      return res.json({ ok: true, posts, errors, diagnostics })
     } catch (err) {
       return res.status(500).json({ ok: false, error: err.message })
     }
@@ -190,11 +222,14 @@ export default async function handler(req, res) {
             age_min: 18,
             age_max: 65,
           },
+          promoted_object: { page_id },
           bid_strategy: 'LOWEST_COST_WITHOUT_CAP',
           status: 'PAUSED',
         }
         if (objective === 'OUTCOME_TRAFFIC') {
           adsetBody.destination_type = 'WEBSITE'
+        } else if (objective === 'OUTCOME_ENGAGEMENT') {
+          adsetBody.destination_type = 'ON_POST'
         }
         const adsetData = await metaPost(`${accountId}/adsets`, token, adsetBody)
         if (adsetData.error) {
@@ -227,20 +262,20 @@ export default async function handler(req, res) {
         }
         ad_id = adData.id
       } catch (stepErr) {
-        // MARK campaign mồ côi nếu bước sau lỗi
+        console.error(`[autoset create_ad] Failed at ${failed_step}:`, stepErr.message)
+        // Dọn campaign mồ côi trên Meta — xoá campaign sẽ cascade xoá adset/ad bên trong
         if (campaign_id) {
           try {
-            await sb.from('autoset_created_ads').insert({
-              user_id: user.id,
-              page_id,
-              post_id,
-              post_message: (post_message || '').slice(0, 500),
-              campaign_id,
-              adset_id,
-              ad_id,
-              ad_account_id,
+            const delBody = new URLSearchParams({ access_token: token }).toString()
+            await fetch(`${META_BASE}/${campaign_id}`, {
+              method: 'DELETE',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: delBody,
             })
-          } catch {}
+            console.log(`[autoset create_ad] Cleaned up orphan campaign ${campaign_id}`)
+          } catch (cleanupErr) {
+            console.error(`[autoset create_ad] Cleanup failed for ${campaign_id}:`, cleanupErr.message)
+          }
         }
         return res.json({ ok: false, error: stepErr.message })
       }
@@ -254,7 +289,7 @@ export default async function handler(req, res) {
       } catch {}
 
       // Insert history record
-      await sb.from('autoset_created_ads').insert({
+      const { error: histError } = await sb.from('autoset_created_ads').insert({
         user_id: user.id,
         page_id,
         post_id,
@@ -265,6 +300,7 @@ export default async function handler(req, res) {
         ad_account_id,
         status: 'paused',
       })
+      if (histError) console.error('[autoset create_ad] History insert error:', histError)
 
       return res.json({
         ok: true,
@@ -272,6 +308,7 @@ export default async function handler(req, res) {
         adset_id,
         ad_id,
         status: 'paused',
+        _log_error: histError ? `Lưu lịch sử thất bại: ${histError.message}` : undefined,
         adset_real: adsetReal?.targeting ? {
           targeting: adsetReal.targeting,
           daily_budget: adsetReal.daily_budget,
@@ -290,13 +327,25 @@ export default async function handler(req, res) {
     try {
       const fbData = await getUserFbData(user.id, sb)
       if (!fbData) return res.json({ ok: false, error: 'Chưa kết nối Facebook' })
+
+      if (fbData.conn?.token_expires_at && new Date(fbData.conn.token_expires_at) < new Date()) {
+        return res.json({ ok: false, error: 'Token Facebook đã hết hạn. Vui lòng kết nối lại tại mục Cài đặt.' })
+      }
+
       const token = fbData.token
 
       // Kích hoạt theo thứ tự: Campaign → Adset → Ad
       for (const [step, entityId] of [['Campaign', campaign_id], ['Adset', adset_id], ['Ad', ad_id]]) {
         if (!entityId) continue
-        const result = await metaPost(entityId, token, { status: 'ACTIVE' })
+        const formBody = new URLSearchParams({ status: 'ACTIVE', access_token: token }).toString()
+        const r = await fetch(`${META_BASE}/${entityId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: formBody,
+        })
+        const result = await r.json()
         if (result.error) {
+          console.error(`[autoset activate] ${step} ${entityId} error:`, JSON.stringify(result.error))
           return res.json({ ok: false, error: formatMetaError(`Kích hoạt ${step}`, result.error) })
         }
       }
@@ -309,6 +358,7 @@ export default async function handler(req, res) {
 
       return res.json({ ok: true })
     } catch (err) {
+      console.error('[autoset activate] Error:', err)
       return res.json({ ok: false, error: err.message })
     }
   }
@@ -324,6 +374,35 @@ export default async function handler(req, res) {
 
       if (error) return res.json({ ok: false, error: error.message })
       return res.json({ ok: true, history: history || [] })
+    } catch (err) {
+      return res.status(500).json({ ok: false, error: err.message })
+    }
+  }
+
+  if (action === 'delete_history') {
+    try {
+      const { id } = body
+      if (!id) return res.status(400).json({ ok: false, error: 'Thiếu id' })
+      const { error } = await sb
+        .from('autoset_created_ads')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id)
+      if (error) return res.json({ ok: false, error: error.message })
+      return res.json({ ok: true })
+    } catch (err) {
+      return res.status(500).json({ ok: false, error: err.message })
+    }
+  }
+
+  if (action === 'clear_history') {
+    try {
+      const { error } = await sb
+        .from('autoset_created_ads')
+        .delete()
+        .eq('user_id', user.id)
+      if (error) return res.json({ ok: false, error: error.message })
+      return res.json({ ok: true })
     } catch (err) {
       return res.status(500).json({ ok: false, error: err.message })
     }

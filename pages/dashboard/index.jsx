@@ -170,7 +170,7 @@ function StatusToggle({ item, onToggle, toggling }) {
     <div className="status-toggle-cell">
       <button
         className={`toggle-sw${isActive ? ' toggle-sw--on' : ''}`}
-        onClick={() => onToggle(item.id, item.status)}
+        onClick={() => onToggle(item.id, item.effective_status)}
         disabled={toggling[item.id]}
         title={isActive ? 'Nhấn để tạm dừng' : 'Nhấn để bật lên'}
       >

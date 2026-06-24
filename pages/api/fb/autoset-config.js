@@ -130,11 +130,14 @@ export default async function handler(req, res) {
 
     if (action === 'remove_page') {
       try {
+        const deleteId = body.id || body.page_id
+        const deleteField = body.id ? 'id' : 'page_id'
+
         const { error } = await sb
           .from('user_autoset_pages')
           .delete()
           .eq('user_id', user.id)
-          .eq('page_id', body.page_id)
+          .eq(deleteField, deleteId)
 
         if (error) return res.json({ ok: false, error: error.message })
         return res.json({ ok: true })

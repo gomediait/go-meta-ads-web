@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import DashboardLayout from '../../components/DashboardLayout'
 import { useAuth } from '../../lib/AuthContext'
@@ -19,92 +19,265 @@ function PlanGate({ feature }) {
   )
 }
 
-const DEFAULTS = {
-  enabled: false,
+const EMPTY_FORM = {
+  name: '',
   pause_at: '22:00',
   resume_at: '06:00',
-  sp_filter: '',
-  last_pause_run: null,
-  last_resume_run: null
 }
 
 export default function AutoCare() {
   const { user } = useAuth()
   const fbConnected = user?.fb_connected
 
-  const [settings, setSettings] = useState(DEFAULTS)
+  const [rules, setRules] = useState([])
   const [loading, setLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [editingRuleId, setEditingRuleId] = useState(null)
+  const [form, setForm] = useState({ ...EMPTY_FORM })
   const [saving, setSaving] = useState(false)
-  const [running, setRunning] = useState(false)
+  const [runningId, setRunningId] = useState(null)
   const [runResult, setRunResult] = useState(null)
+  const [testingId, setTestingId] = useState(null)
+  const [testResult, setTestResult] = useState(null)
   const [toast, setToast] = useState(null)
 
-  useEffect(() => {
-    if (!fbConnected) { setLoading(false); return }
-    fetch('/api/fb/autocare')
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d?.ok) setSettings({ ...DEFAULTS, ...d.settings }) })
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [fbConnected])
+  // Campaign tree state
+  const [campaigns, setCampaigns] = useState([])
+  const [loadingCamps, setLoadingCamps] = useState(false)
+  const [selectedCampIds, setSelectedCampIds] = useState([])
+  const [selectedAdsetIds, setSelectedAdsetIds] = useState([])
+  const [expandedCampIds, setExpandedCampIds] = useState(new Set())
+  const [campAdsets, setCampAdsets] = useState({})
+  const [loadingAdsets, setLoadingAdsets] = useState({})
+  const [searchQuery, setSearchQuery] = useState('')
 
   function showToast(msg, type = 'success') {
     setToast({ msg, type })
     setTimeout(() => setToast(null), 3000)
   }
 
+  const fetchRules = useCallback(async () => {
+    try {
+      const r = await fetch('/api/fb/autocare')
+      const d = await r.json()
+      if (d.ok) setRules(d.rules || [])
+    } catch {}
+  }, [])
+
+  const fetchCampaigns = useCallback(async () => {
+    setLoadingCamps(true)
+    try {
+      const r = await fetch('/api/fb/campaigns?date_preset=maximum&status=ALL&level=campaign')
+      const d = await r.json()
+      if (d?.ok) setCampaigns(d.adsets || [])
+    } catch {}
+    finally { setLoadingCamps(false) }
+  }, [])
+
+  useEffect(() => {
+    if (!fbConnected) { setLoading(false); return }
+    Promise.all([fetchRules(), fetchCampaigns()]).finally(() => setLoading(false))
+  }, [fbConnected, fetchRules, fetchCampaigns])
+
+  const loadAdsetsForCampaign = useCallback(async (campId) => {
+    if (campAdsets[campId]) return
+    setLoadingAdsets(prev => ({ ...prev, [campId]: true }))
+    try {
+      const res = await fetch(`/api/fb/campaign-adsets?campaign_id=${campId}`)
+      const data = await res.json()
+      if (data?.ok) setCampAdsets(prev => ({ ...prev, [campId]: data.adsets || [] }))
+    } catch {}
+    finally { setLoadingAdsets(prev => ({ ...prev, [campId]: false })) }
+  }, [campAdsets])
+
+  function toggleExpand(campId) {
+    setExpandedCampIds(prev => {
+      const next = new Set(prev)
+      if (next.has(campId)) { next.delete(campId) } else { next.add(campId); loadAdsetsForCampaign(campId) }
+      return next
+    })
+  }
+
+  function toggleCampaign(campId) {
+    const adsets = campAdsets[campId] || []
+    const adsetIdSet = new Set(adsets.map(a => a.id))
+    if (selectedCampIds.includes(campId)) {
+      setSelectedCampIds(prev => prev.filter(x => x !== campId))
+    } else {
+      setSelectedAdsetIds(prev => prev.filter(id => !adsetIdSet.has(id)))
+      setSelectedCampIds(prev => [...prev, campId])
+    }
+  }
+
+  function toggleAdset(adsetId, campId) {
+    setSelectedCampIds(prev => prev.filter(x => x !== campId))
+    setSelectedAdsetIds(prev =>
+      prev.includes(adsetId) ? prev.filter(x => x !== adsetId) : [...prev, adsetId]
+    )
+  }
+
+  function getCampCheckState(campId) {
+    if (selectedCampIds.includes(campId)) return 'checked'
+    const adsets = campAdsets[campId] || []
+    if (adsets.length === 0) return 'unchecked'
+    const count = adsets.filter(a => selectedAdsetIds.includes(a.id)).length
+    if (count === 0) return 'unchecked'
+    if (count === adsets.length) return 'checked'
+    return 'indeterminate'
+  }
+
+  function handleSelectAll() {
+    if (selectedCampIds.length === campaigns.length) {
+      setSelectedCampIds([])
+      setSelectedAdsetIds([])
+    } else {
+      setSelectedCampIds(campaigns.map(c => c.id))
+      setSelectedAdsetIds([])
+    }
+  }
+
+  const filteredCampaigns = campaigns.filter(c => {
+    if (!searchQuery) return true
+    const q = searchQuery.toLowerCase()
+    if (c.name.toLowerCase().includes(q)) return true
+    return (campAdsets[c.id] || []).some(a => a.name.toLowerCase().includes(q))
+  })
+
+  function openCreateForm() {
+    setEditingRuleId(null)
+    setForm({ ...EMPTY_FORM })
+    setSelectedCampIds([])
+    setSelectedAdsetIds([])
+    setSearchQuery('')
+    setShowForm(true)
+    setRunResult(null)
+    setTestResult(null)
+  }
+
+  function startEdit(rule) {
+    setEditingRuleId(rule.id)
+    setForm({
+      name: rule.name || '',
+      pause_at: rule.pause_at || '22:00',
+      resume_at: rule.resume_at || '06:00',
+    })
+    setSelectedCampIds(rule.selected_campaigns || [])
+    setSelectedAdsetIds(rule.selected_adsets || [])
+    setSearchQuery('')
+    setShowForm(true)
+    setRunResult(null)
+    setTestResult(null)
+  }
+
+  function cancelForm() {
+    setShowForm(false)
+    setEditingRuleId(null)
+    setForm({ ...EMPTY_FORM })
+    setSelectedCampIds([])
+    setSelectedAdsetIds([])
+    setSearchQuery('')
+  }
+
   async function handleSave() {
+    if (!form.name.trim()) return showToast('Vui lòng đặt tên cho rule', 'error')
+
     setSaving(true)
     try {
-      const res = await fetch('/api/fb/autocare', {
+      const isEdit = !!editingRuleId
+      const payload = {
+        action: isEdit ? 'update' : 'create',
+        ...(isEdit && { id: editingRuleId }),
+        name: form.name,
+        pause_at: form.pause_at,
+        resume_at: form.resume_at,
+        selected_campaigns: selectedCampIds,
+        selected_adsets: selectedAdsetIds,
+      }
+      const r = await fetch('/api/fb/autocare', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'save', ...settings })
+        body: JSON.stringify(payload)
       })
-      const d = await res.json()
-      if (d.ok) showToast('Đã lưu cài đặt thành công')
-      else showToast(d.error || 'Lỗi lưu cài đặt', 'error')
-    } catch (err) {
-      showToast('Lỗi kết nối', 'error')
-    } finally {
-      setSaving(false)
-    }
+      const d = await r.json()
+      if (!d.ok) return showToast(d.error || 'Lỗi lưu rule', 'error')
+      showToast(isEdit ? 'Đã cập nhật rule' : 'Đã tạo rule thành công')
+      cancelForm()
+      fetchRules()
+    } catch { showToast('Lỗi kết nối', 'error') }
+    finally { setSaving(false) }
   }
 
-  async function handleRunNow() {
-    setRunning(true)
+  async function toggleRule(id, enabled) {
+    await fetch('/api/fb/autocare', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'update', id, enabled: !enabled })
+    })
+    fetchRules()
+  }
+
+  async function deleteRule(id, name) {
+    if (!confirm(`Xoá rule "${name}"?`)) return
+    await fetch('/api/fb/autocare', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete', id })
+    })
+    showToast('Đã xoá rule')
+    fetchRules()
+  }
+
+  async function handleAction(ruleId, actionType) {
+    setRunningId(ruleId)
     setRunResult(null)
     try {
-      const res = await fetch('/api/fb/autocare', {
+      const r = await fetch('/api/fb/autocare', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'run' })
+        body: JSON.stringify({ action: actionType, id: ruleId })
       })
-      const d = await res.json()
+      const d = await r.json()
       if (d.ok) {
-        setRunResult(d)
-        showToast(`Đã thực hiện: ${d.action || 'không có hành động'} — ${d.changed || 0} chiến dịch`)
-        // Refresh settings to update last run time
-        const r2 = await fetch('/api/fb/autocare')
-        const d2 = await r2.json()
-        if (d2?.ok) setSettings(prev => ({ ...prev, ...d2.settings }))
+        setRunResult({ ruleId, ...d })
+        const parts = []
+        if (d.changed_campaigns > 0) parts.push(`${d.changed_campaigns} chiến dịch`)
+        if (d.changed_adsets > 0) parts.push(`${d.changed_adsets} nhóm QC`)
+        showToast(`${d.action === 'pause' ? 'Đã tạm dừng' : 'Đã bật lại'}: ${parts.join(', ') || 'không có thay đổi'}`)
       } else {
-        showToast(d.error || 'Lỗi chạy Auto Care', 'error')
+        showToast(d.error || 'Lỗi thực hiện', 'error')
       }
-    } catch (err) {
-      showToast('Lỗi kết nối', 'error')
-    } finally {
-      setRunning(false)
-    }
+    } catch { showToast('Lỗi kết nối', 'error') }
+    finally { setRunningId(null) }
   }
 
-  function set(key, val) {
-    setSettings(s => ({ ...s, [key]: val }))
+  async function handleTestCron(ruleId) {
+    setTestingId(ruleId)
+    setTestResult(null)
+    try {
+      const r = await fetch('/api/fb/autocare', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'test_cron', id: ruleId })
+      })
+      const d = await r.json()
+      setTestResult({ ruleId, ...d })
+    } catch { showToast('Lỗi kết nối', 'error') }
+    finally { setTestingId(null) }
   }
 
   function fmtDate(str) {
     if (!str) return 'Chưa chạy'
     return new Date(str).toLocaleDateString('vi-VN')
+  }
+
+  function describeSelection(rule) {
+    const camps = rule.selected_campaigns?.length || 0
+    const adsets = rule.selected_adsets?.length || 0
+    if (camps === 0 && adsets === 0) return 'Tất cả chiến dịch'
+    const parts = []
+    if (camps > 0) parts.push(`${camps} chiến dịch`)
+    if (adsets > 0) parts.push(`${adsets} nhóm QC`)
+    return parts.join(', ')
   }
 
   if (!isPlanAllowed(user?.plan, 'autocare')) {
@@ -113,19 +286,27 @@ export default function AutoCare() {
 
   return (
     <DashboardLayout title="Auto Care">
+      {toast && (
+        <div style={{
+          position: 'fixed', top: 16, right: 16, zIndex: 99999,
+          padding: '10px 18px', borderRadius: 10, fontSize: 13, fontWeight: 600,
+          color: '#fff', background: toast.type === 'error' ? '#ef4444' : '#10b981',
+          boxShadow: '0 4px 16px rgba(0,0,0,.25)', pointerEvents: 'none',
+          animation: 'toastIn .3s ease',
+        }}>{toast.msg}</div>
+      )}
+
       <div className="page-wrap">
-
-        {/* Toast */}
-        {toast && (
-          <div className={`toast toast-${toast.type}`}>{toast.msg}</div>
-        )}
-
+        {/* Header */}
         <div className="page-header">
-          <span className="page-icon">💚</span>
-          <div>
-            <h1>Auto Care — Giờ tắt quảng cáo</h1>
-            <p>Tự động tạm dừng và khôi phục chiến dịch theo khung giờ</p>
+          <div className="ph-left">
+            <span className="page-icon">💚</span>
+            <div>
+              <h1>Auto Care — Giờ tắt quảng cáo</h1>
+              <p>Tạo nhiều rules tự động tạm dừng và khôi phục chiến dịch theo khung giờ khác nhau</p>
+            </div>
           </div>
+          <button className="btn-add" onClick={openCreateForm}>+ Tạo Rule mới</button>
         </div>
 
         {!fbConnected ? (
@@ -138,117 +319,240 @@ export default function AutoCare() {
         ) : loading ? (
           <div className="skel-block" />
         ) : (
-          <div className="content">
+          <>
+            {/* Create/Edit form */}
+            {showForm && (
+              <div className="card form-card">
+                <div className="card-title">{editingRuleId ? '✏️ Sửa Rule' : '➕ Tạo Rule mới'}</div>
 
-            {/* Main settings card */}
-            <div className="card">
-              <div className="card-title">Cài đặt giờ nghỉ tự động</div>
-
-              {/* Enable toggle */}
-              <div className="field-row">
-                <div className="field-info">
-                  <div className="field-label">Bật Auto Care</div>
-                  <div className="field-desc">Tự động tạm dừng chiến dịch vào giờ nghỉ và khởi động lại vào buổi sáng</div>
-                </div>
-                <label className="toggle">
+                <div className="form-row">
+                  <label className="label">Tên Rule</label>
                   <input
-                    type="checkbox"
-                    checked={settings.enabled}
-                    onChange={e => set('enabled', e.target.checked)}
+                    type="text" className="text-input"
+                    placeholder="VD: Tắt QC ban đêm, Tắt Camp ABC lúc 23h..."
+                    value={form.name}
+                    onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
                   />
-                  <span className="slider" />
-                </label>
-              </div>
+                </div>
 
-              <div className={`settings-body${!settings.enabled ? ' disabled-area' : ''}`}>
-                {/* Time pickers */}
                 <div className="two-col">
-                  <div className="field-group">
+                  <div className="form-row">
                     <label className="label">Giờ tạm dừng (Pause at)</label>
                     <input
-                      type="time"
-                      className="time-input"
-                      value={settings.pause_at}
-                      onChange={e => set('pause_at', e.target.value)}
-                      disabled={!settings.enabled}
+                      type="time" className="time-input"
+                      value={form.pause_at}
+                      onChange={e => setForm(p => ({ ...p, pause_at: e.target.value }))}
                     />
                     <div className="field-hint">Chiến dịch sẽ bị tạm dừng từ giờ này</div>
                   </div>
-
-                  <div className="field-group">
+                  <div className="form-row">
                     <label className="label">Giờ khởi động lại (Resume at)</label>
                     <input
-                      type="time"
-                      className="time-input"
-                      value={settings.resume_at}
-                      onChange={e => set('resume_at', e.target.value)}
-                      disabled={!settings.enabled}
+                      type="time" className="time-input"
+                      value={form.resume_at}
+                      onChange={e => setForm(p => ({ ...p, resume_at: e.target.value }))}
                     />
                     <div className="field-hint">Chiến dịch sẽ được bật lại từ giờ này</div>
                   </div>
                 </div>
 
-                {/* Campaign filter */}
-                <div className="field-group">
-                  <label className="label">Lọc theo tên chiến dịch (tuỳ chọn)</label>
+                {/* Campaign tree selector */}
+                <div className="form-row">
+                  <label className="label">Áp dụng cho chiến dịch nào?</label>
                   <input
-                    type="text"
-                    className="text-input"
-                    placeholder="Ví dụ: SP001 — chỉ tắt chiến dịch chứa tên này"
-                    value={settings.sp_filter}
-                    onChange={e => set('sp_filter', e.target.value)}
-                    disabled={!settings.enabled}
+                    type="text" className="text-input"
+                    placeholder="Tìm chiến dịch, nhóm quảng cáo..."
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    style={{ marginBottom: 8 }}
                   />
-                  <div className="field-hint">Để trống = áp dụng cho tất cả chiến dịch trong tài khoản đã chọn</div>
+                  {loadingCamps ? (
+                    <div className="field-hint">Đang tải danh sách chiến dịch...</div>
+                  ) : campaigns.length === 0 ? (
+                    <div className="field-hint">Không có chiến dịch nào. Kiểm tra kết nối Facebook.</div>
+                  ) : (
+                    <div className="camp-tree-list">
+                      <div className="camp-tree-header">
+                        <span className="camp-tree-count">
+                          {selectedCampIds.length} chiến dịch, {selectedAdsetIds.length} nhóm QC đã chọn
+                        </span>
+                        <button className="camp-tree-toggle-all" onClick={handleSelectAll}>
+                          {selectedCampIds.length === campaigns.length ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
+                        </button>
+                      </div>
+                      {filteredCampaigns.map(c => {
+                        const checkState = getCampCheckState(c.id)
+                        const isExpanded = expandedCampIds.has(c.id)
+                        const adsets = campAdsets[c.id] || []
+                        return (
+                          <div key={c.id} className="camp-tree-node">
+                            <div className={`camp-tree-row${checkState !== 'unchecked' ? ' row-selected' : ''}`}>
+                              <button className="expand-btn" onClick={() => toggleExpand(c.id)}>
+                                {isExpanded ? '▼' : '▶'}
+                              </button>
+                              <input
+                                type="checkbox"
+                                checked={checkState === 'checked'}
+                                ref={el => { if (el) el.indeterminate = checkState === 'indeterminate' }}
+                                onChange={() => toggleCampaign(c.id)}
+                              />
+                              <div className="camp-tree-info" onClick={() => toggleExpand(c.id)}>
+                                <div className="camp-tree-name">{c.name}</div>
+                                <div className="camp-tree-meta">
+                                  {c.account_name}
+                                  <span className={`st-badge ${c.effective_status === 'ACTIVE' ? 'st-active' : 'st-paused'}`}>
+                                    {c.effective_status}
+                                  </span>
+                                </div>
+                                {selectedCampIds.includes(c.id) && (
+                                  <div className="camp-tree-hint">Áp dụng: Cả chiến dịch ✓</div>
+                                )}
+                              </div>
+                            </div>
+
+                            {isExpanded && (
+                              <div className="adset-tree-list">
+                                {loadingAdsets[c.id] ? (
+                                  <div className="adset-loading">Đang tải nhóm QC...</div>
+                                ) : adsets.length === 0 ? (
+                                  <div className="adset-loading">Không có nhóm QC nào</div>
+                                ) : adsets.map(a => (
+                                  <label key={a.id} className={`adset-tree-row${selectedAdsetIds.includes(a.id) ? ' row-selected' : ''}`}>
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedAdsetIds.includes(a.id) || selectedCampIds.includes(c.id)}
+                                      disabled={selectedCampIds.includes(c.id)}
+                                      onChange={() => toggleAdset(a.id, c.id)}
+                                    />
+                                    <span className="adset-tree-name">{a.name}</span>
+                                    <span className={`st-badge ${a.effective_status === 'ACTIVE' ? 'st-active' : a.effective_status === 'CAMPAIGN_PAUSED' ? 'st-camp-paused' : 'st-paused'}`}>
+                                      {a.effective_status === 'CAMPAIGN_PAUSED' ? 'Camp. dừng' : a.effective_status}
+                                    </span>
+                                  </label>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                  <div className="field-hint">Không chọn = áp dụng tất cả. Check campaign = tắt/bật cả chiến dịch. Expand (▶) để chọn từng nhóm QC riêng.</div>
+                </div>
+
+                <div className="form-actions">
+                  <button className="btn-save" onClick={handleSave} disabled={saving}>
+                    {saving ? 'Đang lưu…' : editingRuleId ? 'Cập nhật Rule' : 'Tạo Rule'}
+                  </button>
+                  <button className="btn-cancel" onClick={cancelForm}>Huỷ</button>
                 </div>
               </div>
+            )}
 
-              {/* Save button */}
-              <div className="card-footer">
-                <button className="btn-save" onClick={handleSave} disabled={saving}>
-                  {saving ? 'Đang lưu…' : 'Lưu cài đặt'}
-                </button>
+            {/* Rules list */}
+            {rules.length === 0 && !showForm ? (
+              <div className="empty-state">
+                <div className="empty-icon">💚</div>
+                <div className="empty-title">Chưa có rule Auto Care nào</div>
+                <div className="empty-desc">Tạo rule đầu tiên để tự động tắt/bật chiến dịch theo giờ nghỉ.</div>
+                <button className="btn-add" onClick={openCreateForm}>+ Tạo Rule mới</button>
               </div>
-            </div>
+            ) : (
+              <div className="rules-list">
+                {rules.map(rule => (
+                  <div key={rule.id} className={`rule-card${!rule.enabled ? ' rule-disabled' : ''}`}>
+                    <div className="rule-header">
+                      <div className="rule-info">
+                        <div className="rule-name">{rule.name || 'Rule không tên'}</div>
+                        <div className="rule-meta">
+                          ⏸ {rule.pause_at} → ▶ {rule.resume_at} · {describeSelection(rule)}
+                        </div>
+                      </div>
+                      <div className="rule-actions">
+                        <label className="toggle">
+                          <input
+                            type="checkbox"
+                            checked={rule.enabled}
+                            onChange={() => toggleRule(rule.id, rule.enabled)}
+                          />
+                          <span className="slider" />
+                        </label>
+                      </div>
+                    </div>
 
-            {/* Status card */}
-            <div className="card">
-              <div className="card-title">Trạng thái & Chạy thủ công</div>
+                    <div className="rule-status">
+                      <div className="status-item">
+                        <span className="status-label">Lần pause cuối</span>
+                        <span className="status-value">{fmtDate(rule.last_pause_run)}</span>
+                      </div>
+                      <div className="status-item">
+                        <span className="status-label">Lần resume cuối</span>
+                        <span className="status-value">{fmtDate(rule.last_resume_run)}</span>
+                      </div>
+                    </div>
 
-              <div className="status-grid">
-                <div className="status-item">
-                  <div className="status-label">Lần tạm dừng cuối</div>
-                  <div className="status-value">{fmtDate(settings.last_pause_run)}</div>
-                </div>
-                <div className="status-item">
-                  <div className="status-label">Lần khởi động lại cuối</div>
-                  <div className="status-value">{fmtDate(settings.last_resume_run)}</div>
-                </div>
-                <div className="status-item">
-                  <div className="status-label">Lịch chạy tiếp theo</div>
-                  <div className="status-value">Mỗi 30 phút tự động kiểm tra</div>
-                </div>
-                <div className="status-item">
-                  <div className="status-label">Múi giờ</div>
-                  <div className="status-value">Việt Nam (UTC+7)</div>
-                </div>
+                    {/* Run result for this rule */}
+                    {runResult?.ruleId === rule.id && (
+                      <div className="run-result">
+                        Kết quả: <strong>{runResult.action === 'pause' ? 'Tạm dừng' : 'Bật lại'}</strong> —{' '}
+                        {(runResult.changed_campaigns || 0) > 0 && <>{runResult.changed_campaigns} chiến dịch</>}
+                        {(runResult.changed_campaigns || 0) > 0 && (runResult.changed_adsets || 0) > 0 && ', '}
+                        {(runResult.changed_adsets || 0) > 0 && <>{runResult.changed_adsets} nhóm QC</>}
+                        {(runResult.changed_campaigns || 0) === 0 && (runResult.changed_adsets || 0) === 0 && 'không có thay đổi'}
+                        {(runResult.skipped_campaign_paused || 0) > 0 && (
+                          <span style={{ color: '#f59e0b', marginLeft: 8 }}>
+                            (bỏ qua {runResult.skipped_campaign_paused} adset do campaign đã dừng)
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Test cron result */}
+                    {testResult?.ruleId === rule.id && (
+                      <div className="test-result">
+                        <div className="test-msg">{testResult.message}</div>
+                        {testResult.debug && (
+                          <div className="test-debug">
+                            {Object.entries(testResult.debug).map(([k, v]) => (
+                              <div key={k} className="test-debug-row">
+                                <span className="test-debug-key">{k}</span>
+                                <span className="test-debug-val">{String(v)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="rule-btns">
+                      <button
+                        className="btn-pause-now"
+                        onClick={() => handleAction(rule.id, 'pause_now')}
+                        disabled={runningId === rule.id}
+                      >
+                        {runningId === rule.id ? '⏳' : '⏸'} Pause ngay
+                      </button>
+                      <button
+                        className="btn-resume-now"
+                        onClick={() => handleAction(rule.id, 'resume_now')}
+                        disabled={runningId === rule.id}
+                      >
+                        {runningId === rule.id ? '⏳' : '▶'} Resume ngay
+                      </button>
+                      <button
+                        className="btn-test-cron"
+                        onClick={() => handleTestCron(rule.id)}
+                        disabled={testingId === rule.id}
+                      >
+                        {testingId === rule.id ? '⏳...' : '🧪 Test cron'}
+                      </button>
+                      <button className="btn-edit" onClick={() => startEdit(rule)}>✏️ Sửa</button>
+                      <button className="btn-delete" onClick={() => deleteRule(rule.id, rule.name)}>🗑</button>
+                    </div>
+                  </div>
+                ))}
               </div>
-
-              {runResult && (
-                <div className="run-result">
-                  Kết quả: <strong>{runResult.action || 'none'}</strong> —{' '}
-                  đã {runResult.action === 'pause' ? 'tạm dừng' : 'bật lại'}{' '}
-                  <strong>{runResult.changed || 0}</strong> chiến dịch
-                </div>
-              )}
-
-              <div className="card-footer">
-                <button className="btn-run" onClick={handleRunNow} disabled={running}>
-                  {running ? 'Đang chạy…' : 'Chạy ngay'}
-                </button>
-                <div className="run-hint">Kiểm tra thời gian hiện tại và thực hiện pause/resume tương ứng</div>
-              </div>
-            </div>
+            )}
 
             {/* Info card */}
             <div className="info-card">
@@ -256,35 +560,33 @@ export default function AutoCare() {
               <div className="info-body">
                 <div className="info-title">Cách hoạt động</div>
                 <div className="info-text">
-                  Hệ thống tự động kiểm tra mỗi 30 phút. Nếu giờ hiện tại ≥ giờ tạm dừng và chưa tạm dừng hôm nay → tạm dừng tất cả chiến dịch.
-                  Nếu giờ hiện tại ≥ giờ khởi động và chưa khởi động hôm nay → bật lại chiến dịch.
-                  Mỗi hành động chỉ chạy 1 lần/ngày.
+                  Mỗi rule có giờ nghỉ riêng. Hệ thống kiểm tra mỗi giờ (UTC). Nếu đang trong giờ nghỉ và chưa tạm dừng hôm nay → tạm dừng campaigns/adsets đã chọn.
+                  Nếu đang trong giờ hoạt động và chưa bật lại hôm nay → bật lại. Mỗi hành động chỉ chạy 1 lần/ngày/rule.
+                  Nút Pause/Resume ngay hoạt động ngay lập tức, không phụ thuộc giờ.
                 </div>
               </div>
             </div>
-
-          </div>
+          </>
         )}
       </div>
 
       <style jsx>{`
-        .page-wrap { padding: 24px; max-width: 800px; position: relative; }
-        .page-header { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+        .page-wrap { padding: 24px; max-width: 860px; position: relative; }
+
+        .page-header { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 22px; flex-wrap: wrap; }
+        .ph-left { display: flex; align-items: center; gap: 14px; }
         .page-icon { font-size: 32px; }
         h1 { font-size: 20px; font-weight: 700; color: var(--txt); margin-bottom: 4px; }
         p  { font-size: 13px; color: var(--mut); }
 
-        /* Toast */
-        .toast {
-          position: fixed; top: 16px; right: 16px; z-index: 9999;
-          max-width: 260px; padding: 9px 14px; border-radius: 8px;
-          font-size: 12px; font-weight: 600; line-height: 1.4;
-          box-shadow: 0 3px 12px rgba(0,0,0,.18); animation: slideIn .2s ease;
-          pointer-events: none;
+        @keyframes toastIn { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+
+        .btn-add {
+          background: var(--primary); color: #fff; border: none; border-radius: 9px;
+          padding: 10px 20px; font-size: 13px; font-weight: 700; cursor: pointer;
+          transition: opacity .15s; font-family: inherit; white-space: nowrap;
         }
-        .toast-success { background: #10b981; color: #fff; }
-        .toast-error   { background: #ef4444; color: #fff; }
-        @keyframes slideIn { from{opacity:0;transform:translateX(10px)} to{opacity:1;transform:translateX(0)} }
+        .btn-add:hover { opacity: .88; }
 
         /* FB Required */
         .fb-required {
@@ -309,23 +611,123 @@ export default function AutoCare() {
         }
         @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 
-        .content { display: flex; flex-direction: column; gap: 16px; }
+        /* Empty state */
+        .empty-state {
+          display: flex; flex-direction: column; align-items: center; gap: 12px;
+          background: var(--s1); border: 1px solid var(--bd); border-radius: 16px;
+          padding: 48px 32px; text-align: center;
+        }
+        .empty-icon { font-size: 48px; }
+        .empty-title { font-size: 16px; font-weight: 700; color: var(--txt); }
+        .empty-desc { font-size: 13px; color: var(--mut); max-width: 380px; line-height: 1.6; margin-bottom: 8px; }
 
+        /* Card / Form */
         .card {
           background: var(--s1); border: 1px solid var(--bd); border-radius: 14px; padding: 22px;
+          margin-bottom: 16px;
         }
         .card-title {
           font-size: 15px; font-weight: 700; color: var(--txt); margin-bottom: 20px;
           padding-bottom: 12px; border-bottom: 1px solid var(--bd);
         }
+        .form-card { margin-bottom: 20px; }
 
-        .field-row {
-          display: flex; align-items: center; justify-content: space-between;
-          gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--bd);
+        .form-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+        .label { font-size: 13px; font-weight: 600; color: var(--txt); }
+        .field-hint { font-size: 11px; color: var(--mut); }
+
+        .time-input, .text-input {
+          padding: 10px 14px; border-radius: 9px; border: 1px solid var(--bd);
+          background: var(--s2); color: var(--txt); font-size: 14px;
+          transition: border-color .15s; width: 100%;
         }
-        .field-info { flex: 1; }
-        .field-label { font-size: 14px; font-weight: 600; color: var(--txt); margin-bottom: 3px; }
-        .field-desc  { font-size: 12px; color: var(--mut); line-height: 1.5; }
+        .time-input:focus, .text-input:focus { outline: none; border-color: var(--primary); }
+
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 600px) { .two-col { grid-template-columns: 1fr; } }
+
+        .form-actions { display: flex; gap: 10px; margin-top: 6px; }
+        .btn-save {
+          background: var(--primary); color: #fff; border: none; border-radius: 9px;
+          padding: 10px 24px; font-size: 14px; font-weight: 700; cursor: pointer;
+          transition: opacity .15s; font-family: inherit;
+        }
+        .btn-save:hover:not(:disabled) { opacity: .88; }
+        .btn-save:disabled { opacity: .6; cursor: default; }
+        .btn-cancel {
+          background: var(--s2); color: var(--txt); border: 1px solid var(--bd); border-radius: 9px;
+          padding: 10px 20px; font-size: 13px; font-weight: 600; cursor: pointer;
+          transition: all .15s; font-family: inherit;
+        }
+        .btn-cancel:hover { border-color: var(--primary); color: var(--primary); }
+
+        /* Campaign tree list */
+        .camp-tree-list {
+          max-height: 400px; overflow-y: auto; border: 1px solid var(--bd);
+          border-radius: 10px; background: var(--s2);
+        }
+        .camp-tree-header {
+          display: flex; align-items: center; justify-content: space-between;
+          padding: 8px 12px; border-bottom: 1px solid var(--bd);
+          position: sticky; top: 0; background: var(--s2); z-index: 1;
+        }
+        .camp-tree-count { font-size: 11px; color: var(--mut); font-weight: 600; }
+        .camp-tree-toggle-all {
+          font-size: 11px; color: var(--primary); background: none; border: none;
+          cursor: pointer; font-weight: 600; font-family: inherit;
+        }
+        .camp-tree-node { border-bottom: 1px solid var(--bd); }
+        .camp-tree-node:last-child { border-bottom: none; }
+        .camp-tree-row {
+          display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+          transition: background .1s;
+        }
+        .camp-tree-row:hover { background: rgba(99,102,241,.04); }
+        .camp-tree-row.row-selected { background: rgba(99,102,241,.07); }
+        .camp-tree-row input[type="checkbox"] { flex-shrink: 0; cursor: pointer; }
+        .expand-btn {
+          background: none; border: none; cursor: pointer; font-size: 10px;
+          color: var(--mut); width: 20px; height: 20px; display: flex;
+          align-items: center; justify-content: center; flex-shrink: 0;
+          border-radius: 4px; transition: all .15s;
+        }
+        .expand-btn:hover { background: var(--s3); color: var(--txt); }
+        .camp-tree-info { min-width: 0; flex: 1; cursor: pointer; }
+        .camp-tree-name { font-size: 13px; font-weight: 600; color: var(--txt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .camp-tree-meta { font-size: 11px; color: var(--mut); display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+        .camp-tree-hint { font-size: 10px; color: var(--grn); margin-top: 2px; font-weight: 600; }
+        .st-badge { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; flex-shrink: 0; }
+        .st-active { color: #10b981; background: rgba(16,185,129,.1); }
+        .st-paused { color: #94a3b8; background: rgba(148,163,184,.1); }
+        .st-camp-paused { color: #f59e0b; background: rgba(245,158,11,.1); }
+
+        .adset-tree-list { margin-left: 28px; border-left: 2px solid var(--bd); background: rgba(0,0,0,.015); }
+        .adset-tree-row {
+          display: flex; align-items: center; gap: 8px; padding: 6px 12px;
+          font-size: 12px; cursor: pointer; transition: background .1s;
+          border-bottom: 1px solid rgba(148,163,184,.15);
+        }
+        .adset-tree-row:last-child { border-bottom: none; }
+        .adset-tree-row:hover { background: rgba(99,102,241,.04); }
+        .adset-tree-row.row-selected { background: rgba(99,102,241,.07); }
+        .adset-tree-row input[type="checkbox"] { flex-shrink: 0; cursor: pointer; }
+        .adset-tree-name { flex: 1; color: var(--txt); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .adset-loading { padding: 8px 12px; font-size: 11px; color: var(--mut); }
+
+        /* Rules list */
+        .rules-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
+
+        .rule-card {
+          background: var(--s1); border: 1px solid var(--bd); border-radius: 14px;
+          padding: 18px; transition: opacity .2s;
+        }
+        .rule-card.rule-disabled { opacity: .55; }
+
+        .rule-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+        .rule-info { flex: 1; min-width: 0; }
+        .rule-name { font-size: 15px; font-weight: 700; color: var(--txt); margin-bottom: 4px; }
+        .rule-meta { font-size: 12px; color: var(--mut); }
+        .rule-actions { display: flex; align-items: center; gap: 8px; }
 
         /* Toggle switch */
         .toggle { position: relative; display: inline-block; width: 48px; height: 26px; flex-shrink: 0; }
@@ -342,68 +744,76 @@ export default function AutoCare() {
         input:checked + .slider { background: var(--grn); }
         input:checked + .slider::before { transform: translateX(22px); }
 
-        .settings-body { margin-top: 20px; display: flex; flex-direction: column; gap: 20px; transition: opacity .2s; }
-        .settings-body.disabled-area { opacity: .45; pointer-events: none; }
-
-        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        @media (max-width: 600px) { .two-col { grid-template-columns: 1fr; } }
-
-        .field-group { display: flex; flex-direction: column; gap: 6px; }
-        .label { font-size: 13px; font-weight: 600; color: var(--txt); }
-        .field-hint { font-size: 11px; color: var(--mut); }
-
-        .time-input, .text-input {
-          padding: 10px 14px; border-radius: 9px; border: 1px solid var(--bd);
-          background: var(--s2); color: var(--txt); font-size: 14px;
-          transition: border-color .15s;
-          width: 100%;
+        .rule-status {
+          display: flex; gap: 16px; margin-top: 12px; padding-top: 12px;
+          border-top: 1px solid var(--bd); flex-wrap: wrap;
         }
-        .time-input:focus, .text-input:focus {
-          outline: none; border-color: var(--primary);
-        }
-        .time-input:disabled, .text-input:disabled {
-          opacity: .5; cursor: not-allowed;
+        .rule-status .status-item { display: flex; gap: 6px; font-size: 12px; }
+        .rule-status .status-label { color: var(--mut); }
+        .rule-status .status-value { color: var(--txt); font-weight: 600; }
+
+        .rule-btns {
+          display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;
         }
 
-        .card-footer { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--bd); display: flex; align-items: center; gap: 14px; }
-
-        .btn-save {
-          background: var(--primary); color: #fff; border: none; border-radius: 9px;
-          padding: 10px 24px; font-size: 14px; font-weight: 700; cursor: pointer;
-          transition: opacity .15s;
+        .btn-pause-now {
+          background: #ef4444; color: #fff; border: none; border-radius: 8px;
+          padding: 7px 14px; font-size: 12px; font-weight: 700; cursor: pointer;
+          transition: opacity .15s; font-family: inherit;
         }
-        .btn-save:hover:not(:disabled) { opacity: .88; }
-        .btn-save:disabled { opacity: .6; cursor: default; }
-
-        .btn-run {
-          background: var(--blue); color: #fff; border: none; border-radius: 9px;
-          padding: 10px 24px; font-size: 14px; font-weight: 700; cursor: pointer;
-          transition: opacity .15s;
+        .btn-pause-now:hover:not(:disabled) { opacity: .88; }
+        .btn-pause-now:disabled { opacity: .6; cursor: default; }
+        .btn-resume-now {
+          background: #10b981; color: #fff; border: none; border-radius: 8px;
+          padding: 7px 14px; font-size: 12px; font-weight: 700; cursor: pointer;
+          transition: opacity .15s; font-family: inherit;
         }
-        .btn-run:hover:not(:disabled) { opacity: .88; }
-        .btn-run:disabled { opacity: .6; cursor: default; }
-        .run-hint { font-size: 12px; color: var(--mut); }
+        .btn-resume-now:hover:not(:disabled) { opacity: .88; }
+        .btn-resume-now:disabled { opacity: .6; cursor: default; }
 
-        .status-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
-        @media (max-width: 500px) { .status-grid { grid-template-columns: 1fr; } }
-
-        .status-item {
-          background: var(--s2); border-radius: 10px; padding: 12px 16px;
+        .btn-test-cron {
+          background: var(--s2); color: var(--txt); border: 1px solid var(--bd);
+          border-radius: 8px; padding: 7px 14px; font-size: 12px; font-weight: 600;
+          cursor: pointer; transition: all .15s; font-family: inherit;
         }
-        .status-label { font-size: 11px; color: var(--mut); font-weight: 600; text-transform: uppercase; letter-spacing: .3px; margin-bottom: 4px; }
-        .status-value { font-size: 14px; font-weight: 600; color: var(--txt); }
+        .btn-test-cron:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+        .btn-test-cron:disabled { opacity: .6; cursor: default; }
+
+        .btn-edit {
+          background: none; border: 1px solid var(--bd); border-radius: 8px;
+          padding: 7px 12px; font-size: 12px; cursor: pointer; color: var(--txt);
+          transition: all .15s; font-family: inherit;
+        }
+        .btn-edit:hover { border-color: var(--primary); color: var(--primary); }
+
+        .btn-delete {
+          background: none; border: 1px solid var(--bd); border-radius: 8px;
+          padding: 7px 10px; font-size: 12px; cursor: pointer; color: var(--mut);
+          transition: all .15s; font-family: inherit;
+        }
+        .btn-delete:hover { border-color: #ef4444; color: #ef4444; }
 
         .run-result {
-          margin-top: 14px; padding: 12px 16px;
+          margin-top: 10px; padding: 10px 14px;
           background: rgba(16,185,129,.1); border: 1px solid rgba(16,185,129,.25);
-          border-radius: 9px; font-size: 13px; color: var(--txt);
+          border-radius: 9px; font-size: 12px; color: var(--txt);
         }
+
+        .test-result {
+          margin-top: 10px; padding: 12px 14px; border-radius: 9px;
+          background: var(--s2); border: 1px solid var(--bd);
+        }
+        .test-msg { font-size: 13px; font-weight: 600; color: var(--txt); margin-bottom: 8px; }
+        .test-debug { display: flex; flex-direction: column; gap: 3px; }
+        .test-debug-row { display: flex; gap: 8px; font-size: 11px; }
+        .test-debug-key { color: var(--mut); min-width: 140px; font-family: monospace; }
+        .test-debug-val { color: var(--txt); font-weight: 600; font-family: monospace; }
 
         /* Info card */
         .info-card {
           display: flex; gap: 14px; align-items: flex-start;
           background: rgba(59,130,246,.07); border: 1px solid rgba(59,130,246,.2);
-          border-radius: 12px; padding: 16px;
+          border-radius: 12px; padding: 16px; margin-top: 16px;
         }
         .info-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
         .info-title { font-size: 13px; font-weight: 700; color: var(--txt); margin-bottom: 5px; }

@@ -55,6 +55,7 @@ export default function AutoSet() {
   const [historyOpen, setHistoryOpen] = useState(false)
   const [loadingHistory, setLoadingHistory] = useState(false)
   const [savingPage, setSavingPage] = useState(false)
+  const [scanDiag, setScanDiag] = useState(null)
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type })
@@ -155,13 +156,13 @@ export default function AutoSet() {
     finally { setSavingPage(false) }
   }
 
-  async function handleRemovePage(page_id, page_name) {
+  async function handleRemovePage(rowId, page_name) {
     if (!confirm(`Xoá page "${page_name}" khỏi danh sách?`)) return
     try {
       const r = await fetch('/api/fb/autoset-config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'remove_page', page_id })
+        body: JSON.stringify({ action: 'remove_page', id: rowId })
       })
       const d = await r.json()
       if (!d.ok) return showToast(d.error || 'Lỗi xoá page', 'error')
@@ -173,6 +174,7 @@ export default function AutoSet() {
   async function handleScan() {
     setScanning(true)
     setScanResults([])
+    setScanDiag(null)
     try {
       const r = await fetch('/api/fb/autoset-scan', {
         method: 'POST',
@@ -182,10 +184,11 @@ export default function AutoSet() {
       const d = await r.json()
       if (!d.ok) return showToast(d.error || 'Lỗi quét bài viết', 'error')
       setScanResults(d.posts || [])
+      if (d.diagnostics) setScanDiag(d.diagnostics)
       if (d.errors?.length) {
         d.errors.forEach(e => showToast(`Lỗi page "${e.page_name}": ${e.error_msg}`, 'error'))
       }
-      if ((d.posts || []).length === 0 && !d.errors?.length) showToast('Không có bài viết mới')
+      if ((d.posts || []).length === 0 && !d.errors?.length) showToast('Không có bài viết mới — xem chi tiết bên dưới')
       else if ((d.posts || []).length > 0) showToast(`Tìm thấy ${d.posts.length} bài viết mới`)
     } catch { showToast('Lỗi kết nối', 'error') }
     finally { setScanning(false) }
@@ -261,6 +264,37 @@ export default function AutoSet() {
       if (d.ok) setHistory(d.history || [])
     } catch {}
     finally { setLoadingHistory(false) }
+  }
+
+  async function handleDeleteHistory(id) {
+    try {
+      const r = await fetch('/api/fb/autoset-scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete_history', id })
+      })
+      const d = await r.json()
+      if (d.ok) {
+        setHistory(prev => prev.filter(h => h.id !== id))
+        showToast('Đã xoá — bài viết sẽ xuất hiện lại khi quét')
+      } else { showToast(d.error || 'Lỗi xoá', 'error') }
+    } catch { showToast('Lỗi kết nối', 'error') }
+  }
+
+  async function handleClearHistory() {
+    if (!confirm('Xoá toàn bộ lịch sử tạo ads? Tất cả bài viết sẽ xuất hiện lại khi quét.')) return
+    try {
+      const r = await fetch('/api/fb/autoset-scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'clear_history' })
+      })
+      const d = await r.json()
+      if (d.ok) {
+        setHistory([])
+        showToast('Đã xoá toàn bộ lịch sử')
+      } else { showToast(d.error || 'Lỗi xoá', 'error') }
+    } catch { showToast('Lỗi kết nối', 'error') }
   }
 
   function toggleHistory() {
@@ -375,7 +409,7 @@ export default function AutoSet() {
           ) : (
             <div className="pages-list">
               {config.pages.map(page => (
-                <div key={page.page_id} className="page-card">
+                <div key={page.id} className="page-card">
                   <div className="page-info">
                     <div className="page-name">{page.page_name}</div>
                     <div className="page-meta">
@@ -388,7 +422,7 @@ export default function AutoSet() {
                       </span>
                     </div>
                   </div>
-                  <button className="btn-remove" onClick={() => handleRemovePage(page.page_id, page.page_name)}>
+                  <button className="btn-remove" onClick={() => handleRemovePage(page.id, page.page_name)}>
                     Xoá
                   </button>
                 </div>
@@ -400,6 +434,60 @@ export default function AutoSet() {
             Gói {planName}: tối đa {config.max_pages} page. Đã dùng: {config.pages.length}.
           </div>
         </div>
+
+        {/* Diagnostics */}
+        {scanDiag && scanDiag.length > 0 && (
+          <div className="section-card">
+            <div className="section-title">🔎 Kết quả quét chi tiết</div>
+            <table className="diag-table">
+              <thead>
+                <tr>
+                  <th>Page</th>
+                  <th>Bài lấy được</th>
+                  <th>Đã có ads</th>
+                  <th>Lọc hashtag</th>
+                  <th>Token</th>
+                </tr>
+              </thead>
+              <tbody>
+                {scanDiag.map((d, i) => (
+                  <tr key={i}>
+                    <td style={{ fontWeight: 600 }}>{d.page_name}</td>
+                    <td>
+                      <span style={{ color: d.fetched === 0 ? 'var(--red, #ef4444)' : 'var(--grn, #10b981)', fontWeight: 700 }}>
+                        {d.fetched}
+                      </span>
+                    </td>
+                    <td>{d.skipped_created}</td>
+                    <td>{d.skipped_hashtag}</td>
+                    <td>
+                      {d.used_page_token
+                        ? <span style={{ color: 'var(--grn, #10b981)' }}>Page token ✓</span>
+                        : <span style={{ color: '#f59e0b' }}>User token ⚠️</span>
+                      }
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {scanDiag.some(d => d.fetched === 0) && (
+              <div className="diag-warn">
+                ⚠️ Page trả về 0 bài viết — nguyên nhân thường gặp:
+                <ul style={{ margin: '6px 0 0', paddingLeft: 20 }}>
+                  <li>Token Facebook hết hạn → kết nối lại tại <strong>Cài đặt</strong></li>
+                  <li>Thiếu quyền <code>pages_read_engagement</code> → kết nối lại Facebook và cấp đủ quyền</li>
+                  <li>Page không có bài viết nào</li>
+                </ul>
+              </div>
+            )}
+            {scanDiag.some(d => !d.used_page_token) && (
+              <div className="diag-warn">
+                ⚠️ Đang dùng User token thay vì Page token — có thể không đọc được bài viết.
+                Kết nối lại Facebook và đảm bảo cấp quyền <code>pages_show_list</code> + <code>pages_read_engagement</code>.
+              </div>
+            )}
+          </div>
+        )}
 
         {/* D. Scan results */}
         {scanResults.length > 0 && (
@@ -470,7 +558,7 @@ export default function AutoSet() {
         {/* E. History section */}
         <div className="section-card">
           <div className="section-header" style={{ cursor: 'pointer' }} onClick={toggleHistory}>
-            <div className="section-title">📋 Lịch sử tạo ads</div>
+            <div className="section-title">📋 Lịch sử tạo ads {history.length > 0 ? `(${history.length})` : ''}</div>
             <span className="toggle-arrow">{historyOpen ? '▲' : '▼'}</span>
           </div>
           {historyOpen && (
@@ -481,26 +569,42 @@ export default function AutoSet() {
                 <div style={{ fontSize: 12, color: 'var(--mut)' }}>Chưa có lịch sử tạo ads</div>
               </div>
             ) : (
-              <table className="history-table">
-                <thead>
-                  <tr>
-                    <th>Nội dung bài</th>
-                    <th>Campaign ID</th>
-                    <th>Thời gian</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {history.map((h, i) => (
-                    <tr key={i}>
-                      <td className="hist-msg">{(h.post_message || '').slice(0, 60)}</td>
-                      <td className="hist-campaign">{h.campaign_id}</td>
-                      <td className="hist-time">
-                        {h.created_at ? new Date(h.created_at).toLocaleString('vi-VN') : '—'}
-                      </td>
+              <>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+                  <button className="btn-clear-history" onClick={handleClearHistory}>
+                    🗑 Xoá tất cả lịch sử
+                  </button>
+                </div>
+                <div className="history-hint">
+                  Bài viết nằm trong lịch sử sẽ bị bỏ qua khi quét. Xoá dòng nào để bài đó xuất hiện lại.
+                </div>
+                <table className="history-table">
+                  <thead>
+                    <tr>
+                      <th>Nội dung bài</th>
+                      <th>Campaign ID</th>
+                      <th>Thời gian</th>
+                      <th></th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {history.map(h => (
+                      <tr key={h.id}>
+                        <td className="hist-msg">{(h.post_message || '').slice(0, 60)}</td>
+                        <td className="hist-campaign">{h.campaign_id}</td>
+                        <td className="hist-time">
+                          {h.created_at ? new Date(h.created_at).toLocaleString('vi-VN') : '—'}
+                        </td>
+                        <td>
+                          <button className="btn-del-row" onClick={() => handleDeleteHistory(h.id)} title="Xoá để quét lại bài này">
+                            ✕
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </>
             )
           )}
         </div>
@@ -732,6 +836,18 @@ export default function AutoSet() {
         .hist-msg { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .hist-campaign { font-family: monospace; font-size: 11px; color: var(--mut); }
         .hist-time { white-space: nowrap; color: var(--mut); }
+        .history-hint { font-size: 12px; color: var(--mut); margin-bottom: 10px; line-height: 1.5; }
+        .btn-clear-history {
+          background: transparent; border: 1px solid var(--red, #ef4444); color: var(--red, #ef4444);
+          border-radius: 8px; padding: 6px 14px; font-size: 12px; font-weight: 600;
+          cursor: pointer; font-family: inherit; transition: all .15s;
+        }
+        .btn-clear-history:hover { background: rgba(239,68,68,.08); }
+        .btn-del-row {
+          background: none; border: none; color: var(--mut); cursor: pointer;
+          font-size: 14px; padding: 2px 6px; border-radius: 4px; transition: all .15s;
+        }
+        .btn-del-row:hover { color: var(--red, #ef4444); background: rgba(239,68,68,.08); }
 
         .loading-text { font-size: 13px; color: var(--mut); padding: 12px 0; }
 
@@ -758,6 +874,16 @@ export default function AutoSet() {
           cursor: pointer; font-family: inherit;
         }
         .btn-save-modal:disabled { opacity: .5; cursor: not-allowed; }
+
+        /* Diagnostics */
+        .diag-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 10px; }
+        .diag-table th { background: var(--s2); padding: 6px 10px; text-align: left; color: var(--mut); font-size: 11px; text-transform: uppercase; letter-spacing: .4px; }
+        .diag-table td { padding: 7px 10px; border-bottom: 1px solid var(--bd); color: var(--txt); }
+        .diag-warn {
+          margin-top: 10px; padding: 10px 14px; border-radius: 8px; font-size: 12px; line-height: 1.6;
+          background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.25); color: var(--txt);
+        }
+        .diag-warn code { background: var(--s2); padding: 1px 5px; border-radius: 4px; font-size: 11px; }
 
         /* Activate button */
         .btn-activate {
