@@ -20,10 +20,9 @@ async function metaGet(path, token, params = {}) {
 }
 
 const OBJECTIVE_SETTINGS = {
-  OUTCOME_TRAFFIC:    { optimization_goal: 'LINK_CLICKS',      billing_event: 'IMPRESSIONS' },
-  OUTCOME_ENGAGEMENT: { optimization_goal: 'POST_ENGAGEMENT',  billing_event: 'IMPRESSIONS' },
-  OUTCOME_AWARENESS:  { optimization_goal: 'REACH',            billing_event: 'IMPRESSIONS' },
-  OUTCOME_LEADS:      { optimization_goal: 'LEAD_GENERATION',  billing_event: 'IMPRESSIONS' },
+  OUTCOME_AWARENESS:  { optimization_goal: 'REACH',           billing_event: 'IMPRESSIONS' },
+  OUTCOME_TRAFFIC:    { optimization_goal: 'LINK_CLICKS',     billing_event: 'IMPRESSIONS', destination_type: 'WEBSITE' },
+  OUTCOME_ENGAGEMENT: { optimization_goal: 'POST_ENGAGEMENT', billing_event: 'IMPRESSIONS', destination_type: 'ON_POST' },
 }
 
 const META_ERROR_VI = {
@@ -314,6 +313,148 @@ export default async function handler(req, res) {
           daily_budget: adsetReal.daily_budget,
           optimization_goal: adsetReal.optimization_goal,
         } : null,
+      })
+    } catch (err) {
+      return res.json({ ok: false, error: err.message })
+    }
+  }
+
+  // V2: AI-driven ads creation với targeting custom
+  if (action === 'create_ad_v2') {
+    const {
+      campaign_name, adset_name, ad_name,
+      objective, destination_type, optimization_goal,
+      page_id, post_id, ad_account_id, daily_budget,
+      targeting, cta_type, post_message
+    } = body
+
+    try {
+      const fbData = await getUserFbData(user.id, sb)
+      if (!fbData) return res.json({ ok: false, error: 'Chưa kết nối Facebook' })
+      if (fbData.conn?.token_expires_at && new Date(fbData.conn.token_expires_at) < new Date()) {
+        return res.json({ ok: false, error: 'Token Facebook đã hết hạn. Vui lòng kết nối lại.' })
+      }
+
+      const token = fbData.token
+      if (!ad_account_id) return res.json({ ok: false, error: 'Chưa chọn tài khoản quảng cáo.' })
+
+      const accountId = ad_account_id.startsWith('act_') ? ad_account_id : 'act_' + ad_account_id
+      const budgetValue = Number(daily_budget) || 100000
+
+      const objSettings = OBJECTIVE_SETTINGS[objective] || OBJECTIVE_SETTINGS.OUTCOME_ENGAGEMENT
+      const finalDestType = objSettings.destination_type || null
+      const finalOptGoal = objSettings.optimization_goal
+      const finalBillingEvent = objSettings.billing_event
+
+      let campaign_id = null, adset_id = null, creative_id = null, ad_id = null, failed_step = null
+
+      console.log('[create_ad_v2] DEBUG:', {
+        objective: objective || 'OUTCOME_ENGAGEMENT',
+        finalDestType,
+        finalOptGoal,
+        finalBillingEvent,
+        destination_type_from_request: destination_type,
+        page_id,
+        budgetValue,
+      })
+
+      try {
+        // Step 1: Campaign
+        const campaignData = await metaPost(`${accountId}/campaigns`, token, {
+          name: campaign_name || `Auto - ${(post_message || '').slice(0, 25)}`,
+          objective: objective || 'OUTCOME_ENGAGEMENT',
+          status: 'PAUSED',
+          special_ad_categories: [],
+          is_adset_budget_sharing_enabled: false,
+        })
+        if (campaignData.error) { failed_step = 'campaign'; throw new Error(formatMetaError('Campaign', campaignData.error)) }
+        campaign_id = campaignData.id
+
+        // Step 2: Adset — build targeting an toàn
+        const safeTargeting = {
+          geo_locations: { countries: ['VN'] },
+          age_min: 18, age_max: 65,
+          targeting_automation: { advantage_audience: 0 },
+        }
+        if (targeting) {
+          if (targeting.age_min) safeTargeting.age_min = targeting.age_min
+          if (targeting.age_max) safeTargeting.age_max = targeting.age_max
+          if (targeting.genders?.length) safeTargeting.genders = targeting.genders
+          if (targeting.flexible_spec?.length) safeTargeting.flexible_spec = targeting.flexible_spec
+        }
+
+        const adsetBody = {
+          name: adset_name || `Auto Adset`,
+          campaign_id,
+          daily_budget: budgetValue,
+          billing_event: finalBillingEvent,
+          optimization_goal: finalOptGoal,
+          promoted_object: { page_id },
+          bid_strategy: 'LOWEST_COST_WITHOUT_CAP',
+          status: 'PAUSED',
+          targeting: safeTargeting,
+        }
+        if (finalDestType) adsetBody.destination_type = finalDestType
+
+        console.log('[create_ad_v2] Adset body:', JSON.stringify(adsetBody, null, 2))
+        let adsetData = await metaPost(`${accountId}/adsets`, token, adsetBody)
+        if (adsetData.error && adsetData.error.error_subcode === 1487694 && adsetBody.targeting.flexible_spec) {
+          console.log('[create_ad_v2] Interest/behavior hết hạn, retry không có flexible_spec')
+          delete adsetBody.targeting.flexible_spec
+          adsetData = await metaPost(`${accountId}/adsets`, token, adsetBody)
+        }
+        if (adsetData.error) { failed_step = 'adset'; throw new Error(formatMetaError('Adset', adsetData.error)) }
+        adset_id = adsetData.id
+
+        // Step 3: Creative
+        const creativeBody = { name: `Auto Creative`, object_story_id: post_id }
+        if (cta_type) {
+          creativeBody.call_to_action = { type: cta_type }
+        }
+        const creativeData = await metaPost(`${accountId}/adcreatives`, token, creativeBody)
+        if (creativeData.error) { failed_step = 'creative'; throw new Error(formatMetaError('Creative', creativeData.error)) }
+        creative_id = creativeData.id
+
+        // Step 4: Ad
+        const adData = await metaPost(`${accountId}/ads`, token, {
+          name: ad_name || `Auto Ad`,
+          adset_id,
+          creative: { creative_id },
+          status: 'PAUSED',
+        })
+        if (adData.error) { failed_step = 'ad'; throw new Error(formatMetaError('Ad', adData.error)) }
+        ad_id = adData.id
+      } catch (stepErr) {
+        console.error(`[autoset create_ad_v2] Failed at ${failed_step}:`, stepErr.message)
+        if (campaign_id) {
+          try {
+            const delBody = new URLSearchParams({ access_token: token }).toString()
+            await fetch(`${META_BASE}/${campaign_id}`, { method: 'DELETE', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: delBody })
+          } catch {}
+        }
+        return res.json({ ok: false, error: stepErr.message })
+      }
+
+      // Verify adset targeting
+      let adsetReal = null
+      try {
+        adsetReal = await metaGet(adset_id, token, {
+          fields: 'targeting,billing_event,optimization_goal,daily_budget,status'
+        })
+      } catch {}
+
+      // Save history
+      const { error: histError } = await sb.from('autoset_created_ads').insert({
+        user_id: user.id, page_id, post_id,
+        post_message: (post_message || '').slice(0, 500),
+        campaign_id, adset_id, ad_id, ad_account_id, status: 'paused',
+      })
+      if (histError) console.error('[autoset create_ad_v2] History error:', histError)
+
+      return res.json({
+        ok: true, campaign_id, adset_id, ad_id, status: 'paused',
+        _log_error: histError ? `Lưu lịch sử thất bại: ${histError.message}` : undefined,
+        adset_real: adsetReal ? { targeting: adsetReal.targeting, daily_budget: adsetReal.daily_budget, optimization_goal: adsetReal.optimization_goal } : null,
       })
     } catch (err) {
       return res.json({ ok: false, error: err.message })

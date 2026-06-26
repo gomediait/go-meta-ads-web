@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import DashboardLayout from '../../components/DashboardLayout'
 import { useAuth } from '../../lib/AuthContext'
-import Link from 'next/link'
 import { isPlanAllowed } from '../../lib/planLimits'
 
 function PlanGate({ feature }) {
@@ -10,54 +10,75 @@ function PlanGate({ feature }) {
       <div style={{ fontSize: 64, marginBottom: 16 }}>🔒</div>
       <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8 }}>Tính năng này yêu cầu nâng cấp gói</h2>
       <p style={{ color: 'var(--mut)', marginBottom: 24, maxWidth: 400 }}>
-        {feature} chỉ dành cho gói <strong>Personal</strong> trở lên. Nâng cấp ngay để sử dụng đầy đủ tính năng.
+        {feature} chỉ dành cho gói <strong>Personal</strong> trở lên.
       </p>
-      <Link href="/mua-goi" style={{ background: '#fe5f01', color: '#fff', padding: '12px 28px', borderRadius: 10, fontWeight: 700, textDecoration: 'none', fontSize: 15 }}>
+      <Link href="/mua-goi" style={{ background: '#fe5f01', color: '#fff', padding: '12px 28px', borderRadius: 10, fontWeight: 700, textDecoration: 'none' }}>
         Nâng cấp ngay →
       </Link>
     </div>
   )
 }
 
-const PLAN_NAMES = { trial: 'Trial', personal: 'Personal', business: 'Business', agency: 'Agency' }
-const PLAN_MAX_PAGES = { trial: 0, personal: 1, business: 2, agency: 10 }
-
 const OBJECTIVES = [
-  { value: 'OUTCOME_TRAFFIC',    label: 'Tăng traffic' },
-  { value: 'OUTCOME_ENGAGEMENT', label: 'Tương tác bài viết' },
-  { value: 'OUTCOME_AWARENESS',  label: 'Nhận diện thương hiệu' },
+  { value: 'OUTCOME_AWARENESS', label: 'Mức độ nhận biết', icon: '📢', desc: 'Nhiều người thấy quảng cáo' },
+  { value: 'OUTCOME_TRAFFIC', label: 'Lượng truy cập', icon: '🔗', desc: 'Nhiều người click vào link' },
+  { value: 'OUTCOME_ENGAGEMENT', label: 'Lượt tương tác', icon: '💬', desc: 'Nhiều like, comment, share' },
+]
+
+const INDUSTRIES = [
+  { value: '', label: 'Chung (không chọn ngành)' },
+  { value: 'fnb', label: 'F&B / Nhà hàng' },
+  { value: 'travel', label: 'Du lịch / Khách sạn' },
+  { value: 'ecommerce', label: 'Thương mại điện tử' },
+  { value: 'beauty', label: 'Làm đẹp / Spa' },
+  { value: 'education', label: 'Giáo dục' },
+  { value: 'realestate', label: 'Bất động sản' },
+  { value: 'health', label: 'Sức khoẻ' },
 ]
 
 export default function AutoSet() {
   const { user } = useAuth()
   const fbConnected = user?.fb_connected
-  const plan = user?.plan || 'trial'
-  const planName = PLAN_NAMES[plan] || plan
-  const maxPages = PLAN_MAX_PAGES[plan] ?? 0
 
-  const [config, setConfig] = useState({ pages: [], default_account: null, max_pages: maxPages })
-  const [loading, setLoading] = useState(true)
-  const [scanning, setScanning] = useState(false)
-  const [toast, setToast] = useState(null)
-  const [scanResults, setScanResults] = useState([])
-  const [showAddModal, setShowAddModal] = useState(false)
-  const [addForm, setAddForm] = useState({
-    page_id: '', page_name: '', hashtag: '', daily_budget: '100000', objective: 'OUTCOME_TRAFFIC'
-  })
-  const [myFbPages, setMyFbPages] = useState([])
-  const [loadingMyPages, setLoadingMyPages] = useState(false)
-  const [creatingAd, setCreatingAd] = useState(null)
-  const [pendingAds, setPendingAds] = useState([])
-  const [savingAccount, setSavingAccount] = useState(false)
-  const [selectedAccount, setSelectedAccount] = useState('')
+  const [config, setConfig] = useState({ pages: [], default_account: null, max_pages: 0 })
   const [adAccounts, setAdAccounts] = useState([])
+  const [selectedAccount, setSelectedAccount] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [toast, setToast] = useState(null)
+
+  const [step, setStep] = useState(1)
+  const [insightText, setInsightText] = useState('')
+  const [industry, setIndustry] = useState('')
+  const [selectedObjective, setSelectedObjective] = useState('OUTCOME_ENGAGEMENT')
+  const [analyzing, setAnalyzing] = useState(false)
+  const [aiSuggestion, setAiSuggestion] = useState('')
+
+  const [targeting, setTargeting] = useState(null)
+  const [interestResults, setInterestResults] = useState([])
+  const [behaviorResults, setBehaviorResults] = useState([])
+  const [searchingTargets, setSearchingTargets] = useState(false)
+
+  const [selectedPageId, setSelectedPageId] = useState('')
+  const [posts, setPosts] = useState([])
+  const [loadingPosts, setLoadingPosts] = useState(false)
+  const [selectedPost, setSelectedPost] = useState(null)
+  const [budget, setBudget] = useState('100000')
+  const [campaignName, setCampaignName] = useState('')
+
+  const [creating, setCreating] = useState(false)
+  const [result, setResult] = useState(null)
+  const [intSearch, setIntSearch] = useState('')
+  const [intSuggestions, setIntSuggestions] = useState([])
+  const [intSearching, setIntSearching] = useState(false)
+  const [behSearch, setBehSearch] = useState('')
+  const [behSuggestions, setBehSuggestions] = useState([])
+  const [behSearching, setBehSearching] = useState(false)
+
   const [history, setHistory] = useState([])
   const [historyOpen, setHistoryOpen] = useState(false)
   const [loadingHistory, setLoadingHistory] = useState(false)
-  const [savingPage, setSavingPage] = useState(false)
-  const [scanDiag, setScanDiag] = useState(null)
 
-  const showToast = (msg, type = 'success') => {
+  function showToast(msg, type = 'success') {
     setToast({ msg, type })
     setTimeout(() => setToast(null), 3500)
   }
@@ -67,13 +88,13 @@ export default function AutoSet() {
       const r = await fetch('/api/fb/autoset-config')
       const d = await r.json()
       if (d.ok) {
-        setConfig({ pages: d.pages || [], default_account: d.default_account, max_pages: d.max_pages })
-        setSelectedAccount(d.default_account || '')
+        setConfig(d)
+        if (d.default_account) setSelectedAccount(d.default_account)
       }
     } catch {}
   }, [])
 
-  const fetchAdAccounts = useCallback(async () => {
+  const fetchAccounts = useCallback(async () => {
     try {
       const r = await fetch('/api/fb/campaigns?date_preset=today&status=ALL')
       const d = await r.json()
@@ -83,218 +104,210 @@ export default function AutoSet() {
 
   useEffect(() => {
     if (!fbConnected) { setLoading(false); return }
-    Promise.all([fetchConfig(), fetchAdAccounts()]).finally(() => setLoading(false))
-  }, [fbConnected, fetchConfig, fetchAdAccounts])
+    Promise.all([fetchConfig(), fetchAccounts()]).finally(() => setLoading(false))
+  }, [fbConnected, fetchConfig, fetchAccounts])
 
-  async function handleSaveAccount() {
-    if (!selectedAccount) return showToast('Vui lòng chọn tài khoản quảng cáo', 'error')
-    setSavingAccount(true)
+  async function handleAnalyze() {
+    if (!insightText.trim()) return showToast('Vui lòng nhập insight khách hàng', 'error')
+    setAnalyzing(true)
+    setResult(null)
     try {
-      const r = await fetch('/api/fb/autoset-config', {
+      const r = await fetch('/api/ai/targeting-analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'save_account', default_ad_account_id: selectedAccount })
+        body: JSON.stringify({ insight_text: insightText, industry: industry || undefined })
       })
       const d = await r.json()
-      if (!d.ok) return showToast(d.error || 'Lỗi lưu tài khoản', 'error')
-      showToast('Đã lưu tài khoản mặc định')
-      fetchConfig()
-    } catch { showToast('Lỗi kết nối', 'error') }
-    finally { setSavingAccount(false) }
+      if (!d.ok) return showToast(d.error || 'Lỗi AI', 'error')
+      applyAiResult(d.targeting)
+      setStep(2)
+      await searchTargets(d.targeting.interests || [], d.targeting.behaviors || [])
+    } catch (e) { showToast('Lỗi kết nối: ' + e.message, 'error') }
+    finally { setAnalyzing(false) }
   }
 
-  async function openAddModal() {
-    setShowAddModal(true)
-    setAddForm({ page_id: '', page_name: '', hashtag: '', daily_budget: '100000', objective: 'OUTCOME_TRAFFIC' })
-    setMyFbPages([])
-    setLoadingMyPages(true)
-    try {
-      const r = await fetch('/api/fb/autoset-config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'get_my_pages' })
-      })
-      const d = await r.json()
-      if (d.ok) setMyFbPages(d.pages || [])
-      else showToast(d.error || 'Không tải được pages', 'error')
-    } catch { showToast('Lỗi kết nối', 'error') }
-    finally { setLoadingMyPages(false) }
-  }
-
-  function handlePageSelect(e) {
-    const pageId = e.target.value
-    const found = myFbPages.find(p => p.id === pageId)
-    setAddForm(prev => ({ ...prev, page_id: pageId, page_name: found?.name || '' }))
-  }
-
-  async function handleAddPage() {
-    if (!addForm.page_id) return showToast('Vui lòng chọn Facebook Page', 'error')
-    const accountId = addForm.ad_account_id || config.default_account || selectedAccount
-    if (!accountId) return showToast('Vui lòng chọn tài khoản quảng cáo', 'error')
-
-    setSavingPage(true)
-    try {
-      const r = await fetch('/api/fb/autoset-config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'add_page',
-          page_id: addForm.page_id,
-          page_name: addForm.page_name,
-          hashtag: addForm.hashtag.trim() || null,
-          daily_budget: Number(addForm.daily_budget) || 100000,
-          objective: addForm.objective,
-          ad_account_id: accountId,
+  async function handlePdfUpload(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.name.toLowerCase().endsWith('.pdf')) return showToast('Chỉ hỗ trợ file PDF', 'error')
+    if (file.size > 5 * 1024 * 1024) return showToast('File quá lớn (tối đa 5MB)', 'error')
+    const reader = new FileReader()
+    reader.onload = async () => {
+      const base64 = reader.result.split(',')[1]
+      setAnalyzing(true)
+      try {
+        const r = await fetch('/api/ai/targeting-analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ file_base64: base64, industry: industry || undefined })
         })
-      })
-      const d = await r.json()
-      if (!d.ok) return showToast(d.error || 'Lỗi thêm page', 'error')
-      showToast('Đã thêm page thành công')
-      setShowAddModal(false)
-      fetchConfig()
-    } catch { showToast('Lỗi kết nối', 'error') }
-    finally { setSavingPage(false) }
-  }
-
-  async function handleRemovePage(rowId, page_name) {
-    if (!confirm(`Xoá page "${page_name}" khỏi danh sách?`)) return
-    try {
-      const r = await fetch('/api/fb/autoset-config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'remove_page', id: rowId })
-      })
-      const d = await r.json()
-      if (!d.ok) return showToast(d.error || 'Lỗi xoá page', 'error')
-      showToast('Đã xoá page')
-      fetchConfig()
-    } catch { showToast('Lỗi kết nối', 'error') }
-  }
-
-  async function handleScan() {
-    setScanning(true)
-    setScanResults([])
-    setScanDiag(null)
-    try {
-      const r = await fetch('/api/fb/autoset-scan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'scan' })
-      })
-      const d = await r.json()
-      if (!d.ok) return showToast(d.error || 'Lỗi quét bài viết', 'error')
-      setScanResults(d.posts || [])
-      if (d.diagnostics) setScanDiag(d.diagnostics)
-      if (d.errors?.length) {
-        d.errors.forEach(e => showToast(`Lỗi page "${e.page_name}": ${e.error_msg}`, 'error'))
-      }
-      if ((d.posts || []).length === 0 && !d.errors?.length) showToast('Không có bài viết mới — xem chi tiết bên dưới')
-      else if ((d.posts || []).length > 0) showToast(`Tìm thấy ${d.posts.length} bài viết mới`)
-    } catch { showToast('Lỗi kết nối', 'error') }
-    finally { setScanning(false) }
-  }
-
-  async function handleCreateAd(post) {
-    const budget = Number(post.daily_budget) || 100000
-    if (budget > 1000000) {
-      if (!confirm(`Ngân sách ${budget.toLocaleString('vi-VN')}đ/ngày (> 1 triệu). Bạn chắc chắn muốn tạo?`)) return
+        const d = await r.json()
+        if (!d.ok) return showToast(d.error || 'Lỗi AI', 'error')
+        if (d.extracted_text) setInsightText(d.extracted_text)
+        applyAiResult(d.targeting)
+        setStep(2)
+        await searchTargets(d.targeting.interests || [], d.targeting.behaviors || [])
+      } catch (e) { showToast('Lỗi: ' + e.message, 'error') }
+      finally { setAnalyzing(false) }
     }
-    setCreatingAd(post.id)
-    try {
-      const r = await fetch('/api/fb/autoset-scan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'create_ad',
-          post_id: post.id,
-          page_id: post.page_id,
-          page_name: post.page_name,
-          ad_account_id: post.ad_account_id || config.default_account,
-          daily_budget: post.daily_budget,
-          objective: post.objective,
-          post_message: post.message || post.story || '',
-        })
-      })
-      const d = await r.json()
-      if (!d.ok) return showToast(d.error || 'Lỗi tạo ads', 'error')
-      showToast('Đã tạo ads (PAUSED). Bấm "Kích hoạt" để chạy.')
-      setPendingAds(prev => [...prev, {
-        post_id: post.id,
-        page_name: post.page_name,
-        campaign_id: d.campaign_id,
-        adset_id: d.adset_id,
-        ad_id: d.ad_id,
-        daily_budget: budget,
-        adset_real: d.adset_real,
-      }])
-      setScanResults(prev => prev.filter(p => p.id !== post.id))
-    } catch { showToast('Lỗi kết nối', 'error') }
-    finally { setCreatingAd(null) }
+    reader.readAsDataURL(file)
   }
 
-  async function handleActivate(pending) {
-    if (!confirm(`Kích hoạt chiến dịch "${pending.page_name}" — ngân sách ${pending.daily_budget.toLocaleString('vi-VN')}đ/ngày sẽ bắt đầu tiêu. Tiếp tục?`)) return
+  function applyAiResult(t) {
+    setTargeting({
+      objective: selectedObjective,
+      locations: t.locations || [],
+      age_min: t.age_min || 18,
+      age_max: t.age_max || 65,
+      genders: t.genders || [],
+      interests_keywords: t.interests || [],
+      behaviors_keywords: t.behaviors || [],
+      location_types: t.location_types || ['home', 'recent'],
+    })
+    setAiSuggestion(t.suggestion || '')
+  }
+
+  async function searchTargets(interests, behaviors) {
+    setSearchingTargets(true)
+    try {
+      const [intRes, behRes] = await Promise.all([
+        interests.length > 0 ? fetch('/api/fb/targeting-search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ keywords: interests, type: 'interest' }) }).then(r => r.json()) : { ok: true, results: [] },
+        behaviors.length > 0 ? fetch('/api/fb/targeting-search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ keywords: behaviors, type: 'behavior' }) }).then(r => r.json()) : { ok: true, results: [] },
+      ])
+      setInterestResults(intRes?.results || [])
+      setBehaviorResults(behRes?.results || [])
+    } catch {}
+    finally { setSearchingTargets(false) }
+  }
+
+  async function searchInterest(q) {
+    if (!q.trim()) { setIntSuggestions([]); return }
+    setIntSearching(true)
+    try {
+      const r = await fetch('/api/fb/targeting-search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ keywords: [q], type: 'interest', mode: 'suggest' }) })
+      const d = await r.json()
+      setIntSuggestions((d.results || []).filter(s => !interestResults.some(r => r.id === s.id)))
+    } catch {}
+    finally { setIntSearching(false) }
+  }
+
+  async function searchBehavior(q) {
+    if (!q.trim()) { setBehSuggestions([]); return }
+    setBehSearching(true)
+    try {
+      const r = await fetch('/api/fb/targeting-search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ keywords: [q], type: 'behavior', mode: 'suggest' }) })
+      const d = await r.json()
+      setBehSuggestions((d.results || []).filter(s => !behaviorResults.some(r => r.id === s.id)))
+    } catch {}
+    finally { setBehSearching(false) }
+  }
+
+  function addInterest(item) {
+    if (interestResults.some(r => r.id === item.id)) return
+    setInterestResults(p => [...p, item])
+    setIntSearch('')
+    setIntSuggestions([])
+  }
+
+  function addBehavior(item) {
+    if (behaviorResults.some(r => r.id === item.id)) return
+    setBehaviorResults(p => [...p, item])
+    setBehSearch('')
+    setBehSuggestions([])
+  }
+
+  async function loadPagePosts(pageId) {
+    if (!pageId) return
+    setLoadingPosts(true)
+    setSelectedPost(null)
+    try {
+      const r = await fetch('/api/fb/autoset-scan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'scan' }) })
+      const d = await r.json()
+      if (d.ok) setPosts((d.posts || []).filter(p => p.page_id === pageId || !pageId))
+    } catch {}
+    finally { setLoadingPosts(false) }
+  }
+
+  function handlePageChange(pageId) {
+    setSelectedPageId(pageId)
+    const page = config.pages?.find(p => p.page_id === pageId)
+    if (page) setCampaignName(`Auto - ${page.page_name} - ${insightText.slice(0, 20)}`)
+    loadPagePosts(pageId)
+  }
+
+  async function handleCreate() {
+    if (!selectedPost) return showToast('Chọn bài viết', 'error')
+    if (!selectedPageId) return showToast('Chọn Page', 'error')
+    if (!selectedAccount) return showToast('Chọn tài khoản quảng cáo', 'error')
+
+    const geoLocations = { countries: ['VN'] }
+
+    const flexibleSpec = []
+    if (interestResults.length > 0) {
+      flexibleSpec.push({ interests: interestResults.map(i => ({ id: i.id, name: i.name })) })
+    }
+    if (behaviorResults.length > 0) {
+      if (flexibleSpec.length > 0) {
+        flexibleSpec[0].behaviors = behaviorResults.map(b => ({ id: b.id, name: b.name }))
+      } else {
+        flexibleSpec.push({ behaviors: behaviorResults.map(b => ({ id: b.id, name: b.name })) })
+      }
+    }
+
+    const targetingPayload = {
+      geo_locations: geoLocations,
+      location_types: targeting.location_types || ['home', 'recent'],
+      age_min: targeting.age_min || 18,
+      age_max: targeting.age_max || 65,
+    }
+    if (targeting.genders?.length > 0) targetingPayload.genders = targeting.genders
+    if (flexibleSpec.length > 0) targetingPayload.flexible_spec = flexibleSpec
+
+    setCreating(true)
     try {
       const r = await fetch('/api/fb/autoset-scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'activate',
-          campaign_id: pending.campaign_id,
-          adset_id: pending.adset_id,
-          ad_id: pending.ad_id,
+          action: 'create_ad_v2',
+          campaign_name: campaignName || 'Auto Campaign',
+          adset_name: `Auto Adset - ${targeting.locations?.[0] || 'VN'}`,
+          ad_name: `Auto Ad - ${(selectedPost.message || '').slice(0, 30)}`,
+          objective: targeting.objective,
+          page_id: selectedPageId,
+          post_id: selectedPost.id,
+          ad_account_id: selectedAccount,
+          daily_budget: Number(budget) || 100000,
+          targeting: targetingPayload,
+          cta_type: targeting.cta_type,
+          post_message: selectedPost.message,
         })
       })
       const d = await r.json()
-      if (!d.ok) return showToast(d.error || 'Lỗi kích hoạt', 'error')
-      showToast('Đã kích hoạt! Quảng cáo đang chạy.')
-      setPendingAds(prev => prev.filter(p => p.campaign_id !== pending.campaign_id))
-    } catch { showToast('Lỗi kết nối', 'error') }
+      if (d.ok) { setResult(d); showToast('Đã tạo quảng cáo thành công (PAUSED)') }
+      else showToast(d.error || 'Lỗi tạo ads', 'error')
+    } catch (e) { showToast('Lỗi: ' + e.message, 'error') }
+    finally { setCreating(false) }
+  }
+
+  async function handleActivate() {
+    if (!result) return
+    try {
+      const r = await fetch('/api/fb/autoset-scan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'activate', campaign_id: result.campaign_id, adset_id: result.adset_id, ad_id: result.ad_id }) })
+      const d = await r.json()
+      if (d.ok) showToast('Đã kích hoạt quảng cáo!')
+      else showToast(d.error || 'Lỗi kích hoạt', 'error')
+    } catch (e) { showToast('Lỗi: ' + e.message, 'error') }
   }
 
   async function loadHistory() {
     setLoadingHistory(true)
     try {
-      const r = await fetch('/api/fb/autoset-scan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'history' })
-      })
+      const r = await fetch('/api/fb/autoset-scan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'history' }) })
       const d = await r.json()
       if (d.ok) setHistory(d.history || [])
     } catch {}
     finally { setLoadingHistory(false) }
-  }
-
-  async function handleDeleteHistory(id) {
-    try {
-      const r = await fetch('/api/fb/autoset-scan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'delete_history', id })
-      })
-      const d = await r.json()
-      if (d.ok) {
-        setHistory(prev => prev.filter(h => h.id !== id))
-        showToast('Đã xoá — bài viết sẽ xuất hiện lại khi quét')
-      } else { showToast(d.error || 'Lỗi xoá', 'error') }
-    } catch { showToast('Lỗi kết nối', 'error') }
-  }
-
-  async function handleClearHistory() {
-    if (!confirm('Xoá toàn bộ lịch sử tạo ads? Tất cả bài viết sẽ xuất hiện lại khi quét.')) return
-    try {
-      const r = await fetch('/api/fb/autoset-scan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'clear_history' })
-      })
-      const d = await r.json()
-      if (d.ok) {
-        setHistory([])
-        showToast('Đã xoá toàn bộ lịch sử')
-      } else { showToast(d.error || 'Lỗi xoá', 'error') }
-    } catch { showToast('Lỗi kết nối', 'error') }
   }
 
   function toggleHistory() {
@@ -303,606 +316,384 @@ export default function AutoSet() {
     if (next && history.length === 0) loadHistory()
   }
 
-  const isConfigured = config.pages.length > 0 && (config.default_account || config.pages.some(p => p.ad_account_id))
-
-  if (!fbConnected) {
-    return (
-      <DashboardLayout title="Tự động Set QC">
-        <div style={{ padding: 24 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, background: 'var(--s1)', border: '1px solid var(--bd)', borderRadius: 16, padding: '48px 32px', textAlign: 'center' }}>
-            <div style={{ fontSize: 40 }}>🔗</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--txt)' }}>Cần kết nối Facebook Ads</div>
-            <div style={{ fontSize: 13, color: 'var(--mut)', maxWidth: 380, lineHeight: 1.6 }}>Tính năng Tự động Set QC yêu cầu kết nối tài khoản Facebook Ads.</div>
-            <Link href="/settings/connect-facebook" style={{ background: '#1877f2', color: '#fff', borderRadius: 9, padding: '10px 20px', fontSize: 13, fontWeight: 700, textDecoration: 'none', marginTop: 8 }}>Kết nối ngay →</Link>
-          </div>
-        </div>
-      </DashboardLayout>
-    )
+  function resetWizard() {
+    setStep(1); setInsightText(''); setTargeting(null); setInterestResults([]); setBehaviorResults([])
+    setSelectedPost(null); setResult(null); setAiSuggestion(''); setPosts([])
+    setSelectedObjective('OUTCOME_ENGAGEMENT')
   }
 
+  const fmtAud = n => n >= 1000000 ? (n / 1000000).toFixed(1) + 'M' : n >= 1000 ? (n / 1000).toFixed(0) + 'K' : n
+
   if (!isPlanAllowed(user?.plan, 'autoset')) {
-    return <DashboardLayout title="Tự động Set QC"><PlanGate feature="Tự động Set QC" /></DashboardLayout>
+    return <DashboardLayout title="Tự động tạo QC"><PlanGate feature="Tự động tạo quảng cáo" /></DashboardLayout>
   }
 
   return (
-    <DashboardLayout title="Tự động Set QC">
-      <div className="as-page">
+    <DashboardLayout title="Tự động tạo QC">
+      {toast && <div className="toast" style={{ background: toast.type === 'error' ? '#ef4444' : '#10b981' }}>{toast.msg}</div>}
 
-        {toast && (
-          <div className={`as-toast ${toast.type}`}>{toast.msg}</div>
-        )}
-
-        {/* A. Header */}
+      <div className="page-wrap">
         <div className="page-header">
-          <div className="ph-left">
-            <span className="ph-icon">⚙️</span>
-            <div>
-              <h1>Tự động set quảng cáo</h1>
-              <p>Cấu hình page + tài khoản quảng cáo. Sau đó dùng nút &ldquo;Quét bài viết mới&rdquo; để tự động tạo Campaign + Adset + Ad cho mỗi post có hashtag sản phẩm.</p>
-            </div>
+          <span className="page-icon">🚀</span>
+          <div>
+            <h1>Tự động tạo quảng cáo</h1>
+            <p>AI phân tích insight khách hàng → tự điền targeting → tạo ads trên Meta</p>
           </div>
         </div>
 
-        {/* Status banner + scan button */}
-        <div className={`status-banner ${isConfigured ? 'configured' : 'not-configured'}`}>
-          <span className="status-dot" />
-          <span className="status-text">
-            {isConfigured
-              ? `Đã cấu hình ${config.pages.length} page. Sẵn sàng quét bài viết.`
-              : 'Chưa cấu hình — hãy thêm ít nhất 1 page và chọn tài khoản quảng cáo.'}
-          </span>
-          <button
-            className="btn-scan"
-            onClick={handleScan}
-            disabled={!isConfigured || scanning}
-          >
-            {scanning ? '⏳ Đang quét...' : '🔍 Quét bài viết mới'}
-          </button>
-        </div>
-
-        {/* B. Default Ad Account */}
-        <div className="section-card">
-          <div className="section-title">🏪 Tài khoản quảng cáo mặc định</div>
-          <div className="section-desc">Tài khoản quảng cáo dùng để tạo Campaign mới.</div>
-          <div className="account-row">
-            <select
-              className="inp"
-              value={selectedAccount}
-              onChange={e => setSelectedAccount(e.target.value)}
-            >
-              <option value="">-- Chọn tài khoản --</option>
-              {adAccounts.map(a => (
-                <option key={a.account_id} value={a.account_id}>
-                  {a.account_name || a.account_id}
-                </option>
-              ))}
-            </select>
-            <button className="btn-save-acc" onClick={handleSaveAccount} disabled={savingAccount}>
-              {savingAccount ? 'Đang lưu...' : 'Lưu'}
-            </button>
+        {!fbConnected ? (
+          <div className="empty-box">
+            <div style={{ fontSize: 40 }}>🔗</div>
+            <div style={{ fontSize: 16, fontWeight: 700 }}>Cần kết nối Facebook Ads</div>
+            <Link href="/settings/connect-facebook" className="link-btn">Kết nối ngay →</Link>
           </div>
-        </div>
-
-        {/* C. Pages section */}
-        <div className="section-card">
-          <div className="section-header">
-            <div>
-              <div className="section-title">📋 Pages đã cấu hình ({config.pages.length}/{config.max_pages})</div>
-            </div>
-            <button
-              className="btn-add-page"
-              onClick={openAddModal}
-              disabled={config.pages.length >= config.max_pages}
-            >
-              + Thêm page
-            </button>
-          </div>
-
-          {loading ? (
-            <div className="loading-text">Đang tải...</div>
-          ) : config.pages.length === 0 ? (
-            <div className="empty-pages">
-              <div style={{ fontSize: 32 }}>📄</div>
-              <div style={{ fontWeight: 600, fontSize: 14 }}>Chưa có page nào</div>
-              <div style={{ fontSize: 12, color: 'var(--mut)' }}>Thêm Facebook Page để tự động quét bài viết có hashtag</div>
-            </div>
-          ) : (
-            <div className="pages-list">
-              {config.pages.map(page => (
-                <div key={page.id} className="page-card">
-                  <div className="page-info">
-                    <div className="page-name">{page.page_name}</div>
-                    <div className="page-meta">
-                      {page.hashtag && <span className="hashtag-badge">{page.hashtag}</span>}
-                      <span className="budget-text">
-                        {Number(page.daily_budget || 0).toLocaleString('vi-VN')}₫/ngày
-                      </span>
-                      <span className="obj-text">
-                        {OBJECTIVES.find(o => o.value === page.objective)?.label || page.objective}
-                      </span>
-                    </div>
-                  </div>
-                  <button className="btn-remove" onClick={() => handleRemovePage(page.id, page.page_name)}>
-                    Xoá
-                  </button>
+        ) : loading ? (
+          <div className="skel" />
+        ) : (
+          <>
+            {/* Steps */}
+            <div className="steps">
+              {[{ n: 1, l: 'Nhập insight' }, { n: 2, l: 'Review targeting' }, { n: 3, l: 'Tạo quảng cáo' }].map(s => (
+                <div key={s.n} className={`step${step === s.n ? ' on' : ''}${step > s.n ? ' ok' : ''}`}>
+                  <div className="step-n">{step > s.n ? '✓' : s.n}</div>
+                  <div className="step-l">{s.l}</div>
                 </div>
               ))}
             </div>
-          )}
 
-          <div className="plan-hint">
-            Gói {planName}: tối đa {config.max_pages} page. Đã dùng: {config.pages.length}.
-          </div>
-        </div>
+            {/* Step 1: Objective + Insight */}
+            {step === 1 && (
+              <div className="card">
+                <div className="card-t">Bước 1: Chọn mục tiêu & nhập insight</div>
 
-        {/* Diagnostics */}
-        {scanDiag && scanDiag.length > 0 && (
-          <div className="section-card">
-            <div className="section-title">🔎 Kết quả quét chi tiết</div>
-            <table className="diag-table">
-              <thead>
-                <tr>
-                  <th>Page</th>
-                  <th>Bài lấy được</th>
-                  <th>Đã có ads</th>
-                  <th>Lọc hashtag</th>
-                  <th>Token</th>
-                </tr>
-              </thead>
-              <tbody>
-                {scanDiag.map((d, i) => (
-                  <tr key={i}>
-                    <td style={{ fontWeight: 600 }}>{d.page_name}</td>
-                    <td>
-                      <span style={{ color: d.fetched === 0 ? 'var(--red, #ef4444)' : 'var(--grn, #10b981)', fontWeight: 700 }}>
-                        {d.fetched}
-                      </span>
-                    </td>
-                    <td>{d.skipped_created}</td>
-                    <td>{d.skipped_hashtag}</td>
-                    <td>
-                      {d.used_page_token
-                        ? <span style={{ color: 'var(--grn, #10b981)' }}>Page token ✓</span>
-                        : <span style={{ color: '#f59e0b' }}>User token ⚠️</span>
-                      }
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {scanDiag.some(d => d.fetched === 0) && (
-              <div className="diag-warn">
-                ⚠️ Page trả về 0 bài viết — nguyên nhân thường gặp:
-                <ul style={{ margin: '6px 0 0', paddingLeft: 20 }}>
-                  <li>Token Facebook hết hạn → kết nối lại tại <strong>Cài đặt</strong></li>
-                  <li>Thiếu quyền <code>pages_read_engagement</code> → kết nối lại Facebook và cấp đủ quyền</li>
-                  <li>Page không có bài viết nào</li>
-                </ul>
+                <div className="fr">
+                  <label className="lb">Mục tiêu chiến dịch</label>
+                  <div className="obj-grid">
+                    {OBJECTIVES.map(o => (
+                      <div
+                        key={o.value}
+                        className={`obj-card${selectedObjective === o.value ? ' obj-active' : ''}`}
+                        onClick={() => setSelectedObjective(o.value)}
+                      >
+                        <div className="obj-icon">{o.icon}</div>
+                        <div><div className="obj-label">{o.label}</div>{o.desc && <div className="obj-desc">{o.desc}</div>}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="fr">
+                  <label className="lb">Ngành nghề (optional)</label>
+                  <select className="inp" value={industry} onChange={e => setIndustry(e.target.value)}>
+                    {INDUSTRIES.map(i => <option key={i.value} value={i.value}>{i.label}</option>)}
+                  </select>
+                </div>
+
+                <div className="fr">
+                  <label className="lb">Insight / Chân dung khách hàng</label>
+                  <textarea className="inp ta" rows={8} placeholder={"Paste insight vào đây...\n\nVí dụ:\n- Khách du lịch Đà Nẵng, 25-40 tuổi\n- Thích resort, khách sạn cao cấp\n- Hay đi du lịch cuối tuần\n- Quan tâm ẩm thực hải sản"} value={insightText} onChange={e => setInsightText(e.target.value)} />
+                  <div className="hint">{insightText.length}/3000 ký tự</div>
+                </div>
+
+                <div className="fr">
+                  <label className="lb">Hoặc upload file PDF</label>
+                  <input type="file" accept=".pdf" onChange={handlePdfUpload} style={{ fontSize: 13 }} />
+                </div>
+
+                <button className="btn-p" onClick={handleAnalyze} disabled={analyzing || !insightText.trim()}>
+                  {analyzing ? '🤖 AI đang phân tích...' : '🤖 AI Phân tích targeting'}
+                </button>
               </div>
             )}
-            {scanDiag.some(d => !d.used_page_token) && (
-              <div className="diag-warn">
-                ⚠️ Đang dùng User token thay vì Page token — có thể không đọc được bài viết.
-                Kết nối lại Facebook và đảm bảo cấp quyền <code>pages_show_list</code> + <code>pages_read_engagement</code>.
-              </div>
-            )}
-          </div>
-        )}
 
-        {/* D. Scan results */}
-        {scanResults.length > 0 && (
-          <div className="section-card">
-            <div className="section-header">
-              <div className="section-title">📬 Bài viết mới — {scanResults.length} bài chưa có quảng cáo</div>
-              <button className="btn-select-all" onClick={() => {}}>✓ Chọn tất cả</button>
-            </div>
-            <div className="posts-list">
-              {scanResults.map(post => (
-                <div key={post.id} className="post-card">
-                  <div className="post-info">
-                    <div className="post-message">
-                      {(post.message || post.story || '(Không có nội dung)').slice(0, 120)}
-                      {(post.message || post.story || '').length > 120 ? '...' : ''}
-                    </div>
-                    <div className="post-meta">
-                      <span className="post-page">{post.page_name}</span>
-                      {post.created_time && (
-                        <span className="post-time">
-                          {new Date(post.created_time).toLocaleString('vi-VN')}
-                        </span>
-                      )}
+            {/* Step 2 */}
+            {step === 2 && targeting && (
+              <div className="card">
+                <div className="card-t">Bước 2: Review targeting (AI đã điền)</div>
+
+                {aiSuggestion && <div className="ai-sug">💡 {aiSuggestion}</div>}
+
+                <div className="g2">
+                  <div className="fr">
+                    <label className="lb">Location type</label>
+                    <select className="inp" value={(targeting.location_types || [])[0] || 'home'} onChange={e => setTargeting(p => ({ ...p, location_types: e.target.value === 'travel_in' ? ['travel_in'] : ['home', 'recent'] }))}>
+                      <option value="home">Người ở/gần đây</option>
+                      <option value="travel_in">Khách du lịch đến</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="fr">
+                  <label className="lb">Vị trí</label>
+                  <div className="tags">{targeting.locations?.map((l, i) => <span key={i} className="tag">{l} <button className="tx" onClick={() => setTargeting(p => ({ ...p, locations: p.locations.filter((_, j) => j !== i) }))}>✕</button></span>)}
+                    {(!targeting.locations?.length) && <span className="th">Việt Nam (mặc định)</span>}
+                  </div>
+                </div>
+
+                <div className="g2">
+                  <div className="fr">
+                    <label className="lb">Độ tuổi</label>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <input type="number" className="inp" min={18} max={65} value={targeting.age_min} onChange={e => setTargeting(p => ({ ...p, age_min: Number(e.target.value) }))} style={{ width: 80 }} />
+                      <span>→</span>
+                      <input type="number" className="inp" min={18} max={65} value={targeting.age_max} onChange={e => setTargeting(p => ({ ...p, age_max: Number(e.target.value) }))} style={{ width: 80 }} />
                     </div>
                   </div>
-                  <button
-                    className="btn-create-ad"
-                    onClick={() => handleCreateAd(post)}
-                    disabled={creatingAd === post.id}
-                  >
-                    {creatingAd === post.id ? '⏳ Đang tạo...' : 'Tạo ads'}
-                  </button>
+                  <div className="fr">
+                    <label className="lb">Giới tính</label>
+                    <select className="inp" value={targeting.genders?.length === 1 ? targeting.genders[0] : 0} onChange={e => setTargeting(p => ({ ...p, genders: Number(e.target.value) === 0 ? [] : [Number(e.target.value)] }))}>
+                      <option value={0}>Tất cả</option>
+                      <option value={1}>Nam</option>
+                      <option value={2}>Nữ</option>
+                    </select>
+                  </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
 
-        {/* D2. Pending activation */}
-        {pendingAds.length > 0 && (
-          <div className="section-card">
-            <div className="section-title">⏸️ Chờ kích hoạt — {pendingAds.length} chiến dịch (PAUSED)</div>
-            <div className="section-desc">Chiến dịch đã tạo thành công nhưng chưa chạy. Bấm &ldquo;Kích hoạt&rdquo; để bắt đầu tiêu ngân sách.</div>
-            <div className="posts-list">
-              {pendingAds.map(p => (
-                <div key={p.campaign_id} className="post-card">
-                  <div className="post-info">
-                    <div className="post-message" style={{ fontWeight: 700 }}>{p.page_name}</div>
-                    <div className="post-meta">
-                      <span className="budget-text">{p.daily_budget.toLocaleString('vi-VN')}đ/ngày</span>
-                      <span className="hist-campaign">ID: {p.campaign_id}</span>
-                    </div>
-                    {p.adset_real?.targeting?.targeting_automation && (
-                      <div className="advantage-warn">
-                        ⚠️ Advantage+ Audience đang bật — độ tuổi 18-65 chỉ là gợi ý, Meta có thể mở rộng ngoài khoảng này.
+                <div className="fr">
+                  <label className="lb">Sở thích (Interests) {searchingTargets && '⏳'}</label>
+                  <div className="tags">
+                    {interestResults.map((r, i) => <span key={i} className="tag ti">{r.name} <span className="ta">({fmtAud(r.audience_size)})</span> <button className="tx" onClick={() => setInterestResults(p => p.filter((_, j) => j !== i))}>✕</button></span>)}
+                    {!interestResults.length && !searchingTargets && <span className="th">Chưa có — tìm bên dưới hoặc dùng Advantage+ Audience</span>}
+                  </div>
+                  <div className="search-box">
+                    <input className="inp" placeholder="Tìm sở thích... VD: Travel, Food, iPhone" value={intSearch}
+                      onChange={e => { setIntSearch(e.target.value); if (e.target.value.length >= 2) searchInterest(e.target.value) }}
+                      onBlur={() => setTimeout(() => setIntSuggestions([]), 200)}
+                    />
+                    {intSearching && <span className="search-loading">⏳</span>}
+                    {intSuggestions.length > 0 && (
+                      <div className="suggestions">
+                        {intSuggestions.map((s, i) => (
+                          <div key={i} className="sug-item" onMouseDown={() => addInterest(s)}>
+                            <span className="sug-name">{s.name}</span>
+                            <span className="sug-aud">{fmtAud(s.audience_size)} người</span>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
-                  <button className="btn-activate" onClick={() => handleActivate(p)}>
-                    ▶ Kích hoạt
-                  </button>
                 </div>
+
+                <div className="fr">
+                  <label className="lb">Hành vi (Behaviors)</label>
+                  <div className="tags">
+                    {behaviorResults.map((r, i) => <span key={i} className="tag tb">{r.name} <span className="ta">({fmtAud(r.audience_size)})</span> <button className="tx" onClick={() => setBehaviorResults(p => p.filter((_, j) => j !== i))}>✕</button></span>)}
+                    {!behaviorResults.length && <span className="th">Chưa có — tìm bên dưới</span>}
+                  </div>
+                  <div className="search-box">
+                    <input className="inp" placeholder="Tìm hành vi... VD: Frequent travelers" value={behSearch}
+                      onChange={e => { setBehSearch(e.target.value); if (e.target.value.length >= 2) searchBehavior(e.target.value) }}
+                      onBlur={() => setTimeout(() => setBehSuggestions([]), 200)}
+                    />
+                    {behSearching && <span className="search-loading">⏳</span>}
+                    {behSuggestions.length > 0 && (
+                      <div className="suggestions">
+                        {behSuggestions.map((s, i) => (
+                          <div key={i} className="sug-item" onMouseDown={() => addBehavior(s)}>
+                            <span className="sug-name">{s.name}</span>
+                            <span className="sug-aud">{fmtAud(s.audience_size)} người</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="btns"><button className="btn-s" onClick={() => setStep(1)}>← Quay lại</button><button className="btn-p" onClick={() => setStep(3)}>Tiếp tục →</button></div>
+              </div>
+            )}
+
+            {/* Step 3 */}
+            {step === 3 && targeting && (
+              <div className="card">
+                <div className="card-t">Bước 3: Chọn bài viết & tạo quảng cáo</div>
+
+                <div className="g2">
+                  <div className="fr">
+                    <label className="lb">Tài khoản quảng cáo</label>
+                    <select className="inp" value={selectedAccount} onChange={e => setSelectedAccount(e.target.value)}>
+                      <option value="">Chọn tài khoản...</option>
+                      {adAccounts.map(a => <option key={a.account_id} value={a.account_id}>{a.account_name || a.account_id}</option>)}
+                    </select>
+                  </div>
+                  <div className="fr">
+                    <label className="lb">Facebook Page</label>
+                    <select className="inp" value={selectedPageId} onChange={e => handlePageChange(e.target.value)}>
+                      <option value="">Chọn Page...</option>
+                      {config.pages?.map(p => <option key={p.page_id} value={p.page_id}>{p.page_name}</option>)}
+                    </select>
+                    {!config.pages?.length && <div className="hint">Chưa cấu hình Page. Thêm ở mục cũ hoặc Settings.</div>}
+                  </div>
+                </div>
+
+                {selectedPageId && (
+                  <div className="fr">
+                    <label className="lb">Chọn bài viết</label>
+                    {loadingPosts ? <div className="hint">Đang tải...</div>
+                    : !posts.length ? <div className="hint">Không có bài viết mới.</div>
+                    : <div className="pl">{posts.slice(0, 10).map(p => (
+                        <div key={p.id} className={`pi${selectedPost?.id === p.id ? ' sel' : ''}`} onClick={() => setSelectedPost(p)}>
+                          {p.full_picture && <img src={p.full_picture} className="pt" alt="" />}
+                          <div className="pb">
+                            <div className="pm">{(p.message || p.story || '').slice(0, 80)}</div>
+                            <div className="px">{p.page_name} · {p.created_time ? new Date(p.created_time).toLocaleDateString('vi-VN') : ''}</div>
+                          </div>
+                        </div>
+                      ))}</div>}
+                  </div>
+                )}
+
+                <div className="g2">
+                  <div className="fr">
+                    <label className="lb">Ngân sách hàng ngày (₫)</label>
+                    <input type="number" className="inp" min={30000} value={budget} onChange={e => setBudget(e.target.value)} />
+                    <div className="hint">Tối thiểu ₫30.000/ngày</div>
+                  </div>
+                  <div className="fr">
+                    <label className="lb">Tên chiến dịch</label>
+                    <input type="text" className="inp" value={campaignName} onChange={e => setCampaignName(e.target.value)} placeholder="Auto - Campaign name" />
+                  </div>
+                </div>
+
+                {result && (
+                  <div className="res">
+                    <div className="res-t">✅ Đã tạo quảng cáo (PAUSED)</div>
+                    <div className="res-r">Campaign: <code>{result.campaign_id}</code></div>
+                    <div className="res-r">Adset: <code>{result.adset_id}</code></div>
+                    <div className="res-r">Ad: <code>{result.ad_id}</code></div>
+                    {result._log_error && <div style={{ fontSize: 11, color: '#f59e0b', marginTop: 6 }}>⚠️ {result._log_error}</div>}
+                    <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                      <button className="btn-act" onClick={handleActivate}>▶ Kích hoạt (ACTIVE)</button>
+                      <button className="btn-s" onClick={resetWizard}>+ Tạo mới</button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="btns">
+                  <button className="btn-s" onClick={() => setStep(2)}>← Quay lại</button>
+                  {!result && <button className="btn-p" onClick={handleCreate} disabled={creating || !selectedPost || !selectedAccount}>{creating ? '⏳ Đang tạo...' : '🚀 Tạo quảng cáo (PAUSED)'}</button>}
+                </div>
+              </div>
+            )}
+
+            {/* History */}
+            <div className="card" style={{ marginTop: 16 }}>
+              <div className="card-t" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', marginBottom: historyOpen ? 16 : 0, paddingBottom: historyOpen ? 12 : 0 }} onClick={toggleHistory}>
+                <span>📋 Lịch sử tạo ads {history.length > 0 ? `(${history.length})` : ''}</span>
+                <span>{historyOpen ? '▲' : '▼'}</span>
+              </div>
+              {historyOpen && (loadingHistory ? <div className="hint">Đang tải...</div> : !history.length ? <div className="hint">Chưa có lịch sử</div> : (
+                <table className="ht"><thead><tr><th>Nội dung</th><th>Campaign</th><th>Thời gian</th></tr></thead>
+                <tbody>{history.map(h => <tr key={h.id}><td>{(h.post_message || '').slice(0, 50)}</td><td><code>{h.campaign_id}</code></td><td>{h.created_at ? new Date(h.created_at).toLocaleString('vi-VN') : '—'}</td></tr>)}</tbody></table>
               ))}
             </div>
-          </div>
+          </>
         )}
-
-        {/* E. History section */}
-        <div className="section-card">
-          <div className="section-header" style={{ cursor: 'pointer' }} onClick={toggleHistory}>
-            <div className="section-title">📋 Lịch sử tạo ads {history.length > 0 ? `(${history.length})` : ''}</div>
-            <span className="toggle-arrow">{historyOpen ? '▲' : '▼'}</span>
-          </div>
-          {historyOpen && (
-            loadingHistory ? (
-              <div className="loading-text">Đang tải lịch sử...</div>
-            ) : history.length === 0 ? (
-              <div className="empty-pages" style={{ padding: '20px 0' }}>
-                <div style={{ fontSize: 12, color: 'var(--mut)' }}>Chưa có lịch sử tạo ads</div>
-              </div>
-            ) : (
-              <>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
-                  <button className="btn-clear-history" onClick={handleClearHistory}>
-                    🗑 Xoá tất cả lịch sử
-                  </button>
-                </div>
-                <div className="history-hint">
-                  Bài viết nằm trong lịch sử sẽ bị bỏ qua khi quét. Xoá dòng nào để bài đó xuất hiện lại.
-                </div>
-                <table className="history-table">
-                  <thead>
-                    <tr>
-                      <th>Nội dung bài</th>
-                      <th>Campaign ID</th>
-                      <th>Thời gian</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {history.map(h => (
-                      <tr key={h.id}>
-                        <td className="hist-msg">{(h.post_message || '').slice(0, 60)}</td>
-                        <td className="hist-campaign">{h.campaign_id}</td>
-                        <td className="hist-time">
-                          {h.created_at ? new Date(h.created_at).toLocaleString('vi-VN') : '—'}
-                        </td>
-                        <td>
-                          <button className="btn-del-row" onClick={() => handleDeleteHistory(h.id)} title="Xoá để quét lại bài này">
-                            ✕
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </>
-            )
-          )}
-        </div>
-
-        {/* Add Page Modal */}
-        {showAddModal && (
-          <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setShowAddModal(false) }}>
-            <div className="modal-box">
-              <div className="modal-title">Thêm Facebook Page</div>
-
-              <div className="form-row">
-                <label>Chọn Facebook Page</label>
-                {loadingMyPages ? (
-                  <div className="loading-text">Đang tải pages...</div>
-                ) : (
-                  <select className="inp" value={addForm.page_id} onChange={handlePageSelect}>
-                    <option value="">-- Chọn page --</option>
-                    {myFbPages.map(p => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                  </select>
-                )}
-              </div>
-
-              <div className="form-row">
-                <label>Tài khoản quảng cáo</label>
-                <select
-                  className="inp"
-                  value={addForm.ad_account_id || config.default_account || ''}
-                  onChange={e => setAddForm(prev => ({ ...prev, ad_account_id: e.target.value }))}
-                >
-                  <option value="">-- Dùng mặc định --</option>
-                  {adAccounts.map(a => (
-                    <option key={a.account_id} value={a.account_id}>
-                      {a.account_name || a.account_id}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-row">
-                <label>Hashtag lọc</label>
-                <input
-                  type="text"
-                  className="inp"
-                  placeholder="Để trống = lấy tất cả bài"
-                  value={addForm.hashtag}
-                  onChange={e => setAddForm(prev => ({ ...prev, hashtag: e.target.value }))}
-                />
-              </div>
-
-              <div className="form-row">
-                <label>Ngân sách/ngày (VND)</label>
-                <input
-                  type="number"
-                  className="inp"
-                  min="10000"
-                  step="10000"
-                  value={addForm.daily_budget}
-                  onChange={e => setAddForm(prev => ({ ...prev, daily_budget: e.target.value }))}
-                />
-              </div>
-
-              <div className="form-row">
-                <label>Mục tiêu chiến dịch</label>
-                <select
-                  className="inp"
-                  value={addForm.objective}
-                  onChange={e => setAddForm(prev => ({ ...prev, objective: e.target.value }))}
-                >
-                  {OBJECTIVES.map(o => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="advantage-hint">
-                💡 <strong>Lưu ý Advantage+ Audience:</strong> Meta mặc định coi độ tuổi (18-65) là gợi ý, không phải giới hạn cứng. AI có thể phân phối quảng cáo ngoài khoảng tuổi này để tối ưu hiệu suất.
-              </div>
-
-              <div className="modal-btns">
-                <button className="btn-cancel" onClick={() => setShowAddModal(false)}>Huỷ</button>
-                <button className="btn-save-modal" onClick={handleAddPage} disabled={savingPage}>
-                  {savingPage ? 'Đang lưu...' : 'Lưu'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
       </div>
 
       <style jsx>{`
-        .as-page { padding: 24px; max-width: 860px; position: relative; }
+        .page-wrap { padding: 24px; max-width: 860px; }
+        .page-header { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+        .page-icon { font-size: 32px; }
+        h1 { font-size: 20px; font-weight: 700; color: var(--txt); margin-bottom: 4px; }
+        p { font-size: 13px; color: var(--mut); }
 
-        .as-toast {
-          position: fixed; top: 16px; right: 16px; z-index: 9999;
-          max-width: 260px; padding: 9px 14px; border-radius: 8px;
-          background: #10b981; color: #fff; font-size: 12px; font-weight: 600;
-          line-height: 1.4; box-shadow: 0 3px 12px rgba(0,0,0,.18);
-          animation: fadeIn .2s ease; pointer-events: none;
-        }
-        .as-toast.error { background: #ef4444; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
+        .toast { position: fixed; top: 16px; right: 16px; z-index: 99999; padding: 10px 18px; border-radius: 10px; font-size: 13px; font-weight: 600; color: #fff; box-shadow: 0 4px 16px rgba(0,0,0,.25); pointer-events: none; animation: ti .3s ease; }
+        @keyframes ti { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
 
-        /* Header */
-        .page-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 16px; }
-        .ph-left { display: flex; align-items: flex-start; gap: 14px; }
-        .ph-icon { font-size: 32px; flex-shrink: 0; }
-        h1 { font-size: 18px; font-weight: 700; color: var(--txt); margin-bottom: 4px; }
-        p { font-size: 13px; color: var(--mut); line-height: 1.6; max-width: 560px; }
+        .empty-box { display: flex; flex-direction: column; align-items: center; background: var(--s1); border: 1px solid var(--bd); border-radius: 16px; padding: 48px 32px; text-align: center; gap: 12px; }
+        .link-btn { background: #1877f2; color: #fff; border-radius: 9px; padding: 10px 20px; font-size: 13px; font-weight: 700; text-decoration: none; margin-top: 8px; }
+        .skel { height: 300px; border-radius: 14px; background: linear-gradient(90deg, var(--s2) 25%, var(--s3) 50%, var(--s2) 75%); background-size: 200% 100%; animation: sh 1.2s infinite; }
+        @keyframes sh { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 
-        /* Status banner */
-        .status-banner {
-          display: flex; align-items: center; gap: 10px;
-          padding: 12px 16px; border-radius: 12px; margin-bottom: 20px;
-          flex-wrap: wrap;
-        }
-        .status-banner.not-configured { background: rgba(254,95,1,.08); border: 1px solid rgba(254,95,1,.3); }
-        .status-banner.configured { background: rgba(16,185,129,.08); border: 1px solid rgba(16,185,129,.3); }
-        .status-dot {
-          width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
-        }
-        .not-configured .status-dot { background: #fe5f01; }
-        .configured .status-dot { background: var(--grn); }
-        .status-text { flex: 1; font-size: 13px; color: var(--txt); }
-        .btn-scan {
-          background: var(--primary); color: #fff; border: none;
-          border-radius: 9px; padding: 8px 16px; font-size: 13px; font-weight: 700;
-          cursor: pointer; font-family: inherit; transition: opacity .15s; flex-shrink: 0;
-        }
-        .btn-scan:hover:not(:disabled) { opacity: .88; }
-        .btn-scan:disabled { opacity: .45; cursor: not-allowed; }
+        .steps { display: flex; gap: 4px; margin-bottom: 20px; }
+        .step { display: flex; align-items: center; gap: 8px; flex: 1; padding: 10px 14px; border-radius: 10px; background: var(--s1); border: 1px solid var(--bd); opacity: .5; transition: all .2s; }
+        .step.on { opacity: 1; border-color: var(--primary); background: rgba(99,102,241,.06); }
+        .step.ok { opacity: .8; }
+        .step-n { width: 24px; height: 24px; border-radius: 50%; background: var(--s3); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: var(--txt); flex-shrink: 0; }
+        .step.on .step-n { background: var(--primary); color: #fff; }
+        .step.ok .step-n { background: #10b981; color: #fff; }
+        .step-l { font-size: 12px; font-weight: 600; color: var(--txt); }
 
-        /* Section card */
-        .section-card {
-          background: var(--s1); border: 1px solid var(--bd); border-radius: 14px;
-          padding: 18px 20px; margin-bottom: 16px;
-        }
-        .section-title { font-size: 14px; font-weight: 700; color: var(--txt); margin-bottom: 4px; }
-        .section-desc { font-size: 12px; color: var(--mut); margin-bottom: 12px; }
-        .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .obj-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        @media (max-width: 600px) { .obj-grid { grid-template-columns: repeat(2, 1fr); } }
+        .obj-card { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--bd); background: var(--s2); cursor: pointer; transition: all .15s; }
+        .obj-card:hover { border-color: rgba(99,102,241,.4); background: rgba(99,102,241,.04); }
+        .obj-card.obj-active { border-color: var(--primary); background: rgba(99,102,241,.1); box-shadow: 0 0 0 1px var(--primary); }
+        .obj-icon { font-size: 20px; flex-shrink: 0; }
+        .obj-label { font-size: 12px; font-weight: 600; color: var(--txt); line-height: 1.3; }
+        .obj-desc { font-size: 10px; color: var(--mut); margin-top: 2px; }
 
-        /* Account row */
-        .account-row { display: flex; gap: 10px; align-items: center; }
-        .account-row .inp { flex: 1; }
-        .btn-save-acc {
-          background: var(--primary); color: #fff; border: none;
-          border-radius: 9px; padding: 9px 18px; font-size: 13px; font-weight: 700;
-          cursor: pointer; font-family: inherit; white-space: nowrap; flex-shrink: 0;
-        }
-        .btn-save-acc:disabled { opacity: .5; cursor: not-allowed; }
+        .card { background: var(--s1); border: 1px solid var(--bd); border-radius: 14px; padding: 22px; }
+        .card-t { font-size: 15px; font-weight: 700; color: var(--txt); margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--bd); }
 
-        .inp {
-          width: 100%; background: var(--s2); border: 1.5px solid var(--bd); border-radius: 9px;
-          padding: 9px 12px; font-size: 14px; color: var(--txt); outline: none; font-family: inherit;
-          transition: border-color .15s;
-        }
-        .inp:focus { border-color: var(--primary); }
+        .fr { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+        .lb { font-size: 13px; font-weight: 600; color: var(--txt); }
+        .hint { font-size: 11px; color: var(--mut); }
+        .inp { padding: 9px 14px; border-radius: 9px; border: 1px solid var(--bd); background: var(--s2); color: var(--txt); font-size: 13px; font-family: inherit; width: 100%; }
+        .inp:focus { outline: none; border-color: var(--primary); }
+        .ta { resize: vertical; line-height: 1.6; }
+        .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media (max-width: 600px) { .g2 { grid-template-columns: 1fr; } }
 
-        /* Add page button */
-        .btn-add-page {
-          background: var(--primary); color: #fff; border: none;
-          border-radius: 9px; padding: 8px 16px; font-size: 13px; font-weight: 700;
-          cursor: pointer; font-family: inherit;
-        }
-        .btn-add-page:disabled { opacity: .4; cursor: not-allowed; }
+        .btns { display: flex; gap: 10px; margin-top: 8px; }
+        .btn-p { background: var(--primary); color: #fff; border: none; border-radius: 9px; padding: 10px 24px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: opacity .15s; }
+        .btn-p:hover:not(:disabled) { opacity: .88; }
+        .btn-p:disabled { opacity: .5; cursor: default; }
+        .btn-s { background: var(--s2); color: var(--txt); border: 1px solid var(--bd); border-radius: 9px; padding: 10px 20px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+        .btn-s:hover { border-color: var(--primary); color: var(--primary); }
+        .btn-act { background: #10b981; color: #fff; border: none; border-radius: 9px; padding: 10px 20px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
 
-        /* Pages list */
-        .pages-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
-        .page-card {
-          display: flex; align-items: center; justify-content: space-between;
-          background: var(--s2); border: 1px solid var(--bd); border-radius: 10px;
-          padding: 10px 14px; gap: 12px;
-        }
-        .page-info { flex: 1; min-width: 0; }
-        .page-name { font-size: 13px; font-weight: 700; color: var(--txt); margin-bottom: 4px; }
-        .page-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-        .hashtag-badge {
-          background: rgba(254,95,1,.12); color: var(--primary);
-          border-radius: 20px; padding: 2px 8px; font-size: 11px; font-weight: 600;
-        }
-        .budget-text { font-size: 12px; color: var(--mut); }
-        .obj-text { font-size: 12px; color: var(--mut); }
-        .btn-remove {
-          background: transparent; border: 1px solid var(--red); color: var(--red);
-          border-radius: 7px; padding: 5px 12px; font-size: 12px; cursor: pointer;
-          font-family: inherit; white-space: nowrap; flex-shrink: 0;
-        }
-        .btn-remove:hover { background: rgba(239,68,68,.08); }
+        .ai-obj-card { background: rgba(99,102,241,.06); border: 1px solid rgba(99,102,241,.2); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; }
+        .ai-obj-header { display: flex; gap: 10px; align-items: flex-start; }
+        .ai-obj-title { font-size: 14px; font-weight: 700; color: var(--txt); }
+        .ai-conf { font-size: 11px; font-weight: 600; color: #10b981; background: rgba(16,185,129,.1); padding: 2px 8px; border-radius: 10px; margin-left: 8px; }
+        .ai-obj-reason { font-size: 12px; color: var(--mut); margin-top: 3px; line-height: 1.5; }
+        .ai-alts { display: flex; align-items: center; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+        .ai-alts-label { font-size: 11px; color: var(--mut); font-weight: 600; }
+        .ai-alt-btn { padding: 5px 12px; border-radius: 8px; border: 1px solid var(--bd); background: var(--s1); color: var(--txt); font-size: 11px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all .15s; }
+        .ai-alt-btn:hover { border-color: var(--primary); color: var(--primary); background: rgba(99,102,241,.08); }
+        .ai-obj-change { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+        .obj-auto { border-style: dashed; }
+        .ai-sug { background: rgba(99,102,241,.08); border: 1px solid rgba(99,102,241,.2); border-radius: 10px; padding: 10px 14px; font-size: 13px; color: var(--txt); margin-bottom: 16px; line-height: 1.5; }
 
-        .empty-pages {
-          display: flex; flex-direction: column; align-items: center; gap: 6px;
-          padding: 28px 16px; text-align: center; color: var(--txt); margin-bottom: 12px;
-        }
+        .tags { display: flex; flex-wrap: wrap; gap: 6px; min-height: 32px; align-items: center; }
+        .tag { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; background: var(--s2); border: 1px solid var(--bd); color: var(--txt); }
+        .ti { background: rgba(59,130,246,.1); border-color: rgba(59,130,246,.25); color: #3b82f6; }
+        .tb { background: rgba(139,92,246,.1); border-color: rgba(139,92,246,.25); color: #8b5cf6; }
+        .ta { font-size: 10px; color: var(--mut); font-weight: 400; }
+        .tx { background: none; border: none; cursor: pointer; font-size: 11px; color: var(--mut); padding: 0 2px; }
+        .tx:hover { color: #ef4444; }
+        .th { font-size: 12px; color: var(--mut); font-style: italic; }
 
-        .plan-hint { font-size: 12px; color: var(--mut); margin-top: 8px; }
+        .search-box { position: relative; margin-top: 6px; }
+        .search-loading { position: absolute; right: 12px; top: 10px; font-size: 12px; }
+        .suggestions { position: absolute; top: 100%; left: 0; right: 0; background: var(--s1); border: 1px solid var(--bd); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.15); z-index: 10; max-height: 200px; overflow-y: auto; margin-top: 4px; }
+        .sug-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; cursor: pointer; transition: background .1s; font-size: 13px; }
+        .sug-item:hover { background: rgba(99,102,241,.08); }
+        .sug-item:first-child { border-radius: 10px 10px 0 0; }
+        .sug-item:last-child { border-radius: 0 0 10px 10px; }
+        .sug-name { color: var(--txt); font-weight: 500; }
+        .sug-aud { color: var(--mut); font-size: 11px; }
 
-        /* Scan results / posts */
-        .posts-list { display: flex; flex-direction: column; gap: 8px; }
-        .post-card {
-          display: flex; align-items: center; justify-content: space-between;
-          background: var(--s2); border: 1px solid var(--bd); border-radius: 10px;
-          padding: 12px 14px; gap: 12px;
-        }
-        .post-info { flex: 1; min-width: 0; }
-        .post-message { font-size: 13px; color: var(--txt); line-height: 1.5; margin-bottom: 4px; word-break: break-word; }
-        .post-meta { display: flex; gap: 10px; align-items: center; }
-        .post-page { font-size: 11px; font-weight: 700; color: var(--primary); }
-        .post-time { font-size: 11px; color: var(--mut); }
-        .btn-create-ad {
-          background: var(--primary); color: #fff; border: none;
-          border-radius: 9px; padding: 7px 14px; font-size: 12px; font-weight: 700;
-          cursor: pointer; font-family: inherit; white-space: nowrap; flex-shrink: 0;
-        }
-        .btn-create-ad:disabled { opacity: .5; cursor: not-allowed; }
+        .pl { display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto; }
+        .pi { display: flex; gap: 10px; padding: 10px; border-radius: 10px; border: 1px solid var(--bd); cursor: pointer; transition: all .15s; }
+        .pi:hover { background: var(--s2); }
+        .pi.sel { border-color: var(--primary); background: rgba(99,102,241,.06); }
+        .pt { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+        .pb { min-width: 0; flex: 1; }
+        .pm { font-size: 13px; color: var(--txt); line-height: 1.4; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+        .px { font-size: 11px; color: var(--mut); margin-top: 4px; }
 
-        .btn-select-all {
-          background: transparent; border: 1px solid var(--bd); color: var(--txt);
-          border-radius: 8px; padding: 6px 12px; font-size: 12px; cursor: pointer;
-          font-family: inherit;
-        }
+        .res { background: rgba(16,185,129,.08); border: 1px solid rgba(16,185,129,.25); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+        .res-t { font-size: 14px; font-weight: 700; color: #10b981; margin-bottom: 8px; }
+        .res-r { font-size: 12px; color: var(--txt); margin-bottom: 3px; }
+        .res-r code { background: var(--s2); padding: 2px 6px; border-radius: 4px; font-size: 11px; }
 
-        /* History */
-        .toggle-arrow { font-size: 12px; color: var(--mut); }
-        .history-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-        .history-table th { background: var(--s2); padding: 6px 10px; text-align: left; color: var(--mut); font-size: 11px; text-transform: uppercase; letter-spacing: .4px; }
-        .history-table td { padding: 8px 10px; border-bottom: 1px solid var(--bd); color: var(--txt); }
-        .hist-msg { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .hist-campaign { font-family: monospace; font-size: 11px; color: var(--mut); }
-        .hist-time { white-space: nowrap; color: var(--mut); }
-        .history-hint { font-size: 12px; color: var(--mut); margin-bottom: 10px; line-height: 1.5; }
-        .btn-clear-history {
-          background: transparent; border: 1px solid var(--red, #ef4444); color: var(--red, #ef4444);
-          border-radius: 8px; padding: 6px 14px; font-size: 12px; font-weight: 600;
-          cursor: pointer; font-family: inherit; transition: all .15s;
-        }
-        .btn-clear-history:hover { background: rgba(239,68,68,.08); }
-        .btn-del-row {
-          background: none; border: none; color: var(--mut); cursor: pointer;
-          font-size: 14px; padding: 2px 6px; border-radius: 4px; transition: all .15s;
-        }
-        .btn-del-row:hover { color: var(--red, #ef4444); background: rgba(239,68,68,.08); }
-
-        .loading-text { font-size: 13px; color: var(--mut); padding: 12px 0; }
-
-        /* Modal */
-        .modal-overlay {
-          position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 1000;
-          display: flex; align-items: center; justify-content: center; padding: 20px;
-        }
-        .modal-box {
-          background: var(--s1); border-radius: 16px; padding: 24px;
-          width: 100%; max-width: 460px; box-shadow: 0 20px 60px rgba(0,0,0,.3);
-        }
-        .modal-title { font-size: 16px; font-weight: 700; color: var(--txt); margin-bottom: 18px; }
-        .form-row { margin-bottom: 14px; }
-        .form-row label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--mut); margin-bottom: 6px; }
-        .modal-btns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 6px; }
-        .btn-cancel {
-          background: transparent; border: 1px solid var(--bd); color: var(--mut);
-          border-radius: 9px; padding: 9px 18px; font-size: 13px; cursor: pointer; font-family: inherit;
-        }
-        .btn-save-modal {
-          background: var(--primary); color: #fff; border: none;
-          border-radius: 9px; padding: 9px 20px; font-size: 13px; font-weight: 700;
-          cursor: pointer; font-family: inherit;
-        }
-        .btn-save-modal:disabled { opacity: .5; cursor: not-allowed; }
-
-        /* Diagnostics */
-        .diag-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 10px; }
-        .diag-table th { background: var(--s2); padding: 6px 10px; text-align: left; color: var(--mut); font-size: 11px; text-transform: uppercase; letter-spacing: .4px; }
-        .diag-table td { padding: 7px 10px; border-bottom: 1px solid var(--bd); color: var(--txt); }
-        .diag-warn {
-          margin-top: 10px; padding: 10px 14px; border-radius: 8px; font-size: 12px; line-height: 1.6;
-          background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.25); color: var(--txt);
-        }
-        .diag-warn code { background: var(--s2); padding: 1px 5px; border-radius: 4px; font-size: 11px; }
-
-        /* Activate button */
-        .btn-activate {
-          background: #10b981; color: #fff; border: none;
-          border-radius: 9px; padding: 8px 16px; font-size: 12px; font-weight: 700;
-          cursor: pointer; font-family: inherit; white-space: nowrap; flex-shrink: 0;
-          transition: opacity .15s;
-        }
-        .btn-activate:hover { opacity: .88; }
-
-        /* Advantage+ warnings */
-        .advantage-warn {
-          font-size: 11px; color: #f59e0b; background: rgba(245,158,11,.08);
-          border-radius: 6px; padding: 4px 8px; margin-top: 4px;
-        }
-        .advantage-hint {
-          font-size: 11px; color: var(--mut); background: var(--s2);
-          border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; line-height: 1.5;
-        }
+        .ht { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .ht th { background: var(--s2); padding: 6px 10px; text-align: left; color: var(--mut); font-size: 11px; text-transform: uppercase; }
+        .ht td { padding: 8px 10px; border-bottom: 1px solid var(--bd); color: var(--txt); }
+        .ht code { background: var(--s2); padding: 2px 6px; border-radius: 4px; font-size: 10px; }
       `}</style>
     </DashboardLayout>
   )
