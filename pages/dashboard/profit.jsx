@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
 import { useAuth } from '../../lib/AuthContext'
+import { Package, Megaphone, ShieldAlert, Truck, Layers, Info, Target, TrendingUp, Save } from 'lucide-react'
 
 const SETTINGS_KEY = 'profit_settings_v1'
 const SETTINGS_FIELDS = ['ads-pct', 'acc-pct', 'return-pct', 'vat-pct', 'ship', 'extra-pct']
@@ -172,7 +173,7 @@ export default function Profit() {
         {/* Saved settings banner */}
         {savedSettings && savedParts.length > 0 && (
           <div className="saved-banner">
-            <span className="sb-icon">💾</span>
+            <span className="sb-icon"><Save size={14} /></span>
             <div className="sb-text">
               <strong>Đã tải cài đặt!</strong> Chỉ nhập giá vốn & giá bán
               <div className="sb-meta">{savedParts.join(' · ')}</div>
@@ -183,7 +184,7 @@ export default function Profit() {
 
         {/* Header */}
         <div className="page-header">
-          <div className="ph-icon">💰</div>
+          <div className="ph-icon"><TrendingUp size={22} /></div>
           <div>
             <h1>Kiểm soát Lãi / Lỗ Đơn hàng</h1>
             <p>Tính đầy đủ chi phí — Biết kết quả ngay tức thì</p>
@@ -192,7 +193,7 @@ export default function Profit() {
 
         {/* Info block */}
         <div className="info-block">
-          <div className="info-head">💡 YÊU CẦU — Định danh nhóm quảng cáo</div>
+          <div className="info-head"><Info size={14} style={{ flexShrink: 0 }} /> Yêu cầu — Định danh nhóm quảng cáo</div>
           <div className="info-body">
             Mỗi nhóm quảng cáo (Adset) cần chứa <strong>mã định danh sản phẩm</strong> trùng với mã bạn khai báo bên dưới để hệ thống nhận diện và xử lý đúng dữ liệu.
             <div className="info-example">
@@ -227,8 +228,9 @@ export default function Profit() {
 
             {/* Product info card */}
             <div className="card">
-              <div className="card-title"><span>📦</span> Thông tin sản phẩm</div>
+              <div className="card-title"><Package size={15} /> Thông tin sản phẩm</div>
               <input className="name-input" type="text" placeholder="Tên sản phẩm (VD: Cốc inox iMat)" maxLength={40}
+                aria-label="Tên sản phẩm"
                 value={activeProduct?.name || ''}
                 onChange={e => setProducts(prev => prev.map(p => p.id === activeId ? { ...p, name: e.target.value } : p))} />
 
@@ -256,7 +258,7 @@ export default function Profit() {
 
             {/* Ads cost card */}
             <div className="card">
-              <div className="card-title"><span>📣</span> Chi phí quảng cáo</div>
+              <div className="card-title"><Megaphone size={15} /> Chi phí quảng cáo</div>
               <Field label="Tỉ lệ ngân sách ads / doanh thu" unit="%" badge={previewAds ? `≈ ${previewAds}` : ''}>
                 <input type="number" placeholder="0" inputMode="decimal" step="0.1"
                   value={formState['ads-pct']} onChange={e => updateField('ads-pct', e.target.value)} />
@@ -271,7 +273,7 @@ export default function Profit() {
 
             {/* Risk & tax */}
             <div className="card">
-              <div className="card-title"><span>📊</span> Rủi ro & Thuế</div>
+              <div className="card-title"><ShieldAlert size={15} /> Rủi ro & Thuế</div>
               <Field label="Tỉ lệ hoàn hàng dự kiến" unit="%" badge={previewReturn ? `≈ ${previewReturn}/đơn` : ''} badgeColor="var(--red)">
                 <input type="number" placeholder="0" inputMode="decimal" step="0.1"
                   value={formState['return-pct']} onChange={e => updateField('return-pct', e.target.value)} />
@@ -286,10 +288,11 @@ export default function Profit() {
 
             {/* Shipping */}
             <div className="card">
-              <div className="card-title"><span>🚚</span> Phí vận chuyển</div>
+              <div className="card-title"><Truck size={15} /> Phí vận chuyển</div>
               <div className="toggle-row">
-                <span>Người bán chịu phí giao hàng</span>
-                <div className={`toggle${formState.shipEnabled ? ' on' : ''}`}
+                <span id="ship-toggle-label">Người bán chịu phí giao hàng</span>
+                <button className={`toggle${formState.shipEnabled ? ' on' : ''}`}
+                  role="switch" aria-checked={formState.shipEnabled} aria-labelledby="ship-toggle-label"
                   onClick={() => updateField('shipEnabled', !formState.shipEnabled)} />
               </div>
               {formState.shipEnabled && (
@@ -303,7 +306,7 @@ export default function Profit() {
 
             {/* Extra costs */}
             <div className="card">
-              <div className="card-title"><span>🗂</span> Chi phí phát sinh (tuỳ chọn)</div>
+              <div className="card-title"><Layers size={15} /> Chi phí phát sinh (tuỳ chọn)</div>
               <Field label="Đóng gói, túi, nhãn mác... (% giá bán)" unit="%" badge={previewExtra ? `≈ ${previewExtra} / đơn` : ''}>
                 <input type="number" placeholder="0" inputMode="decimal" step="0.1"
                   value={formState['extra-pct']} onChange={e => updateField('extra-pct', e.target.value)} />
@@ -312,9 +315,9 @@ export default function Profit() {
             </div>
 
             {/* Action buttons */}
-            <button className="calc-btn" onClick={calculate}>⚡ Phân tích Lãi / Lỗ</button>
-            <button className="save-btn" onClick={saveSettings}>💾 Lưu làm mặc định</button>
-            <button className="reset-btn" onClick={resetAll}>↺ Xoá & Nhập lại</button>
+            <button className="calc-btn" onClick={calculate}>Phân tích Lãi / Lỗ</button>
+            <button className="save-btn" onClick={saveSettings}>Lưu làm mặc định</button>
+            <button className="reset-btn" onClick={resetAll}>Xoá & Nhập lại</button>
 
             {/* Mobile result (shown on small screens) */}
             {result && <div className="mobile-result"><ResultCard result={result} formState={formState} targetProfit={targetProfit} setTargetProfit={setTargetProfit} targetResult={targetResult} /></div>}
@@ -324,9 +327,9 @@ export default function Profit() {
           <div className="col-right">
             {!result ? (
               <div className="result-placeholder">
-                <div className="ph-icon-lg">📊</div>
+                <div className="ph-icon-lg"><TrendingUp size={36} /></div>
                 <strong>Kết quả sẽ hiện ở đây</strong>
-                <div>Điền thông tin sản phẩm và nhấn ⚡ Phân tích Lãi / Lỗ</div>
+                <div>Điền thông tin sản phẩm và nhấn <strong>Phân tích Lãi / Lỗ</strong></div>
               </div>
             ) : (
               <ResultCard result={result} formState={formState} targetProfit={targetProfit} setTargetProfit={setTargetProfit} targetResult={targetResult} />
@@ -335,7 +338,7 @@ export default function Profit() {
             {/* Multi-product summary */}
             {calculated.length >= 2 && (
               <div className="summary-card">
-                <div className="s-header">📊 Tổng hợp tất cả sản phẩm</div>
+                <div className="s-header">Tổng hợp tất cả sản phẩm</div>
                 {calculated.map(p => (
                   <div key={p.id}>
                     <div className="s-row" style={{ background: 'rgba(108,99,255,.04)' }}>
@@ -362,7 +365,7 @@ export default function Profit() {
             {calculated.length > 0 && (
               <div className="cpa-card">
                 <div className="cpa-header">
-                  <span>🎯 CPA tối đa theo sản phẩm</span>
+                  <span><Target size={14} style={{ verticalAlign: -2 }} /> CPA tối đa theo sản phẩm</span>
                   <span className="cpa-sub">Từ % Ads × Giá bán</span>
                 </div>
                 {calculated.filter(p => p.result.adsPct > 0).map(p => (
@@ -379,19 +382,19 @@ export default function Profit() {
           </div>
         </div>
 
-        {toast && <div className="toast show">{toast}</div>}
+        {toast && <div className="toast show" role="status" aria-live="polite">{toast}</div>}
       </div>
 
       <style jsx>{`
-        .profit-page { padding: 20px; max-width: 1200px; }
+        .profit-page { padding: 20px; max-width: 1200px; margin: 0 auto; }
 
         /* Banner */
         .saved-banner {
           display: flex; align-items: flex-start; gap: 10px;
-          background: var(--s1); border: 1px solid var(--bd); border-left: 3px solid var(--grn);
+          background: var(--s1); border: 1px solid rgba(16,185,129,.3);
           border-radius: 12px; padding: 12px 16px; margin-bottom: 16px;
         }
-        .sb-icon { font-size: 18px; flex-shrink: 0; }
+        .sb-icon { flex-shrink: 0; color: var(--grn); margin-top: 1px; }
         .sb-text { flex: 1; font-size: 13px; color: var(--txt); }
         .sb-meta { font-size: 11px; color: var(--mut); margin-top: 3px; }
         .sb-clear { background: transparent; border: 1px solid var(--bd); border-radius: 7px; padding: 3px 9px; font-size: 11px; color: var(--mut); cursor: pointer; flex-shrink: 0; }
@@ -399,16 +402,20 @@ export default function Profit() {
 
         /* Header */
         .page-header { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
-        .ph-icon { font-size: 32px; flex-shrink: 0; }
+        .ph-icon {
+          width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: center;
+          background: rgba(254,95,1,.08); color: var(--primary);
+        }
         h1 { font-size: 18px; font-weight: 700; color: var(--txt); margin-bottom: 3px; }
         p  { font-size: 12px; color: var(--mut); }
 
         /* Info block */
         .info-block {
-          background: var(--s1); border: 1px solid var(--bd); border-left: 3px solid var(--primary);
+          background: var(--s1); border: 1px solid var(--bd);
           border-radius: 12px; padding: 14px 16px; margin-bottom: 20px;
         }
-        .info-head { font-size: 12px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 8px; }
+        .info-head { font-size: 13px; font-weight: 600; color: var(--primary); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
         .info-body { font-size: 13px; line-height: 1.6; color: var(--txt); }
         .info-example {
           background: var(--s2); border: 1px solid var(--bd); border-radius: 8px;
@@ -446,7 +453,7 @@ export default function Profit() {
 
         /* Card */
         .card { background: var(--s1); border: 1px solid var(--bd); border-radius: 14px; padding: 18px; margin-bottom: 14px; }
-        .card-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: var(--mut); margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
+        .card-title { font-size: 13px; font-weight: 600; color: var(--txt); margin-bottom: 14px; display: flex; align-items: center; gap: 7px; }
         .name-input {
           width: 100%; background: var(--s2); border: 1px solid var(--bd); border-radius: 9px;
           padding: 10px 13px; font-size: 14px; font-weight: 500; color: var(--txt); outline: none;
@@ -464,25 +471,26 @@ export default function Profit() {
 
         /* Toggle */
         .toggle-row { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: var(--txt); margin-bottom: 12px; }
-        .toggle { width: 44px; height: 24px; background: var(--bd); border-radius: 12px; position: relative; cursor: pointer; transition: background .2s; flex-shrink: 0; }
+        .toggle { width: 44px; height: 24px; background: var(--bd); border: none; border-radius: 12px; position: relative; cursor: pointer; transition: background .2s; flex-shrink: 0; padding: 0; }
         .toggle.on { background: var(--primary); }
         .toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; background: white; border-radius: 50%; transition: transform .2s; }
         .toggle.on::after { transform: translateX(20px); }
+        .toggle:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 
         /* Action buttons */
         .calc-btn {
-          width: 100%; background: linear-gradient(135deg, var(--primary), var(--navy));
-          border: none; border-radius: 12px; padding: 15px; font-size: 15px; font-weight: 700;
+          width: 100%; background: var(--primary);
+          border: none; border-radius: 10px; padding: 14px; font-size: 14px; font-weight: 700;
           color: white; cursor: pointer; margin: 14px 0 8px; font-family: inherit;
-          transition: opacity .15s; box-shadow: 0 4px 14px rgba(254,95,1,.3);
+          transition: background .15s;
         }
-        .calc-btn:hover { opacity: .88; }
+        .calc-btn:hover { background: var(--navy); }
         .save-btn {
-          width: 100%; background: transparent; border: 1px solid rgba(254,95,1,.35);
-          border-radius: 12px; padding: 11px; font-size: 13px; font-weight: 500; color: var(--primary);
+          width: 100%; background: transparent; border: 1px solid var(--bd);
+          border-radius: 10px; padding: 11px; font-size: 13px; font-weight: 500; color: var(--txt);
           cursor: pointer; margin-bottom: 8px; font-family: inherit; transition: all .15s;
         }
-        .save-btn:hover { background: rgba(254,95,1,.06); border-color: var(--primary); }
+        .save-btn:hover { background: var(--s2); }
         .reset-btn {
           width: 100%; background: transparent; border: 1px solid var(--bd);
           border-radius: 12px; padding: 11px; font-size: 13px; color: var(--txt); opacity: .6;
@@ -497,7 +505,7 @@ export default function Profit() {
           background: var(--s1); border: 1px dashed var(--bd); border-radius: 14px;
           padding: 48px 24px; text-align: center; color: var(--mut); font-size: 13px; line-height: 1.7;
         }
-        .ph-icon-lg { font-size: 40px; opacity: .4; margin-bottom: 4px; }
+        .ph-icon-lg { opacity: .3; margin-bottom: 4px; color: var(--mut); }
 
         /* Summary */
         .summary-card { background: var(--s1); border: 1px solid rgba(0,196,140,.3); border-radius: 14px; overflow: hidden; }
@@ -512,12 +520,12 @@ export default function Profit() {
 
         /* CPA table */
         .cpa-card { background: var(--s1); border: 1px solid rgba(249,115,22,.25); border-radius: 14px; overflow: hidden; }
-        .cpa-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; font-size: 13px; font-weight: 700; color: #f97316; background: rgba(249,115,22,.07); border-bottom: 1px solid rgba(249,115,22,.15); }
+        .cpa-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; font-size: 13px; font-weight: 700; color: var(--ylw); background: rgba(249,115,22,.07); border-bottom: 1px solid rgba(249,115,22,.15); }
         .cpa-sub { font-size: 11px; color: var(--mut); font-weight: 400; }
         .cpa-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 16px; border-bottom: 1px solid var(--bd); font-size: 13px; }
         .cpa-row:last-child { border-bottom: none; }
         .cpa-name { font-weight: 600; color: var(--txt); }
-        .cpa-val  { font-size: 14px; font-weight: 700; color: #f97316; }
+        .cpa-val  { font-size: 14px; font-weight: 700; color: var(--ylw); }
         .cpa-empty { padding: 16px; text-align: center; color: var(--mut); font-size: 12px; }
 
         /* Toast */
@@ -525,8 +533,36 @@ export default function Profit() {
           position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
           background: var(--s1); border: 1px solid var(--bd); border-radius: 10px;
           padding: 9px 18px; font-size: 13px; font-weight: 500; color: var(--txt);
-          z-index: 9999; pointer-events: none; white-space: nowrap;
+          z-index: 50; pointer-events: none; white-space: nowrap;
           box-shadow: 0 4px 20px rgba(0,0,0,.35);
+        }
+
+        /* Focus indicators */
+        .calc-btn:focus-visible,
+        .save-btn:focus-visible,
+        .reset-btn:focus-visible,
+        .ptab:focus-visible,
+        .add-tab:focus-visible,
+        .sb-clear:focus-visible,
+        .qty-btn:focus-visible,
+        .name-input:focus-visible {
+          outline: 2px solid var(--blue); outline-offset: 2px;
+        }
+
+        /* Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+          .toggle::after { transition: none; }
+          .toast { animation: none; }
+        }
+
+        /* Mobile adjustments */
+        @media (max-width: 600px) {
+          .profit-page { padding: 12px; }
+          .page-header { gap: 10px; }
+          h1 { font-size: 16px; }
+          .tabs-row { flex-wrap: wrap; }
+          .calc-btn { padding: 14px; font-size: 14px; }
+          .card { padding: 14px; }
         }
       `}</style>
     </DashboardLayout>
@@ -617,7 +653,7 @@ function ResultCard({ result: r, formState, targetProfit, setTargetProfit, targe
           {r.qty > 1 && <Row l={`Lãi/lỗ × ${r.qty} đơn`} v={(r.profit >= 0 ? '+' : '') + fmt(r.profit * r.qty)} vc={clsColor} />}
           <Row l="ROI" v={r.roi.toFixed(1) + '%'} vc={r.roi >= 0 ? 'var(--grn)' : 'var(--red)'} />
           <div style={{ height: 1, background: 'var(--bd)', margin: '8px 0' }} />
-          <Row l="⚖️ Giá bán hoà vốn" v={fmt(r.breakeven)} vc="var(--ylw)" vb />
+          <Row l="Giá bán hoà vốn" v={fmt(r.breakeven)} vc="var(--ylw)" vb />
           <Row l="Cao hơn hoà vốn" v={(r.price - r.breakeven >= 0 ? '+' : '') + fmt(r.price - r.breakeven)} vc={r.price - r.breakeven >= 0 ? 'var(--grn)' : 'var(--red)'} />
         </div>
 
@@ -628,20 +664,20 @@ function ResultCard({ result: r, formState, targetProfit, setTargetProfit, targe
             <span style={{ fontWeight: 700, color: clsColor }}>{r.margin.toFixed(1)}%</span>
           </div>
           <div style={{ height: 8, background: 'var(--s2)', borderRadius: 4, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: Math.min(Math.max(r.margin, 0), 100) + '%', borderRadius: 4, background: r.profit >= 0 ? 'linear-gradient(90deg, var(--grn), #00b4d8)' : 'var(--red)', transition: 'width .5s' }} />
+            <div style={{ height: '100%', width: '100%', borderRadius: 4, background: r.profit >= 0 ? 'linear-gradient(90deg, var(--grn), var(--blue))' : 'var(--red)', transformOrigin: 'left', transform: `scaleX(${Math.min(Math.max(r.margin, 0), 100) / 100})`, transition: 'transform .5s cubic-bezier(.16,1,.3,1)' }} />
           </div>
         </div>
       </div>
 
       {/* Advice */}
       <div style={{ background: 'var(--s1)', border: '1px solid var(--bd)', borderRadius: 12, padding: '12px 16px', fontSize: 13, lineHeight: 1.7, color: 'var(--mut)', marginBottom: 10 }}>
-        <span dangerouslySetInnerHTML={{ __html: advice.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+        {advice}
       </div>
 
       {/* Target profit */}
       <div style={{ background: 'var(--s1)', border: '1px solid var(--bd)', borderRadius: 14, overflow: 'hidden', marginBottom: 10 }}>
         <div style={{ background: 'var(--s2)', padding: '13px 16px', borderBottom: '1px solid var(--bd)' }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--txt)', marginBottom: 10 }}>🎯 Muốn đạt lợi nhuận bao nhiêu / tháng?</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--txt)', marginBottom: 10 }}>Muốn đạt lợi nhuận bao nhiêu / tháng?</div>
           <div style={{ display: 'flex', gap: 8 }}>
             <div style={{ flex: 1, position: 'relative' }}>
               <input type="number" placeholder="100,000,000" inputMode="numeric"

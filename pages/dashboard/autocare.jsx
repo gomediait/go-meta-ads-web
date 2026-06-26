@@ -3,11 +3,12 @@ import Link from 'next/link'
 import DashboardLayout from '../../components/DashboardLayout'
 import { useAuth } from '../../lib/AuthContext'
 import { isPlanAllowed } from '../../lib/planLimits'
+import { Lock, Link2, HeartHandshake, Pencil, Trash2, Pause, Play, FlaskConical, Info } from 'lucide-react'
 
 function PlanGate({ feature }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', textAlign: 'center', padding: 40 }}>
-      <div style={{ fontSize: 64, marginBottom: 16 }}>🔒</div>
+      <div style={{ marginBottom: 16, color: 'var(--mut)' }}><Lock size={48} /></div>
       <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8 }}>Tính năng này yêu cầu nâng cấp gói</h2>
       <p style={{ color: 'var(--mut)', marginBottom: 24, maxWidth: 400 }}>
         {feature} chỉ dành cho gói <strong>Personal</strong> trở lên. Nâng cấp ngay để sử dụng đầy đủ tính năng.
@@ -288,7 +289,7 @@ export default function AutoCare() {
     <DashboardLayout title="Auto Care">
       {toast && (
         <div style={{
-          position: 'fixed', top: 16, right: 16, zIndex: 99999,
+          position: 'fixed', top: 16, right: 16, zIndex: 50,
           padding: '10px 18px', borderRadius: 10, fontSize: 13, fontWeight: 600,
           color: '#fff', background: toast.type === 'error' ? '#ef4444' : '#10b981',
           boxShadow: '0 4px 16px rgba(0,0,0,.25)', pointerEvents: 'none',
@@ -300,7 +301,7 @@ export default function AutoCare() {
         {/* Header */}
         <div className="page-header">
           <div className="ph-left">
-            <span className="page-icon">💚</span>
+            <span className="page-icon"><HeartHandshake size={22} /></span>
             <div>
               <h1>Auto Care — Giờ tắt quảng cáo</h1>
               <p>Tạo nhiều rules tự động tạm dừng và khôi phục chiến dịch theo khung giờ khác nhau</p>
@@ -311,7 +312,7 @@ export default function AutoCare() {
 
         {!fbConnected ? (
           <div className="fb-required">
-            <div className="fbr-icon">🔗</div>
+            <div className="fbr-icon"><Link2 size={28} /></div>
             <div className="fbr-title">Cần kết nối Facebook Ads</div>
             <div className="fbr-desc">Tính năng Auto Care yêu cầu kết nối tài khoản Facebook Ads để tự động điều chỉnh chiến dịch.</div>
             <Link href="/settings/connect-facebook" className="fbr-btn">Kết nối ngay →</Link>
@@ -323,7 +324,7 @@ export default function AutoCare() {
             {/* Create/Edit form */}
             {showForm && (
               <div className="card form-card">
-                <div className="card-title">{editingRuleId ? '✏️ Sửa Rule' : '➕ Tạo Rule mới'}</div>
+                <div className="card-title">{editingRuleId ? 'Sửa Rule' : 'Tạo Rule mới'}</div>
 
                 <div className="form-row">
                   <label className="label">Tên Rule</label>
@@ -452,7 +453,7 @@ export default function AutoCare() {
             {/* Rules list */}
             {rules.length === 0 && !showForm ? (
               <div className="empty-state">
-                <div className="empty-icon">💚</div>
+                <div className="empty-icon"><HeartHandshake size={36} /></div>
                 <div className="empty-title">Chưa có rule Auto Care nào</div>
                 <div className="empty-desc">Tạo rule đầu tiên để tự động tắt/bật chiến dịch theo giờ nghỉ.</div>
                 <button className="btn-add" onClick={openCreateForm}>+ Tạo Rule mới</button>
@@ -465,7 +466,7 @@ export default function AutoCare() {
                       <div className="rule-info">
                         <div className="rule-name">{rule.name || 'Rule không tên'}</div>
                         <div className="rule-meta">
-                          ⏸ {rule.pause_at} → ▶ {rule.resume_at} · {describeSelection(rule)}
+                          Pause {rule.pause_at} → Resume {rule.resume_at} · {describeSelection(rule)}
                         </div>
                       </div>
                       <div className="rule-actions">
@@ -530,24 +531,24 @@ export default function AutoCare() {
                         onClick={() => handleAction(rule.id, 'pause_now')}
                         disabled={runningId === rule.id}
                       >
-                        {runningId === rule.id ? '⏳' : '⏸'} Pause ngay
+                        {runningId === rule.id ? '...' : <><Pause size={12} /></>} Pause ngay
                       </button>
                       <button
                         className="btn-resume-now"
                         onClick={() => handleAction(rule.id, 'resume_now')}
                         disabled={runningId === rule.id}
                       >
-                        {runningId === rule.id ? '⏳' : '▶'} Resume ngay
+                        {runningId === rule.id ? '...' : <><Play size={12} /></>} Resume ngay
                       </button>
                       <button
                         className="btn-test-cron"
                         onClick={() => handleTestCron(rule.id)}
                         disabled={testingId === rule.id}
                       >
-                        {testingId === rule.id ? '⏳...' : '🧪 Test cron'}
+                        {testingId === rule.id ? '...' : <><FlaskConical size={12} /> Test cron</>}
                       </button>
-                      <button className="btn-edit" onClick={() => startEdit(rule)}>✏️ Sửa</button>
-                      <button className="btn-delete" onClick={() => deleteRule(rule.id, rule.name)}>🗑</button>
+                      <button className="btn-edit" onClick={() => startEdit(rule)}><Pencil size={12} /> Sửa</button>
+                      <button className="btn-delete" onClick={() => deleteRule(rule.id, rule.name)}><Trash2 size={12} /></button>
                     </div>
                   </div>
                 ))}
@@ -556,7 +557,7 @@ export default function AutoCare() {
 
             {/* Info card */}
             <div className="info-card">
-              <div className="info-icon">ℹ️</div>
+              <div className="info-icon"><Info size={18} /></div>
               <div className="info-body">
                 <div className="info-title">Cách hoạt động</div>
                 <div className="info-text">
@@ -571,11 +572,15 @@ export default function AutoCare() {
       </div>
 
       <style jsx>{`
-        .page-wrap { padding: 24px; max-width: 860px; position: relative; }
+        .page-wrap { padding: 24px; max-width: 860px; margin: 0 auto; position: relative; }
 
         .page-header { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 22px; flex-wrap: wrap; }
         .ph-left { display: flex; align-items: center; gap: 14px; }
-        .page-icon { font-size: 32px; }
+        .page-icon {
+          width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: center;
+          background: rgba(16,185,129,.08); color: var(--grn);
+        }
         h1 { font-size: 20px; font-weight: 700; color: var(--txt); margin-bottom: 4px; }
         p  { font-size: 13px; color: var(--mut); }
 
@@ -815,9 +820,32 @@ export default function AutoCare() {
           background: rgba(59,130,246,.07); border: 1px solid rgba(59,130,246,.2);
           border-radius: 12px; padding: 16px; margin-top: 16px;
         }
-        .info-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+        .info-icon { flex-shrink: 0; margin-top: 2px; color: var(--blue); }
         .info-title { font-size: 13px; font-weight: 700; color: var(--txt); margin-bottom: 5px; }
         .info-text  { font-size: 12px; color: var(--mut); line-height: 1.7; }
+
+        /* Focus indicators */
+        .btn-add:focus-visible, .btn-save:focus-visible, .btn-cancel:focus-visible,
+        .btn-pause-now:focus-visible, .btn-resume-now:focus-visible,
+        .btn-test-cron:focus-visible, .btn-edit:focus-visible, .btn-delete:focus-visible,
+        .text-input:focus-visible, .time-input:focus-visible {
+          outline: 2px solid var(--blue); outline-offset: 2px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+          .page-wrap { padding: 16px; }
+          .page-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+          .btn-add { width: 100%; text-align: center; }
+          .two-col { grid-template-columns: 1fr; }
+          .rule-btns { flex-wrap: wrap; }
+          .rule-btns button { flex: 1; min-width: 0; justify-content: center; }
+        }
+
+        /* Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+          .slider::before { transition: none; }
+        }
       `}</style>
     </DashboardLayout>
   )

@@ -6,24 +6,40 @@ import { useAuth } from '../lib/AuthContext'
 import { useLang } from '../lib/LangContext'
 import { isPlanAllowed } from '../lib/planLimits'
 import pkg from '../package.json'
+import { LayoutDashboard, Coins, BarChart3, HeartHandshake, Settings2, ClipboardList, ShieldCheck, Bell, Users, Handshake, LifeBuoy, BookOpen, Sun, Moon, LogOut, Link as LinkIcon, ChevronLeft, ChevronRight, Lock } from 'lucide-react'
+
+const NAV_ICONS = {
+  campaigns: LayoutDashboard,
+  profit: Coins,
+  report: BarChart3,
+  autocare: HeartHandshake,
+  autoset: Settings2,
+  rules: ClipboardList,
+  policycheck: ShieldCheck,
+  notifications: Bell,
+  team: Users,
+  affiliate: Handshake,
+  support: LifeBuoy,
+  guide: BookOpen,
+}
 
 function getNav(dt) {
   const n = dt.nav || {}
   return [
-    { href: '/dashboard',             icon: '📊', labelKey: 'campaigns',    needFb: true,  feature: 'campaigns'     },
-    { href: '/dashboard/profit',      icon: '💰', labelKey: 'profit',       needFb: false, feature: 'profit'        },
-    { href: '/dashboard/report',      icon: '📈', labelKey: 'report',       needFb: true,  feature: 'report'        },
-    { href: '/dashboard/autocare',    icon: '💚', labelKey: 'autocare',     needFb: true,  feature: 'autocare'      },
-    { href: '/dashboard/autoset',     icon: '⚙️', labelKey: 'autoset',      needFb: true,  feature: 'autoset'       },
-    { href: '/dashboard/automated-rules', icon: '📋', labelKey: 'rules',    needFb: true,  feature: 'autoset'       },
-    { href: '/dashboard/policycheck', icon: '🛡️', labelKey: 'policycheck',  needFb: false, feature: 'policycheck'   },
+    { href: '/dashboard',             iconKey: 'campaigns',    labelKey: 'campaigns',    needFb: true,  feature: 'campaigns'     },
+    { href: '/dashboard/profit',      iconKey: 'profit',       labelKey: 'profit',       needFb: false, feature: 'profit'        },
+    { href: '/dashboard/report',      iconKey: 'report',       labelKey: 'report',       needFb: true,  feature: 'report'        },
+    { href: '/dashboard/autocare',    iconKey: 'autocare',     labelKey: 'autocare',     needFb: true,  feature: 'autocare'      },
+    { href: '/dashboard/autoset',     iconKey: 'autoset',      labelKey: 'autoset',      needFb: true,  feature: 'autoset'       },
+    { href: '/dashboard/automated-rules', iconKey: 'rules',    labelKey: 'rules',        needFb: true,  feature: 'autoset'       },
+    { href: '/dashboard/policycheck', iconKey: 'policycheck',  labelKey: 'policycheck',  needFb: false, feature: 'policycheck'   },
     { divider: true },
-    { href: '/dashboard/notifications',icon:'🔔', labelKey: 'notifications', needFb: true, feature: 'notifications' },
-    { href: '/dashboard/team',        icon: '👥', labelKey: 'team',          needFb: false, feature: 'team'         },
-    { href: '/dashboard/affiliate',   icon: '🤝', labelKey: 'affiliate',     needFb: false, feature: 'affiliate'    },
+    { href: '/dashboard/notifications',iconKey:'notifications', labelKey: 'notifications', needFb: true, feature: 'notifications' },
+    { href: '/dashboard/team',        iconKey: 'team',          labelKey: 'team',          needFb: false, feature: 'team'         },
+    { href: '/dashboard/affiliate',   iconKey: 'affiliate',     labelKey: 'affiliate',     needFb: false, feature: 'affiliate'    },
     { divider: true },
-    { href: '/dashboard/support',     icon: '🎫', labelKey: 'support',       needFb: false, feature: 'support'      },
-    { href: 'https://adsmeta.gonetwork.vn/huong-dan', icon: '📖', labelKey: 'guide', external: true },
+    { href: '/dashboard/support',     iconKey: 'support',       labelKey: 'support',       needFb: false, feature: 'support'      },
+    { href: 'https://adsmeta.gonetwork.vn/huong-dan', iconKey: 'guide', labelKey: 'guide', external: true },
   ].map(item => item.divider ? item : { ...item, label: n[item.labelKey] || item.labelKey })
 }
 
@@ -85,7 +101,7 @@ export default function DashboardLayout({ children, title = 'Dashboard' }) {
           <div className="topbar-mid">
             {!fbConnected && (
               <Link href="/settings/connect-facebook" className="fb-connect-btn">
-                {dt.topbar?.fbConnect || '🔗 Kết nối Facebook Ads'}
+                <LinkIcon size={13} style={{ marginRight: 4 }} />{dt.topbar?.fbConnect || 'Kết nối Facebook Ads'}
               </Link>
             )}
             {fbConnected && (
@@ -104,9 +120,9 @@ export default function DashboardLayout({ children, title = 'Dashboard' }) {
             <button className="icon-btn lang-btn" onClick={() => setLang(lang === 'vi' ? 'en' : 'vi')} title={dt.topbar?.switchLang || 'Switch language'}>
               {lang === 'vi' ? '🇬🇧 EN' : '🇻🇳 VI'}
             </button>
-            <button className="icon-btn" onClick={toggleTheme} title={dt.topbar?.toggleTheme || 'Toggle theme'}>{theme === 'dark' ? '☀️' : '🌙'}</button>
-            <Link href="/settings" className="icon-btn" title={dt.topbar?.settings || 'Settings'}>⚙️</Link>
-            <button className="icon-btn logout-btn" onClick={logout} title={dt.topbar?.logout || 'Log out'}>↪</button>
+            <button className="icon-btn" onClick={toggleTheme} title={dt.topbar?.toggleTheme || 'Toggle theme'}>{theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}</button>
+            <Link href="/settings" className="icon-btn" title={dt.topbar?.settings || 'Settings'}><Settings2 size={16} /></Link>
+            <button className="icon-btn logout-btn" onClick={logout} title={dt.topbar?.logout || 'Log out'}><LogOut size={16} /></button>
           </div>
         </header>
 
@@ -121,10 +137,11 @@ export default function DashboardLayout({ children, title = 'Dashboard' }) {
                 const planLocked = item.feature && !isPlanAllowed(user?.plan || 'trial', item.feature)
                 const locked     = fbLocked || planLocked
 
+                const IconComp = NAV_ICONS[item.iconKey] || LayoutDashboard
                 if (item.external) {
                   return (
                     <a key={item.href} href={item.href} target="_blank" rel="noopener" className="sidebar-btn">
-                      <span className="sb-icon">{item.icon}</span>
+                      <span className="sb-icon"><IconComp size={18} /></span>
                       <span className="sb-label">{item.label}</span>
                     </a>
                   )
@@ -135,15 +152,15 @@ export default function DashboardLayout({ children, title = 'Dashboard' }) {
                   <Link key={item.href} href={locked ? lockHref : item.href}
                     className={`sidebar-btn${isActive ? ' active' : ''}${locked ? ' locked' : ''}`}
                     title={lockTitle}>
-                    <span className="sb-icon">{item.icon}</span>
-                    <span className="sb-label">{item.label}{locked ? ' 🔒' : ''}</span>
+                    <span className="sb-icon"><IconComp size={18} /></span>
+                    <span className="sb-label">{item.label}{locked && <Lock size={12} style={{ marginLeft: 4, opacity: .5 }} />}</span>
                   </Link>
                 )
               })}
             </div>
             <div className="sidebar-footer">
               <button className="sidebar-toggle" onClick={() => setCollapsed(c => !c)}>
-                <span className="sb-toggle-arrow">{collapsed ? '▶' : '◀'}</span>
+                <span className="sb-toggle-arrow">{collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}</span>
                 {!collapsed && <span className="sb-toggle-text">Thu gọn</span>}
               </button>
             </div>

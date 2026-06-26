@@ -1,13 +1,14 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
 import { useAuth } from '../../lib/AuthContext'
 import Link from 'next/link'
 import { isPlanAllowed } from '../../lib/planLimits'
+import { Settings2, Link2, Lock, Pencil, Trash2, Save, Eye, Play, Plus, History, Lightbulb, Pause, TrendingUp, TrendingDown, Bell as BellIcon } from 'lucide-react'
 
 function PlanGate({ feature }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', textAlign: 'center', padding: 40 }}>
-      <div style={{ fontSize: 64, marginBottom: 16 }}>🔒</div>
+      <div style={{ marginBottom: 16, color: 'var(--mut)' }}><Lock size={48} /></div>
       <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8 }}>Tính năng này yêu cầu nâng cấp gói</h2>
       <p style={{ color: 'var(--mut)', marginBottom: 24, maxWidth: 400 }}>
         {feature} chỉ dành cho gói <strong>Personal</strong> trở lên. Nâng cấp ngay để sử dụng đầy đủ tính năng.
@@ -36,11 +37,11 @@ const OPERATORS = [
 ]
 
 const ACTIONS = [
-  { value: 'pause',         label: '⏸ Dừng adset (PAUSE)',     hasScale: false },
-  { value: 'resume',        label: '▶ Bật lại adset (ACTIVE)',  hasScale: false },
-  { value: 'scale_budget',  label: '📈 Tăng ngân sách',         hasScale: true },
-  { value: 'reduce_budget', label: '📉 Giảm ngân sách',         hasScale: true },
-  { value: 'notify_only',   label: '🔔 Chỉ thông báo',          hasScale: false },
+  { value: 'pause',         label: 'Dừng adset (PAUSE)',     hasScale: false },
+  { value: 'resume',        label: 'Bật lại adset (ACTIVE)',  hasScale: false },
+  { value: 'scale_budget',  label: 'Tăng ngân sách',         hasScale: true },
+  { value: 'reduce_budget', label: 'Giảm ngân sách',         hasScale: true },
+  { value: 'notify_only',   label: 'Chỉ thông báo',          hasScale: false },
 ]
 
 const TIME_RANGES = [
@@ -377,7 +378,7 @@ export default function AutomatedRules() {
       <DashboardLayout title="Quy tắc tự động">
         <div style={{ padding: 24 }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, background: 'var(--s1)', border: '1px solid var(--bd)', borderRadius: 16, padding: '48px 32px', textAlign: 'center' }}>
-            <div style={{ fontSize: 40 }}>🔗</div>
+            <div style={{ color: 'var(--mut)' }}><Link2 size={36} /></div>
             <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--txt)' }}>Cần kết nối Facebook Ads</div>
             <div style={{ fontSize: 13, color: 'var(--mut)', maxWidth: 380, lineHeight: 1.6 }}>Tính năng Quy tắc tự động yêu cầu kết nối tài khoản Facebook Ads.</div>
             <Link href="/settings/connect-facebook" style={{ background: '#1877f2', color: '#fff', borderRadius: 9, padding: '10px 20px', fontSize: 13, fontWeight: 700, textDecoration: 'none', marginTop: 8 }}>Kết nối ngay →</Link>
@@ -402,7 +403,7 @@ export default function AutomatedRules() {
         {/* Header */}
         <div className="page-header">
           <div className="ph-left">
-            <span className="ph-icon">⚙️</span>
+            <span className="ph-icon"><Settings2 size={22} /></span>
             <div>
               <h1>Quy tắc tự động</h1>
               <p>Tạo rules tự động kiểm soát và tối ưu adset theo điều kiện</p>
@@ -410,10 +411,10 @@ export default function AutomatedRules() {
           </div>
           <div className="ph-actions">
             <button className="btn-preview" onClick={handleDryRun} disabled={dryRunning || running || !rules.filter(r => r.enabled).length}>
-              {dryRunning ? '⏳...' : '👁 Xem trước'}
+              {dryRunning ? '...' : <><Eye size={14} style={{ verticalAlign: -2 }} /> Xem trước</>}
             </button>
             <button className="btn-run" onClick={handleRun} disabled={running || dryRunning || !rules.filter(r => r.enabled).length}>
-              {running ? '⏳ Đang chạy...' : '▶ Chạy Rules Ngay'}
+              {running ? 'Đang chạy...' : <><Play size={13} style={{ verticalAlign: -2 }} /> Chạy Rules Ngay</>}
             </button>
             <button className="btn-add" onClick={() => { setShowForm(true); setRunResults(null); setSelectedCampIds([]); setSelectedAdsetIds([]) }}>
               + Tạo Rule mới
@@ -424,7 +425,7 @@ export default function AutomatedRules() {
         {/* Create form */}
         {showForm && (
           <div className="form-card">
-            <div className="form-title">{editingRuleId ? '✏️ Sửa Rule' : 'Tạo Rule mới'}</div>
+            <div className="form-title">{editingRuleId ? 'Sửa Rule' : 'Tạo Rule mới'}</div>
 
             <div className="form-row">
               <label>Tên Rule</label>
@@ -612,7 +613,7 @@ export default function AutomatedRules() {
             <div className="form-btns">
               <button className="btn-cancel" onClick={() => { setShowForm(false); setEditingRuleId(null) }}>Huỷ</button>
               <button className="btn-save" onClick={handleSave} disabled={saving}>
-                {saving ? 'Đang lưu...' : editingRuleId ? '💾 Cập nhật Rule' : '💾 Lưu Rule'}
+                {saving ? 'Đang lưu...' : editingRuleId ? 'Cập nhật Rule' : 'Lưu Rule'}
               </button>
             </div>
           </div>
@@ -665,7 +666,7 @@ export default function AutomatedRules() {
           <div className="loading">Đang tải...</div>
         ) : rules.length === 0 ? (
           <div className="empty">
-            <div style={{ fontSize: 40 }}>⚙️</div>
+            <div style={{ color: 'var(--mut)' }}><Settings2 size={36} /></div>
             <div style={{ fontWeight: 700 }}>Chưa có rule nào</div>
             <div style={{ fontSize: 13, color: 'var(--mut)' }}>Tạo rule đầu tiên để tự động kiểm soát adset theo điều kiện bạn đặt ra</div>
             <button className="btn-add" onClick={() => setShowForm(true)}>+ Tạo Rule đầu tiên</button>
@@ -678,15 +679,16 @@ export default function AutomatedRules() {
                   <div className="rule-left">
                     <button
                       className={`toggle-btn ${rule.enabled ? 'on' : 'off'}`}
+                      role="switch" aria-checked={rule.enabled}
+                      aria-label={`${rule.name}: ${rule.enabled ? 'đang bật' : 'đang tắt'}`}
                       onClick={() => toggleRule(rule.id, rule.enabled)}
-                      title={rule.enabled ? 'Đang bật — click để tắt' : 'Đang tắt — click để bật'}
                     >
                       <span className="toggle-thumb" />
                     </button>
                     <div>
                       <div className="rule-name">{rule.name}</div>
                       <div className="rule-meta">
-                        {rule.level === 'campaign' ? '📢 Campaign' : '📦 Adset'}
+                        {rule.level === 'campaign' ? 'Campaign' : 'Adset'}
                         {' · '}
                         {TIME_RANGES.find(t => t.value === rule.time_range)?.label || rule.time_range}
                         {' · '}
@@ -696,8 +698,8 @@ export default function AutomatedRules() {
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 4 }}>
-                    <button className="edit-btn" onClick={() => startEdit(rule)} title="Sửa rule">✏️</button>
-                    <button className="del-btn" onClick={() => deleteRule(rule.id, rule.name)}>🗑</button>
+                    <button className="edit-btn" onClick={() => startEdit(rule)} title="Sửa rule"><Pencil size={14} /></button>
+                    <button className="del-btn" onClick={() => deleteRule(rule.id, rule.name)}><Trash2 size={14} /></button>
                   </div>
                 </div>
 
@@ -739,7 +741,7 @@ export default function AutomatedRules() {
         {/* History section */}
         <div className="history-section">
           <div className="history-header" onClick={toggleHistory} style={{ cursor: 'pointer' }}>
-            <span style={{ fontWeight: 700, fontSize: 14 }}>📋 Lịch sử chạy</span>
+            <span style={{ fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}><History size={15} /> Lịch sử chạy</span>
             <span style={{ fontSize: 12, color: 'var(--mut)' }}>{historyOpen ? '▲' : '▼'}</span>
           </div>
           {historyOpen && (
@@ -790,17 +792,17 @@ export default function AutomatedRules() {
         </div>
 
         <div className="hint">
-          <strong>💡 Lưu ý:</strong> Rules chạy tự động mỗi giờ (qua cron) hoặc khi bạn nhấn &ldquo;Chạy Rules Ngay&rdquo;.
+          <strong>Lưu ý:</strong> Rules chạy tự động mỗi giờ (qua cron) hoặc khi bạn nhấn &ldquo;Chạy Rules Ngay&rdquo;.
           Các điều kiện trong 1 rule đều phải đúng cùng lúc (AND logic).
         </div>
       </div>
 
       {/* Dry-run modal */}
       {dryRunResults && (
-        <div className="modal-overlay" onClick={() => setDryRunResults(null)}>
+        <div className="modal-overlay" onClick={() => setDryRunResults(null)} role="dialog" aria-modal="true" aria-label="Xem trước kết quả">
           <div className="modal-box" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <div style={{ fontWeight: 700, fontSize: 15 }}>👁 Xem trước kết quả — DRY RUN</div>
+              <div style={{ fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', gap: 6 }}><Eye size={16} /> Xem trước kết quả — DRY RUN</div>
               <button className="modal-close" onClick={() => setDryRunResults(null)}>×</button>
             </div>
             <div style={{ padding: '8px 0', fontSize: 12, color: '#f59e0b', fontWeight: 600 }}>
@@ -839,10 +841,10 @@ export default function AutomatedRules() {
       )}
 
       <style jsx>{`
-        .as-page { padding: 24px; max-width: 900px; position: relative; }
+        .as-page { padding: 24px; max-width: 900px; margin: 0 auto; position: relative; }
 
         .toast {
-          position: fixed; top: 16px; right: 16px; z-index: 9999;
+          position: fixed; top: 16px; right: 16px; z-index: 50;
           max-width: 260px; padding: 9px 14px; border-radius: 8px;
           background: #10b981; color: #fff; font-size: 12px; font-weight: 600;
           line-height: 1.4; box-shadow: 0 3px 12px rgba(0,0,0,.18);
@@ -876,8 +878,8 @@ export default function AutomatedRules() {
         .tree-node { border-bottom: 1px solid var(--bd); }
         .tree-node:last-child { border-bottom: none; }
         .tree-row { display: flex; align-items: center; gap: 6px; padding: 6px 10px; transition: background .1s; }
-        .tree-row:hover { background: rgba(99,102,241,.04); }
-        .tree-row-sel { background: rgba(99,102,241,.07); }
+        .tree-row:hover { background: rgba(59,130,246,.04); }
+        .tree-row-sel { background: rgba(59,130,246,.07); }
         .tree-expand { background: none; border: none; cursor: pointer; font-size: 9px; color: var(--mut); width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .tree-info { min-width: 0; flex: 1; cursor: pointer; }
         .tree-name { font-size: 12px; font-weight: 600; color: var(--txt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -888,7 +890,7 @@ export default function AutomatedRules() {
         .tree-adsets { margin-left: 24px; border-left: 2px solid var(--bd); background: rgba(0,0,0,.01); }
         .tree-adset-row { display: flex; align-items: center; gap: 6px; padding: 4px 10px; font-size: 11px; cursor: pointer; transition: background .1s; border-bottom: 1px solid rgba(148,163,184,.12); }
         .tree-adset-row:last-child { border-bottom: none; }
-        .tree-adset-row:hover { background: rgba(99,102,241,.04); }
+        .tree-adset-row:hover { background: rgba(59,130,246,.04); }
         .tree-adset-name { flex: 1; color: var(--txt); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .tree-loading { padding: 6px 10px; font-size: 10px; color: var(--mut); }
 
@@ -897,14 +899,18 @@ export default function AutomatedRules() {
         .history-header { display: flex; justify-content: space-between; align-items: center; }
 
         /* Modal */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 40; display: flex; align-items: center; justify-content: center; padding: 20px; }
         .modal-box { background: var(--s1); border-radius: 16px; padding: 20px; width: 100%; max-width: 700px; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
         .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--mut); }
 
         .page-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
         .ph-left { display: flex; align-items: center; gap: 14px; }
-        .ph-icon { font-size: 32px; }
+        .ph-icon {
+          width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: center;
+          background: rgba(254,95,1,.08); color: var(--primary);
+        }
         h1 { font-size: 18px; font-weight: 700; color: var(--txt); margin-bottom: 4px; }
         p  { font-size: 13px; color: var(--mut); }
         .ph-actions { display: flex; gap: 10px; }
@@ -930,7 +936,7 @@ export default function AutomatedRules() {
         }
         .form-title { font-size: 14px; font-weight: 700; color: var(--txt); margin-bottom: 16px; }
         .form-row { margin-bottom: 14px; }
-        .form-row label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--mut); margin-bottom: 6px; }
+        .form-row label { display: block; font-size: 12px; font-weight: 600; color: var(--mut); margin-bottom: 6px; }
         .inp {
           width: 100%; background: var(--s2); border: 1.5px solid var(--bd); border-radius: 9px;
           padding: 9px 12px; font-size: 14px; color: var(--txt); outline: none; font-family: inherit;
@@ -990,7 +996,7 @@ export default function AutomatedRules() {
         .rule-body { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
         .rule-conditions { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; }
         .cond-tag { background: var(--s2); border: 1px solid var(--bd); border-radius: 20px; padding: 3px 10px; font-size: 12px; color: var(--txt); }
-        .rule-action-badge { background: rgba(99,102,241,.12); color: #818cf8; border-radius: 8px; padding: 5px 12px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+        .rule-action-badge { background: rgba(59,130,246,.12); color: var(--blue); border-radius: 8px; padding: 5px 12px; font-size: 12px; font-weight: 600; white-space: nowrap; }
         .rule-last-result { font-size: 12px; color: var(--mut); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--bd); }
 
         .empty {
@@ -1002,9 +1008,38 @@ export default function AutomatedRules() {
         .loading { color: var(--mut); font-size: 13px; padding: 24px; text-align: center; }
 
         .hint {
-          margin-top: 20px; padding: 12px 16px; background: rgba(99,102,241,.06);
-          border: 1px solid rgba(99,102,241,.2); border-radius: 10px;
+          margin-top: 20px; padding: 12px 16px; background: rgba(59,130,246,.06);
+          border: 1px solid rgba(59,130,246,.2); border-radius: 10px;
           font-size: 12px; color: var(--mut); line-height: 1.6;
+        }
+
+        /* Focus indicators */
+        .btn-add:focus-visible, .btn-run:focus-visible, .btn-preview:focus-visible,
+        .btn-save:focus-visible, .btn-cancel:focus-visible, .toggle-btn:focus-visible,
+        .edit-btn:focus-visible, .del-btn:focus-visible, .level-tab:focus-visible,
+        .inp:focus-visible, .cond-sel:focus-visible, .cond-op:focus-visible,
+        .cond-val:focus-visible, .modal-close:focus-visible {
+          outline: 2px solid var(--blue); outline-offset: 2px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+          .as-page { padding: 16px; }
+          .page-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+          .ph-actions { width: 100%; flex-wrap: wrap; }
+          .ph-actions .btn-add, .ph-actions .btn-run, .ph-actions .btn-preview { flex: 1; min-width: 0; text-align: center; justify-content: center; display: flex; align-items: center; gap: 4px; }
+          .condition-row { flex-direction: column; gap: 6px; }
+          .cond-sel, .cond-op, .cond-val { width: 100%; min-width: 0; }
+          .modal-box { max-width: calc(100vw - 32px); padding: 16px; }
+          .res-table { font-size: 11px; }
+          .res-table th, .res-table td { padding: 5px 6px; }
+          .rule-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+        }
+
+        /* Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+          .toast { animation: none; }
+          .toggle-thumb { transition: none; }
         }
       `}</style>
     </DashboardLayout>

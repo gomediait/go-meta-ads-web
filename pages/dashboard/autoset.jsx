@@ -3,11 +3,12 @@ import Link from 'next/link'
 import DashboardLayout from '../../components/DashboardLayout'
 import { useAuth } from '../../lib/AuthContext'
 import { isPlanAllowed } from '../../lib/planLimits'
+import { Lock, Link2, Megaphone, MessageCircle, Lightbulb, Play, History, AlertTriangle } from 'lucide-react'
 
 function PlanGate({ feature }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', textAlign: 'center', padding: 40 }}>
-      <div style={{ fontSize: 64, marginBottom: 16 }}>🔒</div>
+      <div style={{ marginBottom: 16, color: 'var(--mut)' }}><Lock size={48} /></div>
       <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8 }}>Tính năng này yêu cầu nâng cấp gói</h2>
       <p style={{ color: 'var(--mut)', marginBottom: 24, maxWidth: 400 }}>
         {feature} chỉ dành cho gói <strong>Personal</strong> trở lên.
@@ -20,9 +21,9 @@ function PlanGate({ feature }) {
 }
 
 const OBJECTIVES = [
-  { value: 'OUTCOME_AWARENESS', label: 'Mức độ nhận biết', icon: '📢', desc: 'Nhiều người thấy quảng cáo' },
-  { value: 'OUTCOME_TRAFFIC', label: 'Lượng truy cập', icon: '🔗', desc: 'Nhiều người click vào link' },
-  { value: 'OUTCOME_ENGAGEMENT', label: 'Lượt tương tác', icon: '💬', desc: 'Nhiều like, comment, share' },
+  { value: 'OUTCOME_AWARENESS', label: 'Mức độ nhận biết', icon: 'megaphone', desc: 'Nhiều người thấy quảng cáo' },
+  { value: 'OUTCOME_TRAFFIC', label: 'Lượng truy cập', icon: 'link', desc: 'Nhiều người click vào link' },
+  { value: 'OUTCOME_ENGAGEMENT', label: 'Lượt tương tác', icon: 'message', desc: 'Nhiều like, comment, share' },
 ]
 
 const INDUSTRIES = [
@@ -174,8 +175,9 @@ export default function AutoSet() {
         interests.length > 0 ? fetch('/api/fb/targeting-search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ keywords: interests, type: 'interest' }) }).then(r => r.json()) : { ok: true, results: [] },
         behaviors.length > 0 ? fetch('/api/fb/targeting-search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ keywords: behaviors, type: 'behavior' }) }).then(r => r.json()) : { ok: true, results: [] },
       ])
-      setInterestResults(intRes?.results || [])
-      setBehaviorResults(behRes?.results || [])
+      const dedupById = arr => { const seen = new Set(); return arr.filter(r => { if (seen.has(r.id)) return false; seen.add(r.id); return true }) }
+      setInterestResults(dedupById(intRes?.results || []))
+      setBehaviorResults(dedupById(behRes?.results || []))
     } catch {}
     finally { setSearchingTargets(false) }
   }
@@ -343,7 +345,7 @@ export default function AutoSet() {
 
         {!fbConnected ? (
           <div className="empty-box">
-            <div style={{ fontSize: 40 }}>🔗</div>
+            <div style={{ color: 'var(--mut)' }}><Link2 size={36} /></div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>Cần kết nối Facebook Ads</div>
             <Link href="/settings/connect-facebook" className="link-btn">Kết nối ngay →</Link>
           </div>
@@ -375,7 +377,7 @@ export default function AutoSet() {
                         className={`obj-card${selectedObjective === o.value ? ' obj-active' : ''}`}
                         onClick={() => setSelectedObjective(o.value)}
                       >
-                        <div className="obj-icon">{o.icon}</div>
+                        <div className="obj-icon">{o.icon === 'megaphone' ? <Megaphone size={18} /> : o.icon === 'link' ? <Link2 size={18} /> : <MessageCircle size={18} />}</div>
                         <div><div className="obj-label">{o.label}</div>{o.desc && <div className="obj-desc">{o.desc}</div>}</div>
                       </div>
                     ))}
@@ -411,7 +413,7 @@ export default function AutoSet() {
               <div className="card">
                 <div className="card-t">Bước 2: Review targeting (AI đã điền)</div>
 
-                {aiSuggestion && <div className="ai-sug">💡 {aiSuggestion}</div>}
+                {aiSuggestion && <div className="ai-sug"><Lightbulb size={13} style={{ verticalAlign: -2, marginRight: 4 }} />{aiSuggestion}</div>}
 
                 <div className="g2">
                   <div className="fr">
@@ -561,9 +563,9 @@ export default function AutoSet() {
                     <div className="res-r">Campaign: <code>{result.campaign_id}</code></div>
                     <div className="res-r">Adset: <code>{result.adset_id}</code></div>
                     <div className="res-r">Ad: <code>{result.ad_id}</code></div>
-                    {result._log_error && <div style={{ fontSize: 11, color: '#f59e0b', marginTop: 6 }}>⚠️ {result._log_error}</div>}
+                    {result._log_error && <div style={{ fontSize: 11, color: 'var(--ylw)', marginTop: 6 }}><AlertTriangle size={11} style={{ verticalAlign: -1 }} /> {result._log_error}</div>}
                     <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                      <button className="btn-act" onClick={handleActivate}>▶ Kích hoạt (ACTIVE)</button>
+                      <button className="btn-act" onClick={handleActivate}><Play size={13} style={{ verticalAlign: -2 }} /> Kích hoạt (ACTIVE)</button>
                       <button className="btn-s" onClick={resetWizard}>+ Tạo mới</button>
                     </div>
                   </div>
@@ -571,7 +573,7 @@ export default function AutoSet() {
 
                 <div className="btns">
                   <button className="btn-s" onClick={() => setStep(2)}>← Quay lại</button>
-                  {!result && <button className="btn-p" onClick={handleCreate} disabled={creating || !selectedPost || !selectedAccount}>{creating ? '⏳ Đang tạo...' : '🚀 Tạo quảng cáo (PAUSED)'}</button>}
+                  {!result && <button className="btn-p" onClick={handleCreate} disabled={creating || !selectedPost || !selectedAccount}>{creating ? 'Đang tạo...' : 'Tạo quảng cáo (PAUSED)'}</button>}
                 </div>
               </div>
             )}
@@ -579,7 +581,7 @@ export default function AutoSet() {
             {/* History */}
             <div className="card" style={{ marginTop: 16 }}>
               <div className="card-t" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', marginBottom: historyOpen ? 16 : 0, paddingBottom: historyOpen ? 12 : 0 }} onClick={toggleHistory}>
-                <span>📋 Lịch sử tạo ads {history.length > 0 ? `(${history.length})` : ''}</span>
+                <span><History size={14} style={{ verticalAlign: -2, marginRight: 4 }} />Lịch sử tạo ads {history.length > 0 ? `(${history.length})` : ''}</span>
                 <span>{historyOpen ? '▲' : '▼'}</span>
               </div>
               {historyOpen && (loadingHistory ? <div className="hint">Đang tải...</div> : !history.length ? <div className="hint">Chưa có lịch sử</div> : (
@@ -592,13 +594,13 @@ export default function AutoSet() {
       </div>
 
       <style jsx>{`
-        .page-wrap { padding: 24px; max-width: 860px; }
+        .page-wrap { padding: 24px; max-width: 860px; margin: 0 auto; }
         .page-header { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
         .page-icon { font-size: 32px; }
         h1 { font-size: 20px; font-weight: 700; color: var(--txt); margin-bottom: 4px; }
         p { font-size: 13px; color: var(--mut); }
 
-        .toast { position: fixed; top: 16px; right: 16px; z-index: 99999; padding: 10px 18px; border-radius: 10px; font-size: 13px; font-weight: 600; color: #fff; box-shadow: 0 4px 16px rgba(0,0,0,.25); pointer-events: none; animation: ti .3s ease; }
+        .toast { position: fixed; top: 16px; right: 16px; z-index: 50; padding: 10px 18px; border-radius: 10px; font-size: 13px; font-weight: 600; color: #fff; box-shadow: 0 4px 16px rgba(0,0,0,.25); pointer-events: none; animation: ti .3s ease; }
         @keyframes ti { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
 
         .empty-box { display: flex; flex-direction: column; align-items: center; background: var(--s1); border: 1px solid var(--bd); border-radius: 16px; padding: 48px 32px; text-align: center; gap: 12px; }
@@ -694,6 +696,25 @@ export default function AutoSet() {
         .ht th { background: var(--s2); padding: 6px 10px; text-align: left; color: var(--mut); font-size: 11px; text-transform: uppercase; }
         .ht td { padding: 8px 10px; border-bottom: 1px solid var(--bd); color: var(--txt); }
         .ht code { background: var(--s2); padding: 2px 6px; border-radius: 4px; font-size: 10px; }
+
+        /* Focus */
+        .btn-p:focus-visible, .btn-s:focus-visible, .btn-act:focus-visible,
+        .inp:focus-visible, .obj-card:focus-visible {
+          outline: 2px solid var(--blue); outline-offset: 2px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+          .page-wrap { padding: 16px; }
+          .obj-grid { grid-template-columns: 1fr; }
+          .btns { flex-direction: column; }
+          .btns button { width: 100%; }
+        }
+
+        /* Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+          .toast { animation: none; }
+        }
       `}</style>
     </DashboardLayout>
   )

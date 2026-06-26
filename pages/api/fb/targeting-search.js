@@ -47,28 +47,5 @@ export default async function handler(req, res) {
     }
   }
 
-  // Validate interests còn hợp lệ
-  const interestResults = results.filter(r => r.type === 'interest')
-  if (interestResults.length > 0) {
-    try {
-      const validRes = await callMeta('search', token, {
-        type: 'adinterestvalid',
-        interest_list: JSON.stringify(interestResults.map(r => ({ id: r.id, name: r.name }))),
-      })
-      const validData = validRes?.data || []
-      const validIds = new Set(validData.filter(d => d.valid).map(d => String(d.id)))
-      const invalidIds = interestResults.filter(r => !validIds.has(String(r.id)))
-
-      if (invalidIds.length > 0) {
-        console.log('[targeting-search] Invalid interests removed:', invalidIds.map(r => `${r.name} (${r.id})`))
-      }
-
-      const validResults = results.filter(r => r.type !== 'interest' || validIds.has(String(r.id)))
-      return res.json({ ok: true, results: validResults })
-    } catch (e) {
-      console.error('[targeting-search] Validation error:', e)
-    }
-  }
-
   return res.json({ ok: true, results })
 }

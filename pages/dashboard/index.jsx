@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import DashboardLayout from '../../components/DashboardLayout'
 import { useAuth } from '../../lib/AuthContext'
+import { Bot, Link2, Archive, Inbox } from 'lucide-react'
 
 const PAGE_SIZE = 20
 
@@ -71,10 +72,6 @@ function fmtMoney(v, currency, opts = {}) {
 }
 
 // For table cells: hide zero as "—"
-function fmtVnd(v) {
-  if (v == null || isNaN(v) || v === 0) return '—'
-  return Number(v).toLocaleString('vi-VN')
-}
 function fmtNum(v) {
   if (v == null || isNaN(v) || v === 0) return '—'
   return Number(v).toLocaleString('vi-VN')
@@ -109,12 +106,49 @@ function DeltaBadge({ cur, prev, format = 'vnd', invertColor = false }) {
   )
 }
 
-function Toast({ msg, type, onClose }) {
-  useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t) }, [onClose])
+function Toast({ msg, type, onClose, details }) {
+  useEffect(() => {
+    if (type === 'error') return
+    const t = setTimeout(onClose, 3500)
+    return () => clearTimeout(t)
+  }, [onClose, type])
   return (
-    <div className={`toast-item toast-${type}`}>
+    <div className={`toast-item toast-${type}`} role="alert">
       {type === 'success' ? '✅' : '❌'} {msg}
-      <button className="toast-close" onClick={onClose}>×</button>
+      {details && <div className="toast-details">{details}</div>}
+      <button className="toast-close" onClick={onClose} aria-label="Đóng thông báo">×</button>
+    </div>
+  )
+}
+
+function ConfirmDialog({ title, message, detail, confirmLabel, confirmDanger, onConfirm, onCancel }) {
+  const confirmRef = useRef(null)
+  useEffect(() => {
+    confirmRef.current?.focus()
+    function onKey(e) { if (e.key === 'Escape') onCancel() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onCancel])
+  return (
+    <div className="modal-overlay" onClick={onCancel} role="dialog" aria-modal="true" aria-label={title}>
+      <div className="modal-box confirm-box" onClick={e => e.stopPropagation()}>
+        <div className="confirm-body">
+          <div className="confirm-icon">{confirmDanger ? '⚠️' : '❓'}</div>
+          <div className="confirm-title">{title}</div>
+          <div className="confirm-msg">{message}</div>
+          {detail && <div className="confirm-detail">{detail}</div>}
+        </div>
+        <div className="modal-footer">
+          <button className="modal-cancel" onClick={onCancel}>Hủy</button>
+          <button
+            ref={confirmRef}
+            className={`modal-confirm${confirmDanger ? ' modal-confirm--danger' : ''}`}
+            onClick={onConfirm}
+          >
+            {confirmLabel || 'Xác nhận'}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -148,7 +182,7 @@ function BudgetBar({ budget, spend, pct, currency }) {
         )}
       </div>
       <div className="budget-bar-track">
-        <div className="budget-bar-fill" style={{ width: `${Math.min(pct, 100)}%`, background: color }} />
+        <div className="budget-bar-fill" style={{ transform: `scaleX(${Math.min(pct, 100) / 100})`, background: color }} />
       </div>
     </div>
   )
@@ -159,10 +193,10 @@ function StatusToggle({ item, onToggle, toggling }) {
   const isArchived      = item.effective_status === 'ARCHIVED'
   const isCampaignPaused= item.effective_status === 'CAMPAIGN_PAUSED'
 
-  if (isArchived) return <span className="badge-status badge-archived">🗄 Archive</span>
+  if (isArchived) return <span className="badge-status badge-archived"><Archive size={11} style={{ verticalAlign: -1, marginRight: 3 }} />Đã lưu trữ</span>
   if (isCampaignPaused) return (
     <div className="status-toggle-cell">
-      <span className="toggle-sw toggle-sw--disabled"><span className="toggle-knob" /></span>
+      <span className="toggle-sw toggle-sw--disabled" role="switch" aria-checked="false" aria-disabled="true"><span className="toggle-knob" /></span>
       <span className="status-lbl status-lbl--paused">Camp. dừng</span>
     </div>
   )
@@ -170,14 +204,16 @@ function StatusToggle({ item, onToggle, toggling }) {
     <div className="status-toggle-cell">
       <button
         className={`toggle-sw${isActive ? ' toggle-sw--on' : ''}`}
-        onClick={() => onToggle(item.id, item.effective_status)}
+        role="switch"
+        aria-checked={isActive}
+        aria-label={`${item.name}: ${isActive ? 'đang chạy' : 'đã dừng'}`}
+        onClick={() => onToggle(item)}
         disabled={toggling[item.id]}
-        title={isActive ? 'Nhấn để tạm dừng' : 'Nhấn để bật lên'}
       >
         <span className="toggle-knob" />
       </button>
       <span className={`status-lbl ${isActive ? 'status-lbl--on' : 'status-lbl--off'}`}>
-        {isActive ? 'ACTIVE' : 'PAUSED'}
+        {isActive ? 'Đang chạy' : 'Đã dừng'}
       </span>
     </div>
   )
@@ -197,9 +233,17 @@ function BudgetModal({ adset, onClose, onSave, saving }) {
     if (mode === 'amount') return Number(inputVal) || 0
     return Math.round(currentBudget * (1 + (Number(pct) || 0) / 100))
   }, [mode, inputVal, pct, currentBudget])
+  const changePct = currentBudget > 0 && computedNew > 0 ? Math.round((computedNew / currentBudget - 1) * 100) : 0
+  const isLargeIncrease = changePct > 100
+
+  useEffect(() => {
+    function onKey(e) { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label="Chỉnh ngân sách">
       <div className="modal-box" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <div className="modal-title">Chỉnh ngân sách</div>
@@ -226,9 +270,14 @@ function BudgetModal({ adset, onClose, onSave, saving }) {
           <div className="modal-preview">
             Ngân sách mới: <strong style={{ color:'var(--grn)' }}>{fmtMoney(computedNew, adset.currency)}/ngày</strong>
             {currentBudget > 0 && computedNew > 0 && (
-              <span className="modal-delta"> ({computedNew > currentBudget ? '+' : ''}{Math.round((computedNew / currentBudget - 1) * 100)}%)</span>
+              <span className="modal-delta"> ({changePct > 0 ? '+' : ''}{changePct}%)</span>
             )}
           </div>
+          {isLargeIncrease && (
+            <div className="modal-warning" role="alert">
+              ⚠️ Tăng hơn 100% so với ngân sách hiện tại. Hãy chắc chắn đây là mức ngân sách bạn muốn.
+            </div>
+          )}
         </div>
         <div className="modal-footer">
           <button className="modal-cancel" onClick={onClose}>Huỷ</button>
@@ -243,8 +292,14 @@ function BudgetModal({ adset, onClose, onSave, saving }) {
 
 function BulkBudgetModal({ count, onClose, onSave, saving }) {
   const [pct, setPct] = useState('10')
+  const pctNum = Number(pct) || 0
+  useEffect(() => {
+    function onKey(e) { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label="Tăng ngân sách hàng loạt">
       <div className="modal-box" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <div className="modal-title">Tăng NS nhanh</div>
@@ -257,11 +312,16 @@ function BulkBudgetModal({ count, onClose, onSave, saving }) {
             <input type="number" className="modal-input" value={pct} onChange={e => setPct(e.target.value)} placeholder="VD: 20" min="1" max="500" />
           </div>
           <div className="modal-preview">Tăng thêm <strong style={{ color:'var(--grn)' }}>{pct}%</strong> so với ngân sách hiện tại</div>
+          {pctNum > 100 && (
+            <div className="modal-warning" role="alert">
+              ⚠️ Tăng hơn 100% — chi tiêu sẽ tăng đáng kể. Hãy kiểm tra lại.
+            </div>
+          )}
         </div>
         <div className="modal-footer">
           <button className="modal-cancel" onClick={onClose}>Huỷ</button>
-          <button className="modal-confirm" onClick={() => onSave(Number(pct) || 0)} disabled={saving || !Number(pct)}>
-            {saving ? 'Đang cập nhật…' : 'Tăng NS'}
+          <button className="modal-confirm" onClick={() => onSave(pctNum)} disabled={saving || !pctNum}>
+            {saving ? 'Đang cập nhật…' : `Tăng NS ${count} nhóm`}
           </button>
         </div>
       </div>
@@ -485,7 +545,7 @@ function AIChatPanel({ items, onClose }) {
     <div className="ai-panel">
       <div className="ai-panel-hd">
         <div className="ai-panel-title">
-          <span style={{ fontSize: 22 }}>🤖</span>
+          <Bot size={20} />
           <div>
             <div style={{ fontWeight: 700, fontSize: 13 }}>Trợ lý AI Meta Ads</div>
             <div style={{ fontSize: 10, color: 'var(--mut)' }}>{items.length} chiến dịch đang xem · ~$0.004/tin nhắn</div>
@@ -497,13 +557,13 @@ function AIChatPanel({ items, onClose }) {
       <div className="ai-msgs">
         {msgs.map((m, i) => (
           <div key={i} className={`ai-msg ai-msg-${m.role}`}>
-            {m.role === 'assistant' && <span className="ai-avatar">🤖</span>}
+            {m.role === 'assistant' && <span className="ai-avatar"><Bot size={16} /></span>}
             <div className="ai-bubble">{renderMd(m.content)}</div>
           </div>
         ))}
         {loading && (
           <div className="ai-msg ai-msg-assistant">
-            <span className="ai-avatar">🤖</span>
+            <span className="ai-avatar"><Bot size={16} /></span>
             <div className="ai-bubble ai-typing"><span /><span /><span /></div>
           </div>
         )}
@@ -564,13 +624,15 @@ export default function DashboardHome() {
   const [toasts, setToasts]   = useState([])
   const [cols, setCols]       = useState(DEFAULT_COLS)
   const [showColPicker, setShowColPicker] = useState(false)
+  const [showAdvFilter, setShowAdvFilter] = useState(false)
   const [showAI, setShowAI]   = useState(false)
+  const [confirmDialog, setConfirmDialog] = useState(null)
 
   const abortRef = useRef(null)
 
-  function addToast(msg, type = 'success') {
+  function addToast(msg, type = 'success', details = null) {
     const id = Date.now()
-    setToasts(t => [...t, { id, msg, type }])
+    setToasts(t => [...t, { id, msg, type, details }])
   }
   function removeToast(id) { setToasts(t => t.filter(x => x.id !== id)) }
 
@@ -738,8 +800,24 @@ export default function DashboardHome() {
     setSelectedIds(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next })
   }
 
-  async function toggleItem(itemId, currentStatus) {
-    const newStatus = currentStatus === 'ACTIVE' ? 'PAUSED' : 'ACTIVE'
+  function requestToggle(item) {
+    const isActive = item.effective_status === 'ACTIVE'
+    const newStatus = isActive ? 'PAUSED' : 'ACTIVE'
+    const budgetInfo = item.daily_budget ? ` · NS: ${fmtMoney(item.daily_budget, item.currency)}/ngày` : ''
+    setConfirmDialog({
+      title: isActive ? 'Tạm dừng quảng cáo?' : 'Bật quảng cáo?',
+      message: item.name,
+      detail: isActive
+        ? `Quảng cáo sẽ ngừng hiển thị và ngừng chi tiêu${budgetInfo}`
+        : `Meta sẽ bắt đầu chi tiêu ngân sách${budgetInfo}`,
+      confirmLabel: isActive ? 'Tạm dừng' : 'Bật lên',
+      confirmDanger: !isActive,
+      onConfirm: () => { setConfirmDialog(null); executeToggle(item.id, newStatus) },
+      onCancel: () => setConfirmDialog(null),
+    })
+  }
+
+  async function executeToggle(itemId, newStatus) {
     setToggling(t => ({ ...t, [itemId]: true }))
     try {
       const res = await fetch('/api/fb/campaign-toggle', {
@@ -749,7 +827,7 @@ export default function DashboardHome() {
       })
       if (res.ok) {
         setAdsets(prev => prev.map(a => a.id === itemId ? { ...a, status: newStatus, effective_status: newStatus } : a))
-        addToast(`Đã ${newStatus === 'ACTIVE' ? 'bật' : 'tắt'}`)
+        addToast(`Đã ${newStatus === 'ACTIVE' ? 'bật' : 'tạm dừng'}`)
       } else {
         addToast('Lỗi khi đổi trạng thái', 'error')
       }
@@ -777,7 +855,7 @@ export default function DashboardHome() {
   async function handleBulkBudget(pct) {
     if (!pct || selectedIds.size === 0) return
     setBudgetSaving(true)
-    let ok = 0, fail = 0
+    let ok = 0, failNames = []
     for (const adset of adsets.filter(a => selectedIds.has(a.id) && a.daily_budget > 0)) {
       const newBudget = Math.round(adset.daily_budget * (1 + pct / 100))
       try {
@@ -787,24 +865,45 @@ export default function DashboardHome() {
         })
         const data = await res.json()
         if (data.ok) { setAdsets(prev => prev.map(a => a.id === adset.id ? { ...a, daily_budget: newBudget } : a)); ok++ }
-        else fail++
-      } catch { fail++ }
+        else failNames.push(adset.name)
+      } catch { failNames.push(adset.name) }
     }
     setBudgetSaving(false); setBulkModal(false)
     if (ok)   addToast(`Đã tăng NS ${ok} nhóm QC`)
-    if (fail) addToast(`${fail} nhóm thất bại`, 'error')
+    if (failNames.length) addToast(`${failNames.length} nhóm thất bại`, 'error', failNames.join(', '))
   }
 
   function toggleCol(key) { setCols(c => ({ ...c, [key]: !c[key] })) }
 
-  async function handleBulkToggle(newStatus) {
+  function requestBulkToggle(newStatus) {
     const targets = adsets.filter(a =>
       selectedIds.has(a.id) &&
       a.effective_status !== 'ARCHIVED' &&
       a.effective_status !== newStatus
     )
     if (!targets.length) { addToast('Không có mục nào phù hợp', 'error'); return }
-    let ok = 0
+    const isActivating = newStatus === 'ACTIVE'
+    const totalBudget = targets.reduce((s, a) => s + (a.daily_budget || 0), 0)
+    const currencies = [...new Set(targets.map(a => a.currency || 'VND'))]
+    const budgetStr = currencies.map(c => {
+      const sum = targets.filter(a => (a.currency || 'VND') === c).reduce((s, a) => s + (a.daily_budget || 0), 0)
+      return fmtMoney(sum, c, { zero: true })
+    }).join(' + ')
+    setConfirmDialog({
+      title: isActivating ? `Bật ${targets.length} mục?` : `Tạm dừng ${targets.length} mục?`,
+      message: isActivating
+        ? `Meta sẽ bắt đầu chi tiêu cho ${targets.length} quảng cáo`
+        : `${targets.length} quảng cáo sẽ ngừng hiển thị`,
+      detail: isActivating && totalBudget > 0 ? `Tổng NS/ngày: ${budgetStr}` : null,
+      confirmLabel: isActivating ? `Bật ${targets.length} mục` : `Dừng ${targets.length} mục`,
+      confirmDanger: isActivating,
+      onConfirm: () => { setConfirmDialog(null); executeBulkToggle(targets, newStatus) },
+      onCancel: () => setConfirmDialog(null),
+    })
+  }
+
+  async function executeBulkToggle(targets, newStatus) {
+    let ok = 0, failNames = []
     for (const item of targets) {
       setToggling(t => ({ ...t, [item.id]: true }))
       try {
@@ -816,11 +915,12 @@ export default function DashboardHome() {
         if ((await r.json()).ok !== false) {
           setAdsets(prev => prev.map(a => a.id === item.id ? { ...a, status: newStatus, effective_status: newStatus } : a))
           ok++
-        }
-      } catch {}
+        } else { failNames.push(item.name) }
+      } catch { failNames.push(item.name) }
       setToggling(t => ({ ...t, [item.id]: false }))
     }
-    if (ok) addToast(`Đã ${newStatus === 'ACTIVE' ? 'bật' : 'tắt'} ${ok} mục`)
+    if (ok) addToast(`Đã ${newStatus === 'ACTIVE' ? 'bật' : 'dừng'} ${ok} mục`)
+    if (failNames.length) addToast(`${failNames.length} mục thất bại`, 'error', failNames.join(', '))
   }
 
   const expireDate = user?.expire_at ? new Date(user.expire_at).toLocaleDateString('vi-VN') : null
@@ -828,7 +928,7 @@ export default function DashboardHome() {
   const roasMinVal = Number(filters.roas_min) || 0
 
   const Th = ({ col, children, className = '' }) => (
-    <th className={`th-sort ${className}`} onClick={() => handleSort(col)}>
+    <th className={`th-sort ${className}`} tabIndex={0} onClick={() => handleSort(col)} onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), handleSort(col))}>
       {children} <SortIcon col={col} sortBy={sortBy} sortDir={sortDir} />
     </th>
   )
@@ -862,7 +962,7 @@ export default function DashboardHome() {
 
         {!fbConnected ? (
           <div className="fb-cta">
-            <div className="fb-cta-icon">🔗</div>
+            <div className="fb-cta-icon"><Link2 size={22} /></div>
             <div className="fb-cta-body">
               <div className="fb-cta-title">Kết nối tài khoản Facebook Ads để bắt đầu</div>
               <div className="fb-cta-desc">Sau khi kết nối, bạn có thể quản lý chiến dịch, xem báo cáo và tối ưu ngân sách.</div>
@@ -885,6 +985,7 @@ export default function DashboardHome() {
                   placeholder={level === 'adset' ? 'Tìm nhóm QC, chiến dịch...' : 'Tìm chiến dịch...'}
                   value={filters.search}
                   onChange={e => setFilter('search', e.target.value)}
+                  aria-label="Tìm kiếm"
                 />
 
                 <select className="filter-sel" value={filters.account_id} onChange={e => setFilter('account_id', e.target.value)}>
@@ -924,10 +1025,14 @@ export default function DashboardHome() {
                 <button className="filter-refresh" onClick={fetchAdsets} disabled={loading}>
                   {loading ? '…' : '↻ Làm mới'}
                 </button>
+                <button className="filter-adv-toggle" onClick={() => setShowAdvFilter(v => !v)}>
+                  {showAdvFilter ? '▲ Ẩn bộ lọc' : '▼ Bộ lọc nâng cao'}
+                  {(filters.campaign_id || filters.objective || filters.cpa_max || filters.roas_min || filters.spend_min) && <span className="filter-adv-dot" />}
+                </button>
               </div>
 
               {/* Row 2: Advanced filters */}
-              <div className="filter-row filter-row--adv">
+              {showAdvFilter && <div className="filter-row filter-row--adv">
                 {level === 'adset' && (
                   <select className="filter-sel" value={filters.campaign_id} onChange={e => setFilter('campaign_id', e.target.value)}>
                     <option value="">Tất cả chiến dịch</option>
@@ -985,69 +1090,56 @@ export default function DashboardHome() {
                     </div>
                   )}
                 </div>
-              </div>
+              </div>}
             </div>
 
-            {/* Stats bar */}
+            {/* Stats bar — tiered: primary (large) | secondary (compact) */}
             <div className="stats-bar">
-              <div className="stat-item">
-                <div className="stat-num stat-primary">{stats.active}</div>
-                <div className="stat-lbl">Đang chạy</div>
+              <div className="stats-primary">
+                <div className="stat-item stat-item--hero">
+                  <div className="stat-num stat-num--lg stat-primary">{stats.active}</div>
+                  <div className="stat-lbl">Đang chạy</div>
+                </div>
+                <div className="stat-sep" />
+                <div className="stat-item stat-item--hero">
+                  <div className="stat-num stat-num--lg stat-money">{stats.spendStr}</div>
+                  <div className="stat-lbl">Chi tiêu</div>
+                </div>
+                <div className="stat-sep" />
+                <div className="stat-item stat-item--hero">
+                  <div className="stat-num stat-num--lg">{stats.avgRoas > 0 ? fmtRoas(stats.avgRoas) : '—'}</div>
+                  <div className="stat-lbl">ROAS</div>
+                </div>
               </div>
-              <div className="stat-sep" />
-              <div className="stat-item">
-                <div className="stat-num stat-money">{stats.spendStr}</div>
-                <div className="stat-lbl">Tổng chi tiêu</div>
-              </div>
-              <div className="stat-sep" />
-              <div className="stat-item">
-                <div className="stat-num stat-money">{stats.budgetStr}</div>
-                <div className="stat-lbl">Tổng NS/ngày</div>
-              </div>
-              <div className="stat-sep" />
-              <div className="stat-item">
-                <div className="stat-num stat-green">{fmtStatNum(stats.totalPurchases)}</div>
-                <div className="stat-lbl">Lượt mua</div>
-              </div>
-              <div className="stat-sep" />
-              <div className="stat-item">
-                <div className="stat-num stat-money">{stats.revenueStr}</div>
-                <div className="stat-lbl">Doanh thu</div>
-              </div>
-              <div className="stat-sep" />
-              <div className="stat-item">
-                <div className="stat-num">{stats.avgRoas > 0 ? fmtRoas(stats.avgRoas) : '—'}</div>
-                <div className="stat-lbl">ROAS TB</div>
-              </div>
-              <div className="stat-sep" />
-              <div className="stat-item">
-                <div className="stat-num stat-money">{stats.cpaStr}</div>
-                <div className="stat-lbl">CPA TB</div>
-              </div>
-              <div className="stat-sep" />
-              <div className="stat-item">
-                <div className="stat-num">{fmtStatNum(stats.totalReach)}</div>
-                <div className="stat-lbl">Tiếp cận</div>
-              </div>
-              <div className="stat-sep" />
-              <div className="stat-item">
-                <div className="stat-num">{fmtStatNum(stats.totalImpr)}</div>
-                <div className="stat-lbl">Hiển thị</div>
-              </div>
-              <div className="stat-sep" />
-              <div className="stat-item">
-                <div className="stat-num">{stats.avgCtr > 0 ? fmtCtr(stats.avgCtr) : '—'}</div>
-                <div className="stat-lbl">CTR TB</div>
-              </div>
-              <div className="stat-sep" />
-              <div className="stat-item stat-item--btn">
-                <button
-                  className="btn-quick-budget"
-                  onClick={() => {
-                    if (selectedIds.size === 0) { addToast('Chọn ít nhất 1 nhóm QC', 'error'); return }
-                    setBulkModal(true)
-                  }}
-                >+ Tăng NS</button>
+              <div className="stats-secondary">
+                <div className="stat-item">
+                  <div className="stat-num stat-green">{fmtStatNum(stats.totalPurchases)}</div>
+                  <div className="stat-lbl">Lượt mua</div>
+                </div>
+                <div className="stat-item">
+                  <div className="stat-num stat-money">{stats.revenueStr}</div>
+                  <div className="stat-lbl">Doanh thu</div>
+                </div>
+                <div className="stat-item">
+                  <div className="stat-num stat-money">{stats.cpaStr}</div>
+                  <div className="stat-lbl">CPA</div>
+                </div>
+                <div className="stat-item">
+                  <div className="stat-num stat-money">{stats.budgetStr}</div>
+                  <div className="stat-lbl">NS/ngày</div>
+                </div>
+                <div className="stat-item">
+                  <div className="stat-num">{fmtStatNum(stats.totalReach)}</div>
+                  <div className="stat-lbl">Tiếp cận</div>
+                </div>
+                <div className="stat-item">
+                  <div className="stat-num">{fmtStatNum(stats.totalImpr)}</div>
+                  <div className="stat-lbl">Hiển thị</div>
+                </div>
+                <div className="stat-item">
+                  <div className="stat-num">{stats.avgCtr > 0 ? fmtCtr(stats.avgCtr) : '—'}</div>
+                  <div className="stat-lbl">CTR</div>
+                </div>
               </div>
             </div>
 
@@ -1062,8 +1154,8 @@ export default function DashboardHome() {
                 <div className="sel-bar">
                   Đã chọn <strong>{selectedIds.size}</strong>
                   <button className="sel-clear" onClick={() => setSelectedIds(new Set())}>Bỏ chọn</button>
-                  <button className="sel-act sel-act--on"  onClick={() => handleBulkToggle('ACTIVE')}>▶ Bật tất cả</button>
-                  <button className="sel-act sel-act--off" onClick={() => handleBulkToggle('PAUSED')}>⏸ Tắt tất cả</button>
+                  <button className="sel-act sel-act--on"  onClick={() => requestBulkToggle('ACTIVE')}>▶ Bật tất cả</button>
+                  <button className="sel-act sel-act--off" onClick={() => requestBulkToggle('PAUSED')}>⏸ Dừng tất cả</button>
                   <button className="sel-budget" onClick={() => setBulkModal(true)}>↑ Tăng NS</button>
                 </div>
               )}
@@ -1071,11 +1163,11 @@ export default function DashboardHome() {
 
             {/* Table */}
             <div className="table-wrap">
-              <table className="adset-table">
+              <table className="adset-table" aria-label={level === 'adset' ? 'Danh sách nhóm quảng cáo' : 'Danh sách chiến dịch'}>
                 <thead>
                   <tr>
                     <th className="th-chk">
-                      <input type="checkbox" checked={allPageSelected} onChange={togglePageSelect} title="Chọn tất cả trang này" />
+                      <input type="checkbox" checked={allPageSelected} onChange={togglePageSelect} title="Chọn tất cả trang này" aria-label="Chọn tất cả trang này" />
                     </th>
                     <Th col="name" className="th-name">{level === 'adset' ? 'Nhóm quảng cáo' : 'Chiến dịch'}</Th>
                     <Th col="account_name">Tài khoản</Th>
@@ -1119,7 +1211,7 @@ export default function DashboardHome() {
                     <tr>
                       <td colSpan={colCount + 5} className="empty-td">
                         <div className="camp-empty">
-                          <div className="empty-icon">📭</div>
+                          <div className="empty-icon"><Inbox size={28} /></div>
                           <div className="empty-text">Không có dữ liệu</div>
                           <div className="empty-sub">
                             {filters.search || filters.cpa_max || filters.roas_min
@@ -1173,7 +1265,7 @@ export default function DashboardHome() {
                         )}
 
                         <td className="td-status">
-                          <StatusToggle item={item} onToggle={toggleItem} toggling={toggling} />
+                          <StatusToggle item={item} onToggle={requestToggle} toggling={toggling} />
                         </td>
 
                         <td className="td-num">
@@ -1292,14 +1384,18 @@ export default function DashboardHome() {
         <BulkBudgetModal count={selectedIds.size} onClose={() => setBulkModal(false)} onSave={handleBulkBudget} saving={budgetSaving} />
       )}
 
-      <div className="toast-container">
-        {toasts.map(t => <Toast key={t.id} msg={t.msg} type={t.type} onClose={() => removeToast(t.id)} />)}
+      {confirmDialog && (
+        <ConfirmDialog {...confirmDialog} />
+      )}
+
+      <div className="toast-container" role="status" aria-live="polite">
+        {toasts.map(t => <Toast key={t.id} msg={t.msg} type={t.type} details={t.details} onClose={() => removeToast(t.id)} />)}
       </div>
 
       {/* AI Floating Button */}
       {fbConnected && (
         <button className="ai-fab" onClick={() => setShowAI(v => !v)} title="Trợ lý AI Meta Ads">
-          <span className="ai-fab-icon">🤖</span>
+          <span className="ai-fab-icon"><Bot size={16} /></span>
           <span className="ai-fab-label">AI</span>
         </button>
       )}
@@ -1397,6 +1493,16 @@ export default function DashboardHome() {
         }
         .filter-refresh:hover:not(:disabled) { background: var(--s3); }
         .filter-refresh:disabled { opacity: .6; cursor: default; }
+        .filter-adv-toggle {
+          padding: 7px 12px; background: none; border: 1px solid var(--bd);
+          border-radius: 8px; font-size: 11px; font-weight: 600; color: var(--mut);
+          cursor: pointer; font-family: inherit; white-space: nowrap;
+          display: flex; align-items: center; gap: 5px; position: relative;
+        }
+        .filter-adv-toggle:hover { background: var(--s2); color: var(--txt); }
+        .filter-adv-dot {
+          width: 6px; height: 6px; border-radius: 50%; background: var(--blue);
+        }
 
         .custom-range {
           display: flex; align-items: center; gap: 5px; flex-wrap: nowrap;
@@ -1438,27 +1544,27 @@ export default function DashboardHome() {
         .col-chk input { cursor: pointer; }
 
         .stats-bar {
-          display: flex; flex-wrap: wrap; align-items: center; gap: 0;
           background: var(--s1); border: 1px solid var(--bd); border-radius: 12px;
-          padding: 10px 14px; margin-bottom: 10px; overflow-x: auto;
+          padding: 12px 16px; margin-bottom: 10px;
+          display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
         }
-        .stat-item { padding: 3px 12px; text-align: center; flex-shrink: 0; }
-        .stat-item--btn { padding: 0 10px; }
-        .stat-num { font-size: 14px; font-weight: 700; color: var(--txt); line-height: 1.3; white-space: nowrap; }
-        .stat-money { font-size: 12px; white-space: normal; text-align: center; line-height: 1.5; }
+        .stats-primary {
+          display: flex; align-items: center; gap: 0; flex-shrink: 0;
+        }
+        .stats-secondary {
+          display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+          padding-left: 12px; border-left: 1px solid var(--bd);
+        }
+        .stat-item { text-align: center; flex-shrink: 0; }
+        .stat-item--hero { padding: 0 14px; }
+        .stat-num { font-size: 12px; font-weight: 700; color: var(--txt); line-height: 1.3; white-space: nowrap; }
+        .stat-num--lg { font-size: 18px; }
+        .stat-money { font-size: 11px; white-space: normal; text-align: center; line-height: 1.4; }
+        .stat-num--lg.stat-money { font-size: 14px; }
         .stat-num.stat-primary { color: var(--blue); }
         .stat-num.stat-green   { color: var(--grn); }
-        .stat-lbl { font-size: 10px; color: var(--mut); font-weight: 600; text-transform: uppercase; letter-spacing: .3px; margin-top: 1px; }
+        .stat-lbl { font-size: 9px; color: var(--mut); font-weight: 600; text-transform: uppercase; letter-spacing: .3px; margin-top: 2px; }
         .stat-sep { width: 1px; height: 32px; background: var(--bd); flex-shrink: 0; }
-        .btn-quick-budget {
-          padding: 7px 14px;
-          background: linear-gradient(135deg, #fe5f01 0%, #f59e0b 100%);
-          color: #fff; border: none; border-radius: 8px;
-          font-size: 12px; font-weight: 700; cursor: pointer;
-          white-space: nowrap; font-family: inherit;
-          box-shadow: 0 2px 8px rgba(254,95,1,.35); transition: opacity .15s;
-        }
-        .btn-quick-budget:hover { opacity: .88; }
 
         .result-info {
           display: flex; align-items: center; justify-content: space-between;
@@ -1556,7 +1662,7 @@ export default function DashboardHome() {
         .warn-cpa    { background: rgba(239,68,68,.12);  color: var(--red); }
         .warn-ns     { background: rgba(245,158,11,.12); color: var(--ylw); }
         .warn-roas   { background: rgba(239,68,68,.08);  color: var(--red); }
-        .warn-noconv { background: rgba(245,158,11,.12); color: #f97316; }
+        .warn-noconv { background: rgba(245,158,11,.12); color: var(--ylw); }
         .warn-camp   { background: rgba(100,116,139,.12); color: var(--mut); }
 
         /* Sel bar actions */
@@ -1573,7 +1679,7 @@ export default function DashboardHome() {
         .col-group:first-child .col-group-label { border-top: none; }
 
         /* New value colors */
-        .val-blue  { color: #60a5fa; font-weight: 600; }
+        .val-blue  { color: var(--blue); font-weight: 600; }
 
         .sort-icon  { font-size: 10px; margin-left: 3px; }
         .sort-none  { opacity: .35; }
@@ -1611,58 +1717,100 @@ export default function DashboardHome() {
         .pagi-btn:hover:not(:disabled) { background: var(--s2); }
         .pagi-btn:disabled { opacity: .4; cursor: default; }
 
+        /* ── Responsive ── */
+        @media (max-width: 768px) {
+          .dh-root { padding: 12px; }
+          .welcome-banner { flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px 14px; }
+          .wb-right { width: 100%; }
+          .upgrade-btn { width: 100%; text-align: center; }
+          .filter-row { gap: 6px; }
+          .filter-search { max-width: none; min-width: 0; }
+          .filter-sel, .filter-num, .filter-refresh, .filter-adv-toggle { font-size: 12px; padding: 8px 10px; }
+          .level-tab { padding: 8px 12px; }
+          .stats-bar { flex-direction: column; align-items: stretch; gap: 10px; padding: 12px; }
+          .stats-primary { justify-content: space-around; }
+          .stats-secondary { border-left: none; padding-left: 0; padding-top: 8px; border-top: 1px solid var(--bd); justify-content: space-between; }
+          .stat-item--hero { padding: 0 8px; }
+          .stat-num--lg { font-size: 16px; }
+          .sel-bar { flex-wrap: wrap; gap: 6px; }
+          .pagination { flex-direction: column; align-items: stretch; gap: 8px; }
+          .pagi-btns { justify-content: center; }
+        }
+
+        /* ── Focus indicators ── */
+        .toggle-sw:focus-visible,
+        .filter-sel:focus-visible,
+        .filter-search:focus-visible,
+        .filter-num:focus-visible,
+        .filter-date-input:focus-visible,
+        .filter-refresh:focus-visible,
+        .filter-adv-toggle:focus-visible,
+        .col-picker-btn:focus-visible,
+        .pagi-btn:focus-visible,
+        .level-tab:focus-visible,
+        .sel-act:focus-visible,
+        .sel-clear:focus-visible,
+        .sel-budget:focus-visible {
+          outline: 2px solid var(--blue); outline-offset: 2px;
+        }
+        .th-sort:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+
       `}</style>
 
       <style jsx global>{`
         /* ── Toast ── */
         .toast-container {
-          position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+          position: fixed; bottom: 24px; right: 24px; z-index: 50;
           display: flex; flex-direction: column; gap: 8px; pointer-events: none;
         }
         .toast-item {
-          display: flex; align-items: center; gap: 8px;
+          display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap;
           background: var(--s1); border: 1px solid var(--bd);
           border-radius: 10px; padding: 9px 14px;
           font-size: 12px; font-weight: 600; color: var(--txt);
           box-shadow: 0 8px 32px rgba(0,0,0,.2);
-          animation: aiSlideUp .25s ease; pointer-events: all; max-width: 260px;
+          animation: aiSlideUp .25s ease; pointer-events: all; max-width: 320px;
         }
         .toast-success { border-color: rgba(16,185,129,.4); }
         .toast-error   { border-color: rgba(239,68,68,.4); }
+        .toast-details {
+          width: 100%; font-size: 11px; font-weight: 400; color: var(--mut);
+          margin-top: 2px; line-height: 1.4; word-break: break-word;
+        }
         .toast-close {
           background: none; border: none; color: var(--mut);
-          font-size: 16px; cursor: pointer; margin-left: auto; line-height: 1; padding: 0 2px;
+          font-size: 16px; cursor: pointer; margin-left: auto; line-height: 1; padding: 0 2px; flex-shrink: 0;
         }
         @keyframes aiSlideUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
 
         /* ── AI Floating button — must be global (outside scoped component) ── */
         .ai-fab {
-          position: fixed; bottom: 28px; right: 28px; z-index: 1200;
+          position: fixed; bottom: 28px; right: 28px; z-index: 30;
           display: flex; align-items: center; gap: 6px;
-          background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+          background: var(--blue);
           color: #fff; border: none; border-radius: 50px;
           padding: 10px 18px; font-size: 13px; font-weight: 700;
           cursor: pointer; font-family: inherit;
-          box-shadow: 0 4px 20px rgba(99,102,241,.5);
+          box-shadow: 0 4px 20px rgba(59,130,246,.5);
           transition: transform .15s, box-shadow .15s;
         }
-        .ai-fab:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(99,102,241,.6); }
+        .ai-fab:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(59,130,246,.6); }
         .ai-fab-icon { font-size: 16px; }
 
         /* ── AI Chat Panel — must be global so position:fixed works from sub-component ── */
         .ai-panel {
-          position: fixed; bottom: 90px; right: 28px; z-index: 1200;
-          width: 380px;
+          position: fixed; bottom: 90px; right: 28px; z-index: 35;
+          width: min(380px, calc(100vw - 40px));
           height: calc(100vh - 130px); max-height: 580px; min-height: 340px;
           display: flex; flex-direction: column; overflow: hidden;
-          background: var(--s1); border: 1px solid rgba(99,102,241,.25);
+          background: var(--s1); border: 1px solid rgba(59,130,246,.25);
           border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,.3);
           animation: aiSlideUp .2s ease;
         }
         .ai-panel-hd {
           display: flex; align-items: center; justify-content: space-between;
           padding: 12px 14px; border-bottom: 1px solid var(--bd);
-          background: linear-gradient(135deg, rgba(99,102,241,.12) 0%, rgba(139,92,246,.08) 100%);
+          background: linear-gradient(135deg, rgba(59,130,246,.12) 0%, rgba(59,130,246,.08) 100%);
           border-radius: 16px 16px 0 0; flex-shrink: 0;
         }
         .ai-panel-title { display: flex; align-items: center; gap: 10px; }
@@ -1684,12 +1832,12 @@ export default function DashboardHome() {
           max-width: 84%; word-break: break-word;
         }
         .ai-msg-assistant .ai-bubble { background: var(--s2); color: var(--txt); border-radius: 4px 12px 12px 12px; }
-        .ai-msg-user .ai-bubble { background: linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; border-radius: 12px 4px 12px 12px; }
+        .ai-msg-user .ai-bubble { background: var(--blue); color:#fff; border-radius: 12px 4px 12px 12px; }
         .ai-typing { display: flex; align-items: center; gap: 4px; padding: 12px 16px; }
-        .ai-typing span { width: 7px; height: 7px; border-radius: 50%; background: var(--mut); animation: aiBounce 1.2s infinite; }
-        .ai-typing span:nth-child(2) { animation-delay: .2s; }
-        .ai-typing span:nth-child(3) { animation-delay: .4s; }
-        @keyframes aiBounce { 0%,80%,100%{transform:scale(0)} 40%{transform:scale(1)} }
+        .ai-typing span { width: 7px; height: 7px; border-radius: 50%; background: var(--mut); animation: aiPulse 1.4s cubic-bezier(.16,1,.3,1) infinite; }
+        .ai-typing span:nth-child(2) { animation-delay: .15s; }
+        .ai-typing span:nth-child(3) { animation-delay: .3s; }
+        @keyframes aiPulse { 0%,100%{opacity:.25;transform:scale(.85)} 40%{opacity:1;transform:scale(1)} }
         .ai-suggests {
           padding: 8px 12px; display: flex; flex-wrap: nowrap;
           overflow-x: auto; gap: 6px; border-top: 1px solid var(--bd); flex-shrink: 0;
@@ -1698,21 +1846,21 @@ export default function DashboardHome() {
         .ai-suggests::-webkit-scrollbar { height: 4px; }
         .ai-suggests::-webkit-scrollbar-thumb { background: var(--bd); border-radius: 2px; }
         .ai-suggest-btn {
-          padding: 6px 11px; background: rgba(99,102,241,.08); border: 1px solid rgba(99,102,241,.2);
+          padding: 6px 11px; background: rgba(59,130,246,.08); border: 1px solid rgba(59,130,246,.2);
           border-radius: 20px; font-size: 11px; color: var(--txt);
           cursor: pointer; font-family: inherit; white-space: nowrap; flex-shrink: 0; transition: background .15s;
         }
-        .ai-suggest-btn:hover { background: rgba(99,102,241,.18); }
+        .ai-suggest-btn:hover { background: rgba(59,130,246,.18); }
         .ai-input-row { display: flex; gap: 7px; padding: 10px 12px; border-top: 1px solid var(--bd); flex-shrink: 0; }
         .ai-input {
           flex: 1; padding: 8px 12px; border: 1px solid var(--bd);
           border-radius: 10px; background: var(--s2); color: var(--txt);
           font-size: 12.5px; font-family: inherit; outline: none;
         }
-        .ai-input:focus { border-color: #6366f1; }
+        .ai-input:focus { border-color: var(--blue); }
         .ai-input::placeholder { color: var(--mut); }
         .ai-send-btn {
-          padding: 8px 14px; background: linear-gradient(135deg,#6366f1,#8b5cf6);
+          padding: 8px 14px; background: var(--blue);
           border: none; border-radius: 10px; color: #fff;
           font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: opacity .15s;
         }
@@ -1726,8 +1874,8 @@ export default function DashboardHome() {
         .md-hr { border: none; border-top: 1px solid var(--bd); margin: 6px 0; }
         .md-p  { margin: 2px 0; line-height: 1.6; }
         .md-quote {
-          border-left: 3px solid #6366f1; padding: 4px 10px; margin: 4px 0;
-          background: rgba(99,102,241,.07); border-radius: 0 6px 6px 0;
+          border-left: 3px solid var(--blue); padding: 4px 10px; margin: 4px 0;
+          background: rgba(59,130,246,.07); border-radius: 0 6px 6px 0;
           font-style: italic; color: var(--mut); font-size: 12px;
         }
         .md-list { margin: 3px 0 3px 18px; padding: 0; }
@@ -1743,7 +1891,7 @@ export default function DashboardHome() {
         .md-table tr:nth-child(even) td { background: rgba(255,255,255,.03); }
         .md-code {
           background: var(--s3); padding: 1px 5px; border-radius: 4px;
-          font-family: monospace; font-size: 11px; color: #60a5fa;
+          font-family: monospace; font-size: 11px; color: var(--blue);
         }
 
         /* ── StatusToggle — global so sub-component elements get styled ── */
@@ -1753,8 +1901,8 @@ export default function DashboardHome() {
           position: relative; cursor: pointer; transition: background .2s, border-color .2s;
           flex-shrink: 0; display: inline-block; padding: 0;
         }
-        .toggle-sw--on { background: #3b82f6; border-color: #3b82f6; }
-        .toggle-sw--on:hover { background: #2563eb; }
+        .toggle-sw--on { background: var(--blue); border-color: var(--blue); }
+        .toggle-sw--on:hover { background: var(--blue); filter: brightness(.9); }
         .toggle-knob {
           position: absolute; top: 2px; left: 2px;
           width: 16px; height: 16px; border-radius: 50%;
@@ -1784,13 +1932,13 @@ export default function DashboardHome() {
         .budget-day { color: var(--mut); }
         .budget-pct { font-weight: 700; }
         .budget-bar-track { height: 4px; border-radius: 2px; background: var(--s3); overflow: hidden; }
-        .budget-bar-fill  { height: 100%; border-radius: 2px; transition: width .3s; }
+        .budget-bar-fill  { height: 100%; border-radius: 2px; width: 100%; transform-origin: left; transition: transform .3s cubic-bezier(.16,1,.3,1); }
         .budget-over-tip { font-size: 10px; color: var(--mut); cursor: help; margin-left: 3px; vertical-align: middle; }
         .cbo-tag { cursor: help; }
 
         /* ── Modals — global so sub-component elements get styled ── */
         .modal-overlay {
-          position: fixed; inset: 0; z-index: 1000;
+          position: fixed; inset: 0; z-index: 40;
           background: rgba(0,0,0,.55); backdrop-filter: blur(3px);
           display: flex; align-items: center; justify-content: center; padding: 20px;
         }
@@ -1845,6 +1993,61 @@ export default function DashboardHome() {
         }
         .modal-confirm:hover:not(:disabled) { opacity: .88; }
         .modal-confirm:disabled { opacity: .5; cursor: default; }
+        .modal-confirm--danger { background: var(--red); }
+        .modal-warning {
+          font-size: 12px; color: var(--ylw); background: rgba(245,158,11,.08);
+          border: 1px solid rgba(245,158,11,.2); border-radius: 8px;
+          padding: 8px 12px; line-height: 1.5;
+        }
+
+        /* ── Confirm Dialog ── */
+        .confirm-box { max-width: 380px; }
+        .confirm-body {
+          padding: 24px 20px 16px; display: flex; flex-direction: column;
+          align-items: center; text-align: center; gap: 8px;
+        }
+        .confirm-icon { font-size: 28px; }
+        .confirm-title { font-size: 15px; font-weight: 700; color: var(--txt); }
+        .confirm-msg {
+          font-size: 13px; color: var(--txt); font-weight: 600; line-height: 1.4;
+          word-break: break-word; max-width: 320px;
+        }
+        .confirm-detail { font-size: 12px; color: var(--mut); line-height: 1.5; }
+
+        /* ── Global focus ── */
+        .modal-cancel:focus-visible,
+        .modal-confirm:focus-visible,
+        .ai-send-btn:focus-visible,
+        .ai-input:focus-visible,
+        .ai-suggest-btn:focus-visible,
+        .ai-panel-close:focus-visible,
+        .ai-fab:focus-visible,
+        .toast-close:focus-visible {
+          outline: 2px solid var(--blue); outline-offset: 2px;
+        }
+
+        /* ── Reduced motion ── */
+        @media (prefers-reduced-motion: reduce) {
+          .toast-item, .ai-panel, .modal-overlay { animation: none !important; }
+          .budget-bar-fill, .toggle-knob, .adset-row { transition: none !important; }
+        }
+
+        /* ── Mobile global ── */
+        @media (max-width: 768px) {
+          .ai-fab { bottom: 16px; right: 16px; padding: 10px 14px; }
+          .ai-panel { bottom: 76px; right: 12px; }
+          .toast-container { bottom: 16px; right: 12px; left: 12px; }
+          .toast-item { max-width: none; }
+          .modal-box { max-width: calc(100vw - 32px); }
+          .modal-cancel, .modal-confirm { padding: 10px 18px; }
+        }
+
+        /* ── Screen reader only ── */
+        .sr-only {
+          position: absolute; width: 1px; height: 1px;
+          padding: 0; margin: -1px; overflow: hidden;
+          clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+        }
       `}</style>
     </DashboardLayout>
   )
