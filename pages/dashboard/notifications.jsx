@@ -386,6 +386,17 @@ export default function Notifications() {
                     <span className="slider" />
                   </label>
                 </div>
+
+                <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--bd)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ fontSize: 13, color: 'var(--mut)' }}>Test thử cảnh báo rủi ro (Audit/Critical)?</div>
+                  <button 
+                    onClick={handleTestMonitor} 
+                    disabled={testingMonitor} 
+                    style={{ background: 'var(--s2)', border: '1px solid var(--bd)', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, color: 'var(--txt)', cursor: testingMonitor ? 'default' : 'pointer', opacity: testingMonitor ? 0.6 : 1 }}
+                  >
+                    {testingMonitor ? 'Đang gửi...' : 'Gửi Cảnh báo ngay (Test giả lập)'}
+                  </button>
+                </div>
               </div>
             </div>
 
