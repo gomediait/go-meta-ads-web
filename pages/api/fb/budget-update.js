@@ -49,7 +49,8 @@ export default async function handler(req, res) {
 
     if (json.error) {
       console.error('[budget-update] Meta error:', json.error)
-      return res.status(400).json({ error: json.error.message || 'Lỗi từ Meta API' })
+      const detailedError = `Lỗi Meta: ${JSON.stringify(json.error)}`
+      return res.status(400).json({ error: detailedError })
     }
 
     return res.json({ ok: true, adset_id, new_budget: Number(new_budget), budget_type })
