@@ -39,7 +39,7 @@ async function sendNotification(sb, userId, ruleName, affectedAdsets) {
   const adsetLines = affectedAdsets.slice(0, 10).map(a => {
     const spend = a.metrics.spend ? `${Number(a.metrics.spend).toLocaleString('vi-VN')}₫` : '—'
     const cpa = a.metrics.cpa ? `${Number(a.metrics.cpa).toLocaleString('vi-VN')}₫` : '—'
-    return `  • ${a.adset_name} | Chi: ${spend} | CPA: ${cpa} | ROAS: ${a.metrics.roas || '—'}`
+    return `  • ${a.adset_name} | Chi: ${spend} | KQ: ${a.metrics.results || 0} | CPA: ${cpa}`
   }).join('\n')
 
   const more = affectedAdsets.length > 10 ? `\n  ... và ${affectedAdsets.length - 10} adset khác` : ''
@@ -66,14 +66,15 @@ async function sendNotification(sb, userId, ruleName, affectedAdsets) {
   }
 }
 
-function extractPurchases(actions) {
+function extractResults(actions) {
   if (!actions || !Array.isArray(actions)) return 0
-  const TYPES = ['purchase', 'offsite_conversion.fb_pixel_purchase', 'omni_purchase']
+  const TYPES = ['onsite_conversion.messaging_conversation_started_7d', 'lead', 'purchase', 'offsite_conversion.fb_pixel_purchase', 'omni_purchase']
+  let total = 0
   for (const t of TYPES) {
     const found = actions.find(a => a.action_type === t)
-    if (found) return Number(found.value) || 0
+    if (found) total += Number(found.value) || 0
   }
-  return 0
+  return total
 }
 
 function extractRevenue(actionValues) {
@@ -92,12 +93,12 @@ function computeMetrics(ins) {
   const impressions = Number(ins.impressions) || 0
   const clicks = Number(ins.clicks) || 0
   const ctr = Number(ins.ctr) || 0
-  const purchases = extractPurchases(ins.actions)
+  const results = extractResults(ins.actions)
   const revenue = extractRevenue(ins.action_values)
-  // If no purchases but spent money, CPA is treated as very high (Infinity → use large sentinel)
-  const cpa = purchases > 0 ? spend / purchases : (spend > 0 ? 999999999 : 0)
+  // Nếu có tiêu tiền nhưng không có kết quả, CPA sẽ bị gán số cực lớn để tự động kích hoạt rule "Tắt khi CPA > threshold"
+  const cpa = results > 0 ? spend / results : (spend > 0 ? 999999999 : 0)
   const roas = spend > 0 ? revenue / spend : 0
-  return { spend, impressions, clicks, ctr, purchases, revenue, cpa, roas }
+  return { spend, impressions, clicks, ctr, results, revenue, cpa, roas }
 }
 
 function evalCondition(val, op, threshold) {
@@ -270,7 +271,7 @@ export default async function handler(req, res) {
                 result,
                 metrics: {
                   spend: Math.round(metrics.spend),
-                  purchases: metrics.purchases,
+                  results: metrics.results,
                   cpa: metrics.cpa >= 999999999 ? null : Math.round(metrics.cpa),
                   roas: Math.round(metrics.roas * 100) / 100
                 }
