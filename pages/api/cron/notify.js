@@ -37,24 +37,24 @@ function formatCurrency(n) {
   return formatNumber(Math.round(n || 0))
 }
 
-function extractPurchases(actions) {
+function extractResults(actions) {
   if (!actions || !Array.isArray(actions)) return 0
-  const TYPES = ['purchase', 'offsite_conversion.fb_pixel_purchase', 'omni_purchase']
+  // Ưu tiên đếm tin nhắn, sau đó là lead, rồi mới đến purchase
+  const TYPES = ['onsite_conversion.messaging_conversation_started_7d', 'lead', 'purchase', 'offsite_conversion.fb_pixel_purchase', 'omni_purchase']
+  let total = 0
   for (const t of TYPES) {
     const found = actions.find(a => a.action_type === t)
-    if (found) return Number(found.value) || 0
+    if (found) total += Number(found.value) || 0
   }
-  return 0
+  return total
 }
 
-function extractRevenue(actionValues) {
-  if (!actionValues || !Array.isArray(actionValues)) return 0
-  const TYPES = ['purchase', 'offsite_conversion.fb_pixel_purchase', 'omni_purchase']
-  for (const t of TYPES) {
-    const found = actionValues.find(a => a.action_type === t)
+function extractClicks(actions, fallbackClicks) {
+  if (actions && Array.isArray(actions)) {
+    const found = actions.find(a => a.action_type === 'link_click')
     if (found) return Number(found.value) || 0
   }
-  return 0
+  return Number(fallbackClicks || 0)
 }
 
 export default async function handler(req, res) {
@@ -126,38 +126,61 @@ export default async function handler(req, res) {
             `${account.account_id}/insights`,
             token,
             {
-              fields: 'account_name,spend,actions,action_values',
+              fields: 'campaign_name,spend,actions,impressions,clicks',
               date_preset: 'today',
-              level: 'account'
+              level: 'campaign',
+              filtering: JSON.stringify([{ field: 'spend', operator: 'GREATER_THAN', value: 0 }])
             }
           )
 
           const rows = insightsRes?.data || []
           let accSpend = 0
-          let accConversions = 0
-          let accRevenue = 0
+          let accResults = 0
+          let accImpressions = 0
+          let accClicks = 0
           let accName = account.name || account.account_id
+          const campaignLines = []
 
-          for (const row of rows) {
-            if (row.account_name) accName = row.account_name
-            accSpend += Number(row.spend || 0)
-            accConversions += extractPurchases(row.actions)
-            accRevenue += extractRevenue(row.action_values)
+          // Sắp xếp chiến dịch tiêu nhiều nhất lên đầu
+          rows.sort((a,b) => Number(b.spend || 0) - Number(a.spend || 0))
+
+          for (let i = 0; i < rows.length; i++) {
+            const row = rows[i]
+            const cName = row.campaign_name || 'Không rõ'
+            const cSpend = Number(row.spend || 0)
+            const cResults = extractResults(row.actions)
+            const cImps = Number(row.impressions || 0)
+            const cClicks = extractClicks(row.actions, row.clicks)
+
+            accSpend += cSpend
+            accResults += cResults
+            accImpressions += cImps
+            accClicks += cClicks
+
+            const cCpa = cResults > 0 ? (cSpend / cResults) : 0
+            const cCpc = cClicks > 0 ? (cSpend / cClicks) : 0
+            
+            let cpaStr = cCpa > 0 ? `${formatCurrency(cCpa)}đ` : '—'
+            
+            campaignLines.push(`${i+1}️⃣ ${cName}:\n   Chi: ${formatCurrency(cSpend)}đ | KQ: ${cResults} | CPA: ${cpaStr}\n   (Click: ${cClicks} - CPC: ${cCpc > 0 ? formatCurrency(cCpc)+'đ' : '—'})`)
           }
 
           if (accSpend > 0) {
             totalSpend += accSpend
-            totalConversions += accConversions
-            totalRevenue += accRevenue
+            totalConversions += accResults
 
-            const accCpa = accConversions > 0 ? (accSpend / accConversions) : 0
-            const accRoas = accSpend > 0 ? (accRevenue / accSpend).toFixed(2) : 0
+            const accCpa = accResults > 0 ? (accSpend / accResults) : 0
+            const accCpc = accClicks > 0 ? (accSpend / accClicks) : 0
             
             const spendStr = `${formatCurrency(accSpend)}đ`
             const cpaStr = accCpa > 0 ? `${formatCurrency(accCpa)}đ` : '—'
-            const roasStr = accRevenue > 0 ? accRoas : '—'
             
-            accountLines.push(`▪️ <b>${accName}</b>\n   Chi: ${spendStr} | CPA: ${cpaStr} | Đơn: ${accConversions} | ROAS: ${roasStr}`)
+            let block = `━━━━━━━━━━━━━━━━━━━━\n💼 <b>[Tài khoản] ${accName}</b>\nChi: ${spendStr} | KQ: ${accResults} | CPA: ${cpaStr}\n👁️ H.thị: ${formatNumber(accImpressions)} | 🖱️ Click: ${formatNumber(accClicks)} (CPC: ${accCpc > 0 ? formatCurrency(accCpc)+'đ' : '—'})`
+            
+            if (campaignLines.length > 0) {
+               block += `\n\n🔥 <b>Các Chiến Dịch (Tiêu > 0đ):</b>\n` + campaignLines.join('\n')
+            }
+            accountLines.push(block)
           }
         } catch (err) {
           console.error('[cron/notify] Insights error for account', account.account_id, err)
@@ -171,19 +194,18 @@ export default async function handler(req, res) {
       
       const summaryLines = [
         `💸 Tổng Chi: <b>${formatCurrency(totalSpend)} đ</b>`,
-        totalConversions > 0 ? `🛒 Tổng Đơn: <b>${formatNumber(totalConversions)}</b>` : null,
-        overallCpa > 0 ? `🎯 CPA TB: <b>${formatCurrency(overallCpa)} đ/đơn</b>` : null,
+        `📩 Tổng Kết quả (Mess/Lead): <b>${formatNumber(totalConversions)}</b>`,
+        overallCpa > 0 ? `🎯 CPA TB: <b>${formatCurrency(overallCpa)} đ/kết quả</b>` : null,
       ].filter(Boolean).join('\n')
 
       const message = [
-        '📊 <b>Báo cáo Tổng hợp (Tất cả tài khoản)</b>',
+        '📊 <b>Báo cáo Tổng hợp</b>',
         `🕐 Thời điểm: ${vnTime}`,
         '',
         summaryLines,
         '',
-        '<b>Chi tiết từng tài khoản:</b>',
-        accountLines.join('\n'),
-        '',
+        accountLines.join('\n\n'),
+        '━━━━━━━━━━━━━━━━━━━━',
         '🔗 Xem chi tiết: https://adsmeta.gonetwork.vn/dashboard/report'
       ].join('\n')
 
