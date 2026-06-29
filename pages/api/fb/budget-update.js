@@ -49,7 +49,20 @@ export default async function handler(req, res) {
 
     if (json.error) {
       console.error('[budget-update] Meta error:', json.error)
-      const detailedError = `Lỗi Meta: ${JSON.stringify(json.error)}`
+      let detailedError = 'Lỗi không xác định từ Facebook'
+      if (json.error) {
+        if (json.error.error_user_title && json.error.error_user_msg) {
+          detailedError = `${json.error.error_user_title}: ${json.error.error_user_msg}`
+        } else if (json.error.error_subcode === 1487674) {
+          detailedError = 'Lỗi lịch trình: Vui lòng cài đặt ngày kết thúc cho quảng cáo trên Facebook trước khi tăng ngân sách.'
+        } else if (json.error.error_subcode === 1885068) {
+          detailedError = 'Lỗi: Chiến dịch đang bật CBO (Ngân sách chiến dịch), không thể tăng ngân sách ở cấp độ nhóm.'
+        } else if (json.error.error_subcode === 1885046 || json.error.error_subcode === 1487390) {
+          detailedError = 'Lỗi: Ngân sách bạn nhập quá thấp so với mức tối thiểu của Facebook.'
+        } else {
+          detailedError = `Lỗi Facebook: ${json.error.message}`
+        }
+      }
       return res.status(400).json({ error: detailedError })
     }
 
