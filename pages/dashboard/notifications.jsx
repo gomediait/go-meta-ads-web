@@ -172,6 +172,24 @@ export default function Notifications() {
     }
   }
 
+  const [testingMonitor, setTestingMonitor] = useState(false)
+  async function handleTestMonitor() {
+    setTestingMonitor(true)
+    try {
+      const res = await fetch('/api/cron/monitor?test=true')
+      const d = await res.json()
+      if (d.ok && d.processed > 0) {
+        showToast('Đã gửi cảnh báo giả lập thành công!')
+      } else {
+        showToast('Không thể gửi (có thể chưa lưu settings bật thông báo)', 'error')
+      }
+    } catch {
+      showToast('Lỗi kết nối', 'error')
+    } finally {
+      setTestingMonitor(false)
+    }
+  }
+
   if (!isPlanAllowed(user?.plan, 'notifications')) {
     return <DashboardLayout title="Thông báo tự động"><PlanGate feature="Thông báo tự động" /></DashboardLayout>
   }

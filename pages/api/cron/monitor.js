@@ -1,5 +1,6 @@
 import { getSupabase } from '../../../lib/supabase'
 import { getUserFbData, callMeta } from '../../../lib/metaApi'
+import { getUserFromReq } from '../../../lib/auth'
 
 async function sendTelegram(chatId, text) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN
@@ -26,18 +27,23 @@ export default async function handler(req, res) {
   const isVercelCron = !!req.headers['x-vercel-cron']
   const isBearerValid = cronSecret && authHeader === `Bearer ${cronSecret}`
   
-  if (!isVercelCron && !isBearerValid) {
+  const user = getUserFromReq(req)
+  const isTest = req.query.test === 'true' && user
+
+  if (!isVercelCron && !isBearerValid && !isTest) {
     return res.status(401).json({ error: 'Unauthorized' })
   }
 
   const sb = getSupabase()
 
-  // Quét các user có bật master và bật ít nhất 1 trong 2 loại cảnh báo (Audit hoặc Critical)
-  const { data: users, error } = await sb
-    .from('user_notifications')
-    .select('*')
-    .eq('master_enabled', true)
-    .or('noti_audit.eq.true,noti_critical.eq.true')
+  let query = sb.from('user_notifications').select('*').eq('master_enabled', true)
+  if (isTest) {
+    query = query.eq('user_id', user.id)
+  } else {
+    query = query.or('noti_audit.eq.true,noti_critical.eq.true')
+  }
+
+  const { data: users, error } = await query
 
   if (error) {
     console.error('[cron/monitor] DB error:', error)
@@ -80,11 +86,15 @@ export default async function handler(req, res) {
         }
         
         // 2. [CRITICAL] Cảnh báo khẩn cấp (Ngân sách, CPM)
-        // Hiện tại setup khung sườn. Để tránh call API quá nhiều, bạn có thể implement thêm cơ chế cache hoặc giới hạn.
+        // Hiện tại setup khung sườn.
         if (notif.noti_critical) {
-          // TODO: Fetch adsets nearing daily_budget or check high CPM from insights
-          // alertMessages.push(`⚠️ [Critical] Tài khoản ${accName} sắp chạm trần ngân sách`)
+          // TODO: Fetch adsets nearing daily_budget or check high CPM
         }
+      }
+      
+      // Nếu là test mode, giả lập 1 lỗi để User xem form
+      if (isTest) {
+         alertMessages.push(`❌ [Audit] [Dữ liệu giả lập Test]\nTài khoản <b>Go Media Agency 3</b> đang có 2 quảng cáo bị <b>TỪ CHỐI</b> duyệt:\n- Ảnh QC Mới T6\n- Video Khuyến mãi\n\n⚠️ [Critical] [Dữ liệu giả lập Test]\nNhóm quảng cáo <b>Tương tác du lịch</b> đã tiêu 95% ngân sách ngày (Giới hạn: 500.000đ)`)
       }
       
       // Gửi cảnh báo nếu có issue
