@@ -193,14 +193,13 @@ export default function Profit() {
 
         {/* Info block */}
         <div className="info-block">
-          <div className="info-head"><Info size={14} style={{ flexShrink: 0 }} /> Yêu cầu — Định danh nhóm quảng cáo</div>
+          <div className="info-head"><Info size={14} style={{ flexShrink: 0 }} /> Lưu ý quan trọng: Quy tắc đặt tên Nhóm quảng cáo</div>
           <div className="info-body">
-            Mỗi nhóm quảng cáo (Adset) cần chứa <strong>mã định danh sản phẩm</strong> trùng với mã bạn khai báo bên dưới để hệ thống nhận diện và xử lý đúng dữ liệu.
+            Để hệ thống tự động tính Lãi/Lỗ, bạn bắt buộc phải chèn <strong>Mã sản phẩm</strong> vào tên của Nhóm quảng cáo trên Facebook.
             <div className="info-example">
-              <div className="ex-label">Ví dụ</div>
-              <div style={{ color: 'var(--grn)' }}>Mã SP: <strong>COCINOX</strong></div>
-              <div style={{ marginTop: 4 }}>✓ Đúng: <strong>COCINOX</strong>-CTC-A1 · Adset <strong>COCINOX</strong> Test 1</div>
-              <div style={{ color: 'var(--red)', marginTop: 4 }}>✗ Sai: "Adset 1" · "Cốc Inox Test" (thiếu mã SP)</div>
+              <div className="ex-label">Ví dụ Mã SP là: <strong style={{ color: 'var(--grn)' }}>COCINOX</strong></div>
+              <div style={{ marginTop: 4 }}>✅ Đúng: <strong>COCINOX</strong>-CTC-A1 · Nhóm <strong>COCINOX</strong> Test <span style={{color: 'var(--text-light)', fontSize: '0.9em'}}>(Hệ thống tự nhận diện)</span></div>
+              <div style={{ color: 'var(--red)', marginTop: 4 }}>❌ Sai: "Adset 1" · "Cốc Inox Test" <span style={{fontSize: '0.9em'}}>(Thiếu mã SP, không tính được)</span></div>
             </div>
           </div>
         </div>
