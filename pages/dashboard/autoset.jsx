@@ -319,7 +319,7 @@ export default function AutoSet() {
 
   return (
     <DashboardLayout title="Tự động tạo QC">
-      {toast && <div className="toast" style={{ background: toast.type === 'error' ? '#ef4444' : '#10b981' }}>{toast.msg}</div>}
+      {toast && <div className="local-toast" style={{ background: toast.type === 'error' ? '#ef4444' : '#10b981' }}>{toast.msg}</div>}
 
       <div className="page-wrap">
         <div className="page-header">
@@ -582,7 +582,7 @@ export default function AutoSet() {
         h1 { font-size: 20px; font-weight: 700; color: var(--txt); margin-bottom: 4px; }
         p { font-size: 13px; color: var(--mut); }
 
-        .toast { position: fixed; top: 16px; right: 16px; z-index: 50; padding: 10px 18px; border-radius: 10px; font-size: 13px; font-weight: 600; color: #fff; box-shadow: 0 4px 16px rgba(0,0,0,.25); pointer-events: none; animation: ti .3s ease; }
+        .local-toast { position: fixed; top: 16px; right: 16px; z-index: 50; padding: 10px 18px; border-radius: 10px; font-size: 13px; font-weight: 600; color: #fff; box-shadow: 0 4px 16px rgba(0,0,0,.25); pointer-events: none; animation: ti .3s ease; }
         @keyframes ti { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
 
         .empty-box { display: flex; flex-direction: column; align-items: center; background: var(--s1); border: 1px solid var(--bd); border-radius: 16px; padding: 48px 32px; text-align: center; gap: 12px; }
@@ -693,9 +693,18 @@ export default function AutoSet() {
           .btns button { width: 100%; }
         }
 
+        .toast {
+          position: fixed; top: 16px; right: 16px; z-index: 50;
+          padding: 10px 18px; border-radius: 10px; font-size: 13px; font-weight: 600;
+          color: #fff;
+          box-shadow: 0 4px 16px rgba(0,0,0,.25); pointer-events: none;
+          animation: toastIn .3s ease;
+        }
+        @keyframes toastIn { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+
         /* Reduced motion */
         @media (prefers-reduced-motion: reduce) {
-          .toast { animation: none; }
+          .local-toast { animation: none; }
         }
       `}</style>
     </DashboardLayout>

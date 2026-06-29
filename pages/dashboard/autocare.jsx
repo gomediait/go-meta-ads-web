@@ -5,7 +5,7 @@ import DashboardLayout from '../../components/DashboardLayout'
 import { useAuth } from '../../lib/AuthContext'
 import { fetcher } from '../../lib/fetcher'
 import { isPlanAllowed } from '../../lib/planLimits'
-import { Lock, Link2, HeartHandshake, Pencil, Trash2, Pause, Play, FlaskConical, Info } from 'lucide-react'
+import { Lock, Link2, HeartHandshake, Pencil, Trash2, Pause, Play, Info } from 'lucide-react'
 
 function PlanGate({ feature }) {
   return (
@@ -39,8 +39,6 @@ export default function AutoCare() {
   const [saving, setSaving] = useState(false)
   const [runningId, setRunningId] = useState(null)
   const [runResult, setRunResult] = useState(null)
-  const [testingId, setTestingId] = useState(null)
-  const [testResult, setTestResult] = useState(null)
   const [toast, setToast] = useState(null)
 
   // Campaign tree state
@@ -145,7 +143,6 @@ export default function AutoCare() {
     setSearchQuery('')
     setShowForm(true)
     setRunResult(null)
-    setTestResult(null)
   }
 
   function startEdit(rule) {
@@ -160,7 +157,6 @@ export default function AutoCare() {
     setSearchQuery('')
     setShowForm(true)
     setRunResult(null)
-    setTestResult(null)
   }
 
   function cancelForm() {
@@ -244,20 +240,7 @@ export default function AutoCare() {
     finally { setRunningId(null) }
   }
 
-  async function handleTestCron(ruleId) {
-    setTestingId(ruleId)
-    setTestResult(null)
-    try {
-      const r = await fetch('/api/fb/autocare', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'test_cron', id: ruleId })
-      })
-      const d = await r.json()
-      setTestResult({ ruleId, ...d })
-    } catch { showToast('Lỗi kết nối', 'error') }
-    finally { setTestingId(null) }
-  }
+
 
   function fmtDate(str) {
     if (!str) return 'Chưa chạy'
@@ -297,10 +280,10 @@ export default function AutoCare() {
             <span className="page-icon"><HeartHandshake size={22} /></span>
             <div>
               <h1>Auto Care — Giờ tắt quảng cáo</h1>
-              <p>Tạo nhiều rules tự động tạm dừng và khôi phục chiến dịch theo khung giờ khác nhau</p>
+              <p>Tạo nhiều quy tắc tự động tạm dừng và khôi phục chiến dịch theo khung giờ khác nhau</p>
             </div>
           </div>
-          <button className="btn-add" onClick={openCreateForm}>+ Tạo Rule mới</button>
+          <button className="btn-add" onClick={openCreateForm}>+ Tạo Quy tắc mới</button>
         </div>
 
         {!fbConnected ? (
@@ -317,10 +300,10 @@ export default function AutoCare() {
             {/* Create/Edit form */}
             {showForm && (
               <div className="card form-card">
-                <div className="card-title">{editingRuleId ? 'Sửa Rule' : 'Tạo Rule mới'}</div>
+                <div className="card-title">{editingRuleId ? 'Sửa Quy tắc' : 'Tạo Quy tắc mới'}</div>
 
                 <div className="form-row">
-                  <label className="label">Tên Rule</label>
+                  <label className="label">Tên Quy tắc</label>
                   <input
                     type="text" className="text-input"
                     placeholder="VD: Tắt QC ban đêm, Tắt Camp ABC lúc 23h..."
@@ -436,7 +419,7 @@ export default function AutoCare() {
 
                 <div className="form-actions">
                   <button className="btn-save" onClick={handleSave} disabled={saving}>
-                    {saving ? 'Đang lưu…' : editingRuleId ? 'Cập nhật Rule' : 'Tạo Rule'}
+                    {saving ? 'Đang lưu…' : editingRuleId ? 'Cập nhật Quy tắc' : 'Tạo Quy tắc'}
                   </button>
                   <button className="btn-cancel" onClick={cancelForm}>Huỷ</button>
                 </div>
@@ -447,9 +430,9 @@ export default function AutoCare() {
             {rules.length === 0 && !showForm ? (
               <div className="empty-state">
                 <div className="empty-icon"><HeartHandshake size={36} /></div>
-                <div className="empty-title">Chưa có rule Auto Care nào</div>
-                <div className="empty-desc">Tạo rule đầu tiên để tự động tắt/bật chiến dịch theo giờ nghỉ.</div>
-                <button className="btn-add" onClick={openCreateForm}>+ Tạo Rule mới</button>
+                <div className="empty-title">Chưa có quy tắc Auto Care nào</div>
+                <div className="empty-desc">Tạo quy tắc đầu tiên để tự động tắt/bật chiến dịch theo giờ nghỉ.</div>
+                <button className="btn-add" onClick={openCreateForm}>+ Tạo Quy tắc mới</button>
               </div>
             ) : (
               <div className="rules-list">
@@ -457,9 +440,9 @@ export default function AutoCare() {
                   <div key={rule.id} className={`rule-card${!rule.enabled ? ' rule-disabled' : ''}`}>
                     <div className="rule-header">
                       <div className="rule-info">
-                        <div className="rule-name">{rule.name || 'Rule không tên'}</div>
+                        <div className="rule-name">{rule.name || 'Quy tắc không tên'}</div>
                         <div className="rule-meta">
-                          Pause {rule.pause_at} → Resume {rule.resume_at} · {describeSelection(rule)}
+                          Tạm dừng {rule.pause_at} → Bật lại {rule.resume_at} · {describeSelection(rule)}
                         </div>
                       </div>
                       <div className="rule-actions">
@@ -476,11 +459,11 @@ export default function AutoCare() {
 
                     <div className="rule-status">
                       <div className="status-item">
-                        <span className="status-label">Lần pause cuối</span>
+                        <span className="status-label">Lần dừng cuối</span>
                         <span className="status-value">{fmtDate(rule.last_pause_run)}</span>
                       </div>
                       <div className="status-item">
-                        <span className="status-label">Lần resume cuối</span>
+                        <span className="status-label">Lần bật cuối</span>
                         <span className="status-value">{fmtDate(rule.last_resume_run)}</span>
                       </div>
                     </div>
@@ -501,22 +484,7 @@ export default function AutoCare() {
                       </div>
                     )}
 
-                    {/* Test cron result */}
-                    {testResult?.ruleId === rule.id && (
-                      <div className="test-result">
-                        <div className="test-msg">{testResult.message}</div>
-                        {testResult.debug && (
-                          <div className="test-debug">
-                            {Object.entries(testResult.debug).map(([k, v]) => (
-                              <div key={k} className="test-debug-row">
-                                <span className="test-debug-key">{k}</span>
-                                <span className="test-debug-val">{String(v)}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
+
 
                     <div className="rule-btns">
                       <button
@@ -524,21 +492,14 @@ export default function AutoCare() {
                         onClick={() => handleAction(rule.id, 'pause_now')}
                         disabled={runningId === rule.id}
                       >
-                        {runningId === rule.id ? '...' : <><Pause size={12} /></>} Pause ngay
+                        {runningId === rule.id ? '...' : <><Pause size={12} /></>} Dừng ngay
                       </button>
                       <button
                         className="btn-resume-now"
                         onClick={() => handleAction(rule.id, 'resume_now')}
                         disabled={runningId === rule.id}
                       >
-                        {runningId === rule.id ? '...' : <><Play size={12} /></>} Resume ngay
-                      </button>
-                      <button
-                        className="btn-test-cron"
-                        onClick={() => handleTestCron(rule.id)}
-                        disabled={testingId === rule.id}
-                      >
-                        {testingId === rule.id ? '...' : <><FlaskConical size={12} /> Test cron</>}
+                        {runningId === rule.id ? '...' : <><Play size={12} /></>} Bật ngay
                       </button>
                       <button className="btn-edit" onClick={() => startEdit(rule)}><Pencil size={12} /> Sửa</button>
                       <button className="btn-delete" onClick={() => deleteRule(rule.id, rule.name)}><Trash2 size={12} /></button>
@@ -554,9 +515,9 @@ export default function AutoCare() {
               <div className="info-body">
                 <div className="info-title">Cách hoạt động</div>
                 <div className="info-text">
-                  Mỗi rule có giờ nghỉ riêng. Hệ thống kiểm tra mỗi giờ (UTC). Nếu đang trong giờ nghỉ và chưa tạm dừng hôm nay → tạm dừng campaigns/adsets đã chọn.
-                  Nếu đang trong giờ hoạt động và chưa bật lại hôm nay → bật lại. Mỗi hành động chỉ chạy 1 lần/ngày/rule.
-                  Nút Pause/Resume ngay hoạt động ngay lập tức, không phụ thuộc giờ.
+                  Mỗi quy tắc có giờ nghỉ riêng. Hệ thống kiểm tra mỗi giờ (UTC). Nếu đang trong giờ nghỉ và chưa tạm dừng hôm nay → tạm dừng chiến dịch/nhóm QC đã chọn.
+                  Nếu đang trong giờ hoạt động và chưa bật lại hôm nay → bật lại. Mỗi hành động chỉ chạy 1 lần/ngày/quy tắc.
+                  Nút Dừng/Bật ngay hoạt động ngay lập tức, không phụ thuộc giờ.
                 </div>
               </div>
             </div>

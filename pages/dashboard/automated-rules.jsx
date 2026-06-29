@@ -392,7 +392,7 @@ export default function AutomatedRules() {
       <div className="as-page">
 
         {toast && (
-          <div className={`toast ${toast.type}`}>{toast.msg}</div>
+          <div className={`local-toast ${toast.type || ''}`}>{toast.msg}</div>
         )}
 
         {/* Header */}
@@ -432,30 +432,6 @@ export default function AutomatedRules() {
             </div>
 
             <div className="form-row">
-              <label>Áp dụng cho</label>
-              <div className="level-tabs">
-                <button className={`level-tab${form.level === 'adset' ? ' active' : ''}`} onClick={() => setForm(p => ({ ...p, level: 'adset' }))}>
-                  Nhóm QC (Adset)
-                </button>
-                <button className={`level-tab${form.level === 'campaign' ? ' active' : ''}`} onClick={() => setForm(p => ({ ...p, level: 'campaign' }))}>
-                  Chiến dịch (Campaign)
-                </button>
-              </div>
-              <div style={{ fontSize: 11, color: 'var(--mut)', marginTop: 4 }}>
-                {form.level === 'campaign'
-                  ? 'Rule sẽ kiểm tra metrics và tắt/bật/scale ở cấp chiến dịch. Pause campaign = tắt tất cả adsets bên trong.'
-                  : 'Rule sẽ kiểm tra metrics và tắt/bật/scale từng nhóm QC riêng lẻ.'}
-              </div>
-            </div>
-
-            <div className="form-row">
-              <label>Thời gian đánh giá</label>
-              <select value={form.time_range} onChange={e => setForm(p => ({ ...p, time_range: e.target.value }))} className="inp">
-                {TIME_RANGES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-              </select>
-            </div>
-
-            <div className="form-row">
               <label>Tài khoản áp dụng</label>
               <select value={form.account_id} onChange={e => setForm(p => ({ ...p, account_id: e.target.value }))} className="inp">
                 <option value="all">Tất cả tài khoản</option>
@@ -464,88 +440,29 @@ export default function AutomatedRules() {
             </div>
 
             <div className="form-row">
-              <label>Điều kiện (ALL phải đúng)</label>
-              <div className="conditions">
-                {form.conditions.map((c, i) => (
-                  <div key={i} className="condition-row">
-                    <select value={c.metric} onChange={e => updateCondition(i, 'metric', e.target.value)} className="cond-sel">
-                      {METRICS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-                    </select>
-                    <select value={c.operator} onChange={e => updateCondition(i, 'operator', e.target.value)} className="cond-op">
-                      {OPERATORS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
-                    <input
-                      type="number" placeholder="Giá trị" min="0"
-                      value={c.value} onChange={e => updateCondition(i, 'value', e.target.value)}
-                      className="cond-val"
-                    />
-                    <span className="cond-unit">{METRICS.find(m => m.value === c.metric)?.unit}</span>
-                    {form.conditions.length > 1 && (
-                      <button className="cond-del" onClick={() => removeCondition(i)}>✕</button>
-                    )}
-                  </div>
-                ))}
-                <button className="add-cond-btn" onClick={addCondition}>+ Thêm điều kiện</button>
+              <label>Cấp độ áp dụng</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  type="button"
+                  className={`btn-level ${form.level === 'adset' ? 'active' : ''}`}
+                  onClick={() => setForm(p => ({ ...p, level: 'adset' }))}
+                >
+                  Nhóm QC (Adset)
+                </button>
+                <button
+                  type="button"
+                  className={`btn-level ${form.level === 'campaign' ? 'active' : ''}`}
+                  onClick={() => setForm(p => ({ ...p, level: 'campaign' }))}
+                >
+                  Chiến dịch (Campaign)
+                </button>
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--mut)', marginTop: 4 }}>
+                {form.level === 'campaign'
+                  ? 'Rule sẽ kiểm tra metrics ở cấp chiến dịch.'
+                  : 'Rule sẽ kiểm tra metrics từng nhóm QC riêng lẻ.'}
               </div>
             </div>
-
-            <div className="form-row">
-              <label>Hành động thực hiện</label>
-              <select value={form.action} onChange={e => setForm(p => ({ ...p, action: e.target.value }))} className="inp">
-                {ACTIONS.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
-              </select>
-            </div>
-
-            {actionInfo?.hasScale && (
-              <>
-                <div className="form-row">
-                  <label>{form.action === 'scale_budget' ? 'Tăng ngân sách theo hệ số' : 'Giảm ngân sách theo hệ số'}</label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <input
-                      type="number" min="1.01" max="3" step="0.05"
-                      value={form.scale_factor}
-                      onChange={e => setForm(p => ({ ...p, scale_factor: e.target.value }))}
-                      className="inp" style={{ maxWidth: 120 }}
-                    />
-                    <span style={{ fontSize: 13, color: 'var(--mut)' }}>
-                      (= {Math.round((Number(form.scale_factor || 1) - 1) * 100)}% {form.action === 'scale_budget' ? 'tăng' : 'giảm'})
-                    </span>
-                  </div>
-                </div>
-                <div className="form-row">
-                  <label>Giới hạn ngân sách (₫) — tránh tăng/giảm vô hạn</label>
-                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: 12, color: 'var(--mut)', whiteSpace: 'nowrap' }}>Tối thiểu</span>
-                      <input
-                        type="number" min="0" placeholder="VD: 50000"
-                        value={form.budget_cap_min}
-                        onChange={e => setForm(p => ({ ...p, budget_cap_min: e.target.value }))}
-                        className="inp" style={{ maxWidth: 140 }}
-                      />
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: 12, color: 'var(--mut)', whiteSpace: 'nowrap' }}>Tối đa</span>
-                      <input
-                        type="number" min="0" placeholder="VD: 500000"
-                        value={form.budget_cap_max}
-                        onChange={e => setForm(p => ({ ...p, budget_cap_max: e.target.value }))}
-                        className="inp" style={{ maxWidth: 140 }}
-                      />
-                    </div>
-                  </div>
-                  <div style={{ fontSize: 11, color: 'var(--mut)', marginTop: 4 }}>Để 0 = không giới hạn. Budget sẽ không vượt quá max hoặc thấp hơn min.</div>
-                </div>
-              </>
-            )}
-
-            {form.action === 'notify_only' && (
-              <div className="form-row">
-                <div style={{ padding: '10px 14px', background: 'rgba(59,130,246,.07)', border: '1px solid rgba(59,130,246,.2)', borderRadius: 9, fontSize: 12, color: 'var(--mut)', lineHeight: 1.6 }}>
-                  ℹ️ Rule sẽ chỉ kiểm tra điều kiện và hiển thị kết quả khi nhấn &ldquo;Chạy Rules Ngay&rdquo;. Không tự động tắt/bật hay thay đổi ngân sách.
-                </div>
-              </div>
-            )}
 
             {/* Campaign Tree Selector */}
             <div className="form-row">
@@ -604,6 +521,99 @@ export default function AutomatedRules() {
                 })}
               </div>
             </div>
+
+            <div className="form-row" style={{ marginTop: 24, paddingTop: 16, borderTop: '1px dashed var(--bd)' }}>
+              <label>Thời gian đánh giá</label>
+              <select value={form.time_range} onChange={e => setForm(p => ({ ...p, time_range: e.target.value }))} className="inp">
+                {TIME_RANGES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
+            </div>
+
+            <div className="form-row">
+              <label>Điều kiện (ALL phải đúng)</label>
+              <div className="conditions">
+                {form.conditions.map((c, i) => (
+                  <div key={i} className="condition-row">
+                    <select value={c.metric} onChange={e => updateCondition(i, 'metric', e.target.value)} className="cond-sel">
+                      {METRICS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+                    </select>
+                    <select value={c.operator} onChange={e => updateCondition(i, 'operator', e.target.value)} className="cond-op">
+                      {OPERATORS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                    <input
+                      type="number" placeholder="Giá trị" min="0"
+                      value={c.value} onChange={e => updateCondition(i, 'value', e.target.value)}
+                      className="cond-val"
+                    />
+                    <span className="cond-unit">{METRICS.find(m => m.value === c.metric)?.unit}</span>
+                    {form.conditions.length > 1 && (
+                      <button className="cond-del" onClick={() => removeCondition(i)}>✕</button>
+                    )}
+                  </div>
+                ))}
+                <button className="add-cond-btn" onClick={addCondition}>+ Thêm điều kiện</button>
+              </div>
+            </div>
+
+            <div className="form-row" style={{ marginTop: 24, paddingTop: 16, borderTop: '1px dashed var(--bd)' }}>
+              <label>Hành động thực hiện</label>
+              <select value={form.action} onChange={e => setForm(p => ({ ...p, action: e.target.value }))} className="inp">
+                {ACTIONS.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
+              </select>
+            </div>
+
+            {actionInfo?.hasScale && (
+              <>
+                <div className="form-row">
+                  <label>{form.action === 'scale_budget' ? 'Tăng ngân sách theo hệ số' : 'Giảm ngân sách theo hệ số'}</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <input
+                      type="number" min="1.01" max="3" step="0.05"
+                      value={form.scale_factor}
+                      onChange={e => setForm(p => ({ ...p, scale_factor: e.target.value }))}
+                      className="inp" style={{ maxWidth: 120 }}
+                    />
+                    <span style={{ fontSize: 13, color: 'var(--mut)' }}>
+                      (= {Math.round((Number(form.scale_factor || 1) - 1) * 100)}% {form.action === 'scale_budget' ? 'tăng' : 'giảm'})
+                    </span>
+                  </div>
+                </div>
+                <div className="form-row">
+                  <label>Giới hạn ngân sách (₫) — tránh tăng/giảm vô hạn</label>
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 12, color: 'var(--mut)', whiteSpace: 'nowrap' }}>Tối thiểu</span>
+                      <input
+                        type="number" min="0" placeholder="VD: 50000"
+                        value={form.budget_cap_min}
+                        onChange={e => setForm(p => ({ ...p, budget_cap_min: e.target.value }))}
+                        className="inp" style={{ maxWidth: 140 }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 12, color: 'var(--mut)', whiteSpace: 'nowrap' }}>Tối đa</span>
+                      <input
+                        type="number" min="0" placeholder="VD: 500000"
+                        value={form.budget_cap_max}
+                        onChange={e => setForm(p => ({ ...p, budget_cap_max: e.target.value }))}
+                        className="inp" style={{ maxWidth: 140 }}
+                      />
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--mut)', marginTop: 4 }}>Để 0 = không giới hạn. Budget sẽ không vượt quá max hoặc thấp hơn min.</div>
+                </div>
+              </>
+            )}
+
+            {form.action === 'notify_only' && (
+              <div className="form-row">
+                <div style={{ padding: '10px 14px', background: 'rgba(59,130,246,.07)', border: '1px solid rgba(59,130,246,.2)', borderRadius: 9, fontSize: 12, color: 'var(--mut)', lineHeight: 1.6 }}>
+                  ℹ️ Rule sẽ chỉ kiểm tra điều kiện và hiển thị kết quả khi nhấn &ldquo;Chạy Rules Ngay&rdquo;. Không tự động tắt/bật hay thay đổi ngân sách.
+                </div>
+              </div>
+            )}
+
+
 
             <div className="form-btns">
               <button className="btn-cancel" onClick={() => { setShowForm(false); setEditingRuleId(null) }}>Huỷ</button>
@@ -939,6 +949,14 @@ export default function AutomatedRules() {
         }
         .inp:focus { border-color: var(--primary); }
 
+        .btn-level {
+          flex: 1; padding: 10px; background: var(--s2); border: 1.5px solid var(--bd);
+          border-radius: 9px; font-size: 13px; font-weight: 600; color: var(--mut);
+          cursor: pointer; transition: all .15s; font-family: inherit;
+        }
+        .btn-level:hover { border-color: var(--primary); color: var(--primary); }
+        .btn-level.active { background: rgba(99,102,241,.1); border-color: var(--primary); color: var(--primary); }
+
         .conditions { display: flex; flex-direction: column; gap: 8px; }
         .condition-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
         .cond-sel { flex: 1.6; min-width: 160px; background: var(--s2); border: 1.5px solid var(--bd); border-radius: 8px; padding: 8px 10px; font-size: 13px; color: var(--txt); outline: none; font-family: inherit; }
@@ -1031,9 +1049,19 @@ export default function AutomatedRules() {
           .rule-header { flex-direction: column; align-items: flex-start; gap: 8px; }
         }
 
+        .local-toast {
+          position: fixed; top: 16px; right: 16px; z-index: 50;
+          padding: 10px 18px; border-radius: 10px; font-size: 13px; font-weight: 600;
+          color: #fff; background: #10b981;
+          box-shadow: 0 4px 16px rgba(0,0,0,.25); pointer-events: none;
+          animation: toastIn .3s ease;
+        }
+        .local-toast.error { background: #ef4444; }
+        @keyframes toastIn { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+
         /* Reduced motion */
         @media (prefers-reduced-motion: reduce) {
-          .toast { animation: none; }
+          .local-toast { animation: none; }
           .toggle-thumb { transition: none; }
         }
       `}</style>

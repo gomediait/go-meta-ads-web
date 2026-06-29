@@ -36,6 +36,26 @@ function formatCurrency(n) {
   return formatNumber(Math.round(n || 0))
 }
 
+function extractPurchases(actions) {
+  if (!actions || !Array.isArray(actions)) return 0
+  const TYPES = ['purchase', 'offsite_conversion.fb_pixel_purchase', 'omni_purchase']
+  for (const t of TYPES) {
+    const found = actions.find(a => a.action_type === t)
+    if (found) return Number(found.value) || 0
+  }
+  return 0
+}
+
+function extractRevenue(actionValues) {
+  if (!actionValues || !Array.isArray(actionValues)) return 0
+  const TYPES = ['purchase', 'offsite_conversion.fb_pixel_purchase', 'omni_purchase']
+  for (const t of TYPES) {
+    const found = actionValues.find(a => a.action_type === t)
+    if (found) return Number(found.value) || 0
+  }
+  return 0
+}
+
 export default async function handler(req, res) {
   // Verify cron auth
   const cronSecret = process.env.CRON_SECRET
@@ -80,10 +100,10 @@ export default async function handler(req, res) {
       const { token, accounts } = fbData
 
       let totalSpend = 0
-      let totalImpressions = 0
-      let totalClicks = 0
       let totalConversions = 0
-      let activeCampaigns = 0
+      let totalRevenue = 0
+      
+      const accountLines = []
 
       for (const account of accounts) {
         try {
@@ -91,58 +111,66 @@ export default async function handler(req, res) {
             `${account.account_id}/insights`,
             token,
             {
-              fields: 'spend,impressions,clicks,actions',
+              fields: 'account_name,spend,actions,action_values',
               date_preset: 'today',
               level: 'account'
             }
           )
 
           const rows = insightsRes?.data || []
-          for (const row of rows) {
-            totalSpend += Number(row.spend || 0)
-            totalImpressions += Number(row.impressions || 0)
-            totalClicks += Number(row.clicks || 0)
+          let accSpend = 0
+          let accConversions = 0
+          let accRevenue = 0
+          let accName = account.name || account.account_id
 
-            // Count conversions from actions
-            const actions = row.actions || []
-            const purchaseAction = actions.find(a => a.action_type === 'purchase' || a.action_type === 'offsite_conversion.fb_pixel_purchase')
-            if (purchaseAction) {
-              totalConversions += Number(purchaseAction.value || 0)
-            }
+          for (const row of rows) {
+            if (row.account_name) accName = row.account_name
+            accSpend += Number(row.spend || 0)
+            accConversions += extractPurchases(row.actions)
+            accRevenue += extractRevenue(row.action_values)
           }
 
-          // Count active campaigns
-          const campRes = await callMeta(
-            `${account.account_id}/campaigns`,
-            token,
-            {
-              fields: 'id',
-              filtering: JSON.stringify([{ field: 'effective_status', operator: 'IN', value: ['ACTIVE'] }]),
-              summary: 'true'
-            }
-          )
-          activeCampaigns += campRes?.summary?.total_count || (campRes?.data?.length || 0)
+          if (accSpend > 0) {
+            totalSpend += accSpend
+            totalConversions += accConversions
+            totalRevenue += accRevenue
+
+            const accCpa = accConversions > 0 ? (accSpend / accConversions) : 0
+            const accRoas = accSpend > 0 ? (accRevenue / accSpend).toFixed(2) : 0
+            
+            const spendStr = `${formatCurrency(accSpend)}đ`
+            const cpaStr = accCpa > 0 ? `${formatCurrency(accCpa)}đ` : '—'
+            const roasStr = accRevenue > 0 ? accRoas : '—'
+            
+            accountLines.push(`▪️ <b>${accName}</b>\n   Chi: ${spendStr} | CPA: ${cpaStr} | Đơn: ${accConversions} | ROAS: ${roasStr}`)
+          }
         } catch (err) {
           console.error('[cron/notify] Insights error for account', account.account_id, err)
         }
       }
 
-      const ctr = totalImpressions > 0 ? ((totalClicks / totalImpressions) * 100).toFixed(2) : '0.00'
+      if (totalSpend === 0) continue // Skip if no spend today
+
       const vnTime = vnNow.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })
+      const overallCpa = totalConversions > 0 ? (totalSpend / totalConversions) : 0
+      
+      const summaryLines = [
+        `💸 Tổng Chi: <b>${formatCurrency(totalSpend)} đ</b>`,
+        totalConversions > 0 ? `🛒 Tổng Đơn: <b>${formatNumber(totalConversions)}</b>` : null,
+        overallCpa > 0 ? `🎯 CPA TB: <b>${formatCurrency(overallCpa)} đ/đơn</b>` : null,
+      ].filter(Boolean).join('\n')
 
       const message = [
-        '📊 <b>Báo cáo Facebook Ads — Go Meta Ads Pro</b>',
+        '📊 <b>Báo cáo Tổng hợp (Tất cả tài khoản)</b>',
         `🕐 Thời điểm: ${vnTime}`,
         '',
-        `💸 Chi phí hôm nay: <b>${formatCurrency(totalSpend)} đ</b>`,
-        `👁 Lượt hiển thị: <b>${formatNumber(totalImpressions)}</b>`,
-        `🖱 Lượt click: <b>${formatNumber(totalClicks)}</b>`,
-        `📈 CTR: <b>${ctr}%</b>`,
-        totalConversions > 0 ? `🛒 Chuyển đổi: <b>${formatNumber(totalConversions)}</b>` : null,
-        `📣 Chiến dịch đang chạy: <b>${activeCampaigns}</b>`,
+        summaryLines,
+        '',
+        '<b>Chi tiết từng tài khoản:</b>',
+        accountLines.join('\n'),
         '',
         '🔗 Xem chi tiết: https://adsmeta.gonetwork.vn/dashboard/report'
-      ].filter(Boolean).join('\n')
+      ].join('\n')
 
       let sent = false
 

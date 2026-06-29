@@ -381,7 +381,7 @@ export default function Profit() {
           </div>
         </div>
 
-        {toast && <div className="toast show" role="status" aria-live="polite">{toast}</div>}
+        {toast && <div className="local-toast show" role="status" aria-live="polite">{toast}</div>}
       </div>
 
       <style jsx>{`
@@ -528,7 +528,7 @@ export default function Profit() {
         .cpa-empty { padding: 16px; text-align: center; color: var(--mut); font-size: 12px; }
 
         /* Toast */
-        .toast {
+        .local-toast {
           position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
           background: var(--s1); border: 1px solid var(--bd); border-radius: 10px;
           padding: 9px 18px; font-size: 13px; font-weight: 500; color: var(--txt);
@@ -551,7 +551,7 @@ export default function Profit() {
         /* Reduced motion */
         @media (prefers-reduced-motion: reduce) {
           .toggle::after { transition: none; }
-          .toast { animation: none; }
+          .local-toast { animation: none; }
         }
 
         /* Mobile adjustments */

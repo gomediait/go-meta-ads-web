@@ -22,13 +22,10 @@ function PlanGate({ feature }) {
   )
 }
 
-const HOUR_OPTIONS = [
-  { value: 8,  label: '8:00 sáng' },
-  { value: 12, label: '12:00 trưa' },
-  { value: 16, label: '16:00 chiều' },
-  { value: 18, label: '18:00 tối' },
-  { value: 22, label: '22:00 khuya' },
-]
+const HOUR_OPTIONS = Array.from({ length: 24 }).map((_, i) => ({
+  value: i,
+  label: `${String(i).padStart(2, '0')}:00`
+}))
 
 const DEFAULTS = {
   master_enabled: false,
@@ -104,8 +101,8 @@ export default function Notifications() {
   }
 
   async function handleTestTelegram() {
-    if (!settings.tg_bot_token || !settings.tg_chat_id) {
-      showToast('Vui lòng nhập Bot Token và Chat ID', 'error')
+    if (!settings.tg_chat_id) {
+      showToast('Vui lòng nhập Chat ID', 'error')
       return
     }
     setTestingTg(true)
@@ -116,7 +113,6 @@ export default function Notifications() {
         body: JSON.stringify({
           action: 'test',
           tg_enabled: true,
-          tg_bot_token: settings.tg_bot_token,
           tg_chat_id: settings.tg_chat_id,
           lark_enabled: false
         })
@@ -168,7 +164,7 @@ export default function Notifications() {
 
         {/* Toast */}
         {toast && (
-          <div className={`toast toast-${toast.type}`} role="alert" aria-live="assertive">{toast.msg}</div>
+          <div className={`local-toast toast-${toast.type}`} role="alert" aria-live="assertive">{toast.msg}</div>
         )}
 
         <div className="page-header">
@@ -217,18 +213,6 @@ export default function Notifications() {
               </div>
 
               <div className={`section-body${!settings.tg_enabled ? ' disabled-area' : ''}`}>
-                <div className="field-group">
-                  <label className="label">Bot Token</label>
-                  <input
-                    type="text"
-                    className="text-input"
-                    placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
-                    value={settings.tg_bot_token}
-                    onChange={e => set('tg_bot_token', e.target.value)}
-                  />
-                  <div className="field-hint">Tạo bot tại @BotFather trên Telegram</div>
-                </div>
-
                 <div className="field-group">
                   <label className="label">Chat ID</label>
                   <input
@@ -287,15 +271,34 @@ export default function Notifications() {
               <div className="field-desc" style={{ marginBottom: 14 }}>Chọn các khung giờ muốn nhận báo cáo mỗi ngày (giờ Việt Nam)</div>
 
               <div className="hours-row">
-                {HOUR_OPTIONS.map(h => (
-                  <button
-                    key={h.value}
-                    className={`hour-btn${isHourActive(h.value) ? ' active' : ''}`}
-                    onClick={() => toggleHour(h.value)}
-                  >
-                    {h.label}
-                  </button>
-                ))}
+                {(() => {
+                  const selectedList = (settings.schedule_value || '').split(',').map(h => h.trim()).filter(Boolean).map(Number).sort((a,b) => a - b)
+                  const availableList = HOUR_OPTIONS.filter(h => !selectedList.includes(h.value))
+                  return (
+                    <>
+                      {selectedList.map(h => (
+                        <div key={h} className="hour-tag">
+                          {String(h).padStart(2, '0')}:00
+                          <button className="remove-hour" onClick={() => toggleHour(h)} aria-label="Xoá">×</button>
+                        </div>
+                      ))}
+                      {availableList.length > 0 && (
+                        <select 
+                          className="add-hour-select"
+                          value=""
+                          onChange={(e) => {
+                            if(e.target.value) toggleHour(Number(e.target.value))
+                          }}
+                        >
+                          <option value="" disabled>+ Thêm giờ</option>
+                          {availableList.map(h => (
+                            <option key={h.value} value={h.value}>{h.label}</option>
+                          ))}
+                        </select>
+                      )}
+                    </>
+                  )
+                })()}
               </div>
             </div>
 
@@ -358,13 +361,13 @@ export default function Notifications() {
         p  { font-size: 13px; color: var(--mut); }
 
         /* Toast */
-        .toast {
+        .local-toast {
           position: fixed; top: 20px; right: 20px; z-index: 50;
           padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 600;
           box-shadow: 0 4px 20px rgba(0,0,0,.2); animation: slideIn .25s ease;
           max-width: 320px;
         }
-        .toast-success { background: var(--grn); color: #fff; }
+        .toast-success { background: var(--green); color: #fff; }
         .toast-error   { background: var(--red); color: #fff; }
         @keyframes slideIn { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }
 
@@ -455,14 +458,25 @@ export default function Notifications() {
         .btn-test:disabled { opacity: .6; cursor: default; }
 
         /* Hours */
-        .hours-row { display: flex; flex-wrap: wrap; gap: 8px; }
-        .hour-btn {
-          padding: 8px 16px; border-radius: 9px; border: 1px solid var(--bd);
-          background: var(--s2); color: var(--txt); font-size: 13px; font-weight: 500;
-          cursor: pointer; transition: all .15s;
+        .hours-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+        .hour-tag {
+          display: flex; align-items: center; gap: 6px;
+          padding: 6px 10px 6px 14px; border-radius: 20px;
+          background: rgba(254,95,1,.1); color: var(--primary);
+          font-size: 13px; font-weight: 600; border: 1px solid rgba(254,95,1,.2);
         }
-        .hour-btn:hover { background: var(--s3); }
-        .hour-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 700; }
+        .remove-hour {
+          background: none; border: none; color: var(--primary); font-size: 16px;
+          display: flex; align-items: center; justify-content: center;
+          cursor: pointer; opacity: .7; transition: opacity .15s; padding: 0 4px; line-height: 1;
+        }
+        .remove-hour:hover { opacity: 1; }
+        .add-hour-select {
+          padding: 6px 12px; border-radius: 20px; border: 1px dashed var(--bd);
+          background: transparent; color: var(--txt); font-size: 13px; font-weight: 500;
+          cursor: pointer; transition: all .15s; outline: none;
+        }
+        .add-hour-select:hover { border-color: var(--primary); color: var(--primary); }
 
         /* Alert list */
         .alert-list { display: flex; flex-direction: column; }
@@ -490,8 +504,7 @@ export default function Notifications() {
         @media (max-width: 768px) {
           .page-wrap { padding: 16px; }
           .page-header { flex-direction: column; align-items: flex-start; gap: 8px; }
-          .hours-row { flex-direction: column; }
-          .hour-btn { width: 100%; text-align: center; }
+          .hours-row { gap: 6px; }
           .save-row { justify-content: stretch; }
           .btn-save { width: 100%; }
           .fb-required { padding: 32px 16px; }
@@ -501,7 +514,7 @@ export default function Notifications() {
 
         /* Reduced motion */
         @media (prefers-reduced-motion: reduce) {
-          .toast { animation: none; }
+          .local-toast { animation: none; }
           .skel-block { animation: none; }
           .slider, .slider::before { transition: none; }
         }

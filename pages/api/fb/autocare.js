@@ -4,36 +4,12 @@ import { getUserFbData, callMeta } from '../../../lib/metaApi'
 
 const META_BASE = 'https://graph.facebook.com/v23.0'
 
-function getVietnamTime() {
-  const now = new Date()
-  const vnOffset = 7 * 60 * 60 * 1000
-  return new Date(now.getTime() + vnOffset)
-}
 
-function toHHMM(date) {
-  const h = String(date.getUTCHours()).padStart(2, '0')
-  const m = String(date.getUTCMinutes()).padStart(2, '0')
-  return `${h}:${m}`
-}
-
-function toDateStr(date) {
-  return date.toISOString().slice(0, 10)
-}
 
 function resolveAccountId(accountId) {
   return accountId.startsWith('act_') ? accountId : `act_${accountId}`
 }
 
-function determineAction(currentTime, pauseAt, resumeAt) {
-  if (pauseAt > resumeAt) {
-    if (currentTime >= pauseAt || currentTime < resumeAt) return 'pause'
-    if (currentTime >= resumeAt) return 'resume'
-  } else {
-    if (currentTime >= pauseAt && currentTime < resumeAt) return 'pause'
-    if (currentTime >= resumeAt) return 'resume'
-  }
-  return null
-}
 
 async function toggleEntity(entityId, targetStatus, token) {
   const body = new URLSearchParams({ status: targetStatus, access_token: token }).toString()
@@ -230,52 +206,7 @@ export default async function handler(req, res) {
       })
     }
 
-    // Test cron for a specific rule
-    if (action === 'test_cron') {
-      const { id } = body
-      if (!id) return res.status(400).json({ error: 'Thiếu rule id' })
 
-      const { data: rule } = await sb
-        .from('user_autocare_rules')
-        .select('*')
-        .eq('id', id)
-        .eq('user_id', user.id)
-        .single()
-
-      if (!rule || !rule.enabled) {
-        return res.json({ ok: true, message: 'Rule chưa được bật' })
-      }
-
-      const fbData = await getUserFbData(user.id, sb)
-      if (!fbData) return res.status(400).json({ error: 'Chưa kết nối Facebook Ads' })
-
-      const vnNow = getVietnamTime()
-      const currentTime = toHHMM(vnNow)
-      const todayStr = toDateStr(vnNow)
-      const actionType = determineAction(currentTime, rule.pause_at, rule.resume_at)
-
-      if (!actionType) {
-        return res.json({
-          ok: true, changed: 0,
-          message: 'Không xác định được hành động',
-          debug: { currentTime, pause_at: rule.pause_at, resume_at: rule.resume_at },
-        })
-      }
-
-      // Test cron: luôn chạy, không check alreadyRan, không ghi last_run
-      const result = await runRuleAction(rule, actionType, fbData)
-
-      return res.json({
-        ok: true,
-        action: actionType,
-        changed_campaigns: result.changedCampaigns,
-        changed_adsets: result.changedAdsets,
-        skipped_campaign_paused: result.skippedCampaignPaused,
-        changed: result.changedCampaigns + result.changedAdsets,
-        message: `Đã ${actionType === 'pause' ? 'TẠM DỪNG' : 'BẬT LẠI'}: ${result.changedCampaigns} chiến dịch, ${result.changedAdsets} nhóm QC`,
-        debug: { currentTime, actionType, pause_at: rule.pause_at, resume_at: rule.resume_at },
-      })
-    }
 
     return res.status(400).json({ error: 'Action không hợp lệ' })
   }
