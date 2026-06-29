@@ -6,5 +6,15 @@
     "pages/api/cron/notify.js": {
       "maxDuration": 60
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/notify",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/offhours",
+      "schedule": "0 * * * *"
+    }
+  ]
 }
