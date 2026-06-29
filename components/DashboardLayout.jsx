@@ -6,7 +6,7 @@ import { useAuth } from '../lib/AuthContext'
 import { useLang } from '../lib/LangContext'
 import { isPlanAllowed } from '../lib/planLimits'
 import pkg from '../package.json'
-import { LayoutDashboard, Coins, BarChart3, HeartHandshake, Settings2, ClipboardList, ShieldCheck, Bell, Users, Handshake, LifeBuoy, BookOpen, Sun, Moon, LogOut, Link as LinkIcon, ChevronLeft, ChevronRight, Lock } from 'lucide-react'
+import { LayoutDashboard, Coins, BarChart3, HeartHandshake, Settings2, ClipboardList, ShieldCheck, Bell, Users, Handshake, LifeBuoy, BookOpen, Sun, Moon, LogOut, Link as LinkIcon, ChevronLeft, ChevronRight, Lock, CheckCircle2 } from 'lucide-react'
 
 const NAV_ICONS = {
   campaigns: LayoutDashboard,
@@ -101,11 +101,11 @@ export default function DashboardLayout({ children, title = 'Dashboard' }) {
           <div className="topbar-mid">
             {!fbConnected && (
               <Link href="/settings/connect-facebook" className="fb-connect-btn">
-                <LinkIcon size={13} style={{ marginRight: 4 }} />{dt.topbar?.fbConnect || 'Kết nối Facebook Ads'}
+{(dt.topbar?.fbConnect || 'Kết nối Facebook Ads').replace(/^🔗\s*/, '')}
               </Link>
             )}
             {fbConnected && (
-              <span className="fb-ok-badge">{dt.topbar?.fbConnected || '✅ Facebook đã kết nối'}</span>
+              <span className="fb-ok-badge"><CheckCircle2 size={13} className="fb-ok-icon" />{(dt.topbar?.fbConnected || 'Facebook đã kết nối').replace(/^✅\s*/, '')}</span>
             )}
           </div>
 
@@ -226,7 +226,8 @@ export default function DashboardLayout({ children, title = 'Dashboard' }) {
           transition: background .15s;
         }
         .fb-connect-btn:hover { background: rgba(255,255,255,.25); }
-        .fb-ok-badge { font-size: 12px; color: rgba(255,255,255,.7); }
+        .fb-ok-badge { font-size: 12px; color: rgba(255,255,255,.85); display: inline-flex; align-items: center; gap: 5px; }
+        .fb-ok-icon { color: #34d399; flex-shrink: 0; }
 
         .plan-badge {
           display: inline-flex; align-items: center;
@@ -272,13 +273,20 @@ export default function DashboardLayout({ children, title = 'Dashboard' }) {
           transition: all .15s; white-space: nowrap; text-align: left;
         }
         .sidebar-btn:hover  { background: rgba(255,255,255,.09); color: #fff; }
-        .sidebar-btn.active { background: rgba(254,95,1,.18); color: #fff; border-left-color: #fe5f01; }
+        .sidebar-btn.active { background: rgba(59,130,246,.15); color: #fff; border-left-color: #3b82f6; }
         .sidebar-btn.locked { opacity: .55; }
         .sidebar.collapsed .sidebar-btn { padding: 10px 0; justify-content: center; }
-        .sb-icon  { font-size: 17px; flex-shrink: 0; width: 22px; text-align: center; }
+        .sb-icon  {
+          flex-shrink: 0; width: 30px; height: 30px; border-radius: 8px;
+          display: flex; align-items: center; justify-content: center;
+          background: rgba(59,130,246,.12); color: rgba(147,197,253,.85);
+          transition: background .15s, color .15s;
+        }
+        .sidebar-btn:hover .sb-icon { background: rgba(59,130,246,.2); color: #93c5fd; }
+        .sidebar-btn.active .sb-icon { background: rgba(59,130,246,.25); color: #fff; }
         .sb-label { flex: 1; transition: opacity .2s; }
         .sidebar.collapsed .sb-label { display: none; }
-        .sidebar.collapsed .sb-icon  { width: 56px; }
+        .sidebar.collapsed .sb-icon  { width: 34px; height: 34px; }
         .sidebar-divider { height: 1px; background: rgba(255,255,255,.1); margin: 4px 8px; }
         .sidebar-footer   { border-top: 1px solid rgba(255,255,255,.08); }
         .sidebar-toggle {

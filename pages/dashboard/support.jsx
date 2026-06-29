@@ -1,19 +1,22 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import useSWR from 'swr'
 import DashboardLayout from '../../components/DashboardLayout'
+import { fetcher } from '../../lib/fetcher'
+import { Ticket, Send, ShieldCheck, CheckCircle, Image, Bot, ClipboardList, Search, MessageCircle, X } from 'lucide-react'
 
 const API_AI = 'https://go-meta-ads-backend.vercel.app/api/ai-chat'
 
 const STATUS_MAP = {
-  open:        { label: 'Chờ xử lý',     bg: 'rgba(59,130,246,.15)',  color: '#60a5fa' },
-  in_progress: { label: 'Đang xử lý',    bg: 'rgba(251,191,36,.15)',  color: '#f59e0b' },
-  resolved:    { label: 'Đã giải quyết', bg: 'rgba(16,185,129,.15)',  color: '#10b981' },
-  closed:      { label: 'Đã đóng',       bg: 'rgba(100,116,139,.15)', color: '#94a3b8' },
+  open:        { label: 'Chờ xử lý',     bg: 'rgba(59,130,246,.15)',  color: 'var(--blue)' },
+  in_progress: { label: 'Đang xử lý',    bg: 'rgba(251,191,36,.15)',  color: 'var(--ylw)' },
+  resolved:    { label: 'Đã giải quyết', bg: 'rgba(16,185,129,.15)',  color: 'var(--grn)' },
+  closed:      { label: 'Đã đóng',       bg: 'rgba(100,116,139,.15)', color: 'var(--mut)' },
 }
 const PRIORITY_MAP = {
-  low:    { label: 'Thấp',       color: '#94a3b8' },
+  low:    { label: 'Thấp',       color: 'var(--mut)' },
   normal: { label: 'Bình thường', color: 'var(--txt)' },
-  high:   { label: 'Cao',        color: '#f59e0b' },
-  urgent: { label: 'Khẩn cấp',  color: '#ef4444' },
+  high:   { label: 'Cao',        color: 'var(--ylw)' },
+  urgent: { label: 'Khẩn cấp',  color: 'var(--red)' },
 }
 const ISSUE_TYPES = ['Lỗi phần mềm', 'Hỏi về tính năng', 'Thanh toán / Gói dịch vụ', 'Yêu cầu tính năng mới', 'Khác']
 
@@ -62,15 +65,16 @@ function ImageGrid({ urls, onRemove }) {
             {onRemove && (
               <button
                 onClick={() => onRemove(i)}
-                style={{ position: 'absolute', top: -6, right: -6, width: 18, height: 18, background: '#ef4444', border: 'none', borderRadius: '50%', color: '#fff', fontSize: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, lineHeight: 1 }}
-              >✕</button>
+                aria-label="Xóa ảnh"
+                style={{ position: 'absolute', top: -6, right: -6, width: 18, height: 18, background: 'var(--red)', border: 'none', borderRadius: '50%', color: '#fff', fontSize: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, lineHeight: 1 }}
+              ><X size={10} /></button>
             )}
           </div>
         ))}
       </div>
       {fullImg && (
-        <div onClick={() => setFullImg(null)} style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-out' }}>
-          <img src={fullImg} alt="" style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 8 }} />
+        <div onClick={() => setFullImg(null)} role="dialog" aria-modal="true" aria-label="Xem ảnh phóng to" style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-out' }}>
+          <img src={fullImg} alt="Ảnh phóng to" style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 8 }} />
         </div>
       )}
     </>
@@ -181,7 +185,7 @@ function SubmitTab({ onCreated }) {
       )}
       {result?.ok && (
         <div style={{ background: 'rgba(16,185,129,.1)', border: '1px solid rgba(16,185,129,.3)', borderRadius: 9, padding: '16px 20px', marginBottom: 16 }}>
-          <div style={{ fontWeight: 700, color: 'var(--grn)', marginBottom: 6 }}>✅ Ticket đã gửi thành công!</div>
+          <div style={{ fontWeight: 700, color: 'var(--grn)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}><CheckCircle size={16} /> Ticket đã gửi thành công!</div>
           <div style={{ fontSize: 13, color: 'var(--txt)' }}>
             Mã ticket: <span style={{ fontFamily: 'monospace', fontWeight: 800, letterSpacing: 1 }}>{(result.ticket?.id || '').slice(0, 8).toUpperCase()}</span>
           </div>
@@ -194,7 +198,7 @@ function SubmitTab({ onCreated }) {
         disabled={submitting || uploading}
         style={{ width: '100%', padding: 14, background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting || uploading ? .6 : 1, fontFamily: 'inherit' }}
       >
-        {submitting ? 'Đang gửi...' : '📤 Gửi yêu cầu hỗ trợ'}
+        {submitting ? 'Đang gửi...' : <><Send size={14} style={{ marginRight: 6, verticalAlign: 'middle' }} /> Gửi yêu cầu hỗ trợ</>}
       </button>
     </div>
   )
@@ -203,7 +207,6 @@ function SubmitTab({ onCreated }) {
 /* ─── TAB 2: PHIẾU HỖ TRỢ ────────────────────────────────────────────────── */
 function LookupTab({ refresh }) {
   const [tickets, setTickets] = useState([])
-  const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(null)
   const [replyText, setReplyText] = useState('')
   const [replyImages, setReplyImages] = useState([])
@@ -213,16 +216,15 @@ function LookupTab({ refresh }) {
 
   const showToast = (msg, type = 'ok') => { setToast({ msg, type }); setTimeout(() => setToast(null), 3000) }
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    try {
-      const r = await fetch('/api/user/tickets')
-      const d = await r.json()
+  const ticketsKey = `/api/user/tickets?r=${refresh}`
+  const { isValidating, mutate: refreshTickets } = useSWR(ticketsKey, () => fetcher('/api/user/tickets'), {
+    revalidateOnFocus: false,
+    dedupingInterval: 5000,
+    onSuccess: (d) => {
       if (d.ok) setTickets(d.tickets)
-    } finally { setLoading(false) }
-  }, [])
-
-  useEffect(() => { load() }, [load, refresh])
+    },
+  })
+  const loading = isValidating && tickets.length === 0
 
   async function handleImageUpload(e) {
     const files = Array.from(e.target.files || [])
@@ -255,10 +257,11 @@ function LookupTab({ refresh }) {
       setReplyText('')
       setReplyImages([])
       showToast('Đã gửi phản hồi')
-      const updated = await fetch('/api/user/tickets').then(r => r.json())
-      setTickets(updated.tickets || [])
-      const t = (updated.tickets || []).find(x => x.id === selected.id)
-      if (t) setSelected(t)
+      const updated = await refreshTickets()
+      if (updated?.ok) {
+        const t = (updated.tickets || []).find(x => x.id === selected.id)
+        if (t) setSelected(t)
+      }
     } catch { showToast('Lỗi kết nối', 'error') }
     finally { setSending(false) }
   }
@@ -269,7 +272,7 @@ function LookupTab({ refresh }) {
     return (
       <div>
         {toast && (
-          <div style={{ marginBottom: 12, padding: '10px 14px', background: toast.type === 'error' ? 'rgba(239,68,68,.15)' : 'rgba(16,185,129,.15)', border: `1px solid ${toast.type === 'error' ? 'rgba(239,68,68,.3)' : 'rgba(16,185,129,.3)'}`, borderRadius: 8, color: toast.type === 'error' ? 'var(--red)' : 'var(--grn)', fontSize: 13 }}>
+          <div role="status" aria-live="polite" style={{ marginBottom: 12, padding: '10px 14px', background: toast.type === 'error' ? 'rgba(239,68,68,.15)' : 'rgba(16,185,129,.15)', border: `1px solid ${toast.type === 'error' ? 'rgba(239,68,68,.3)' : 'rgba(16,185,129,.3)'}`, borderRadius: 8, color: toast.type === 'error' ? 'var(--red)' : 'var(--grn)', fontSize: 13 }}>
             {toast.msg}
           </div>
         )}
@@ -305,8 +308,8 @@ function LookupTab({ refresh }) {
               border: `1px solid ${reply.from === 'admin' ? 'rgba(99,102,241,.2)' : 'var(--bd)'}`,
               borderRadius: 12, padding: '12px 16px',
             }}>
-              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .5, marginBottom: 6, color: reply.from === 'admin' ? '#818cf8' : 'var(--mut)' }}>
-                {reply.from === 'admin' ? '🛡 Hỗ trợ Go Meta Ads' : 'Bạn'}
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .5, marginBottom: 6, color: reply.from === 'admin' ? 'var(--blue)' : 'var(--mut)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                {reply.from === 'admin' ? <><ShieldCheck size={13} /> Hỗ trợ Go Meta Ads</> : 'Bạn'}
               </div>
               {reply.message && <div style={{ fontSize: 14, color: 'var(--txt)', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>{reply.message}</div>}
               {reply.image_urls?.length > 0 && (
@@ -348,7 +351,7 @@ function LookupTab({ refresh }) {
               disabled={sending || replyUploading || (!replyText.trim() && replyImages.length === 0)}
               style={{ padding: '9px 20px', background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer', opacity: sending || replyUploading ? .5 : 1, fontFamily: 'inherit' }}
             >
-              {sending ? 'Đang gửi...' : '📤 Gửi phản hồi'}
+              {sending ? 'Đang gửi...' : <><Send size={13} style={{ marginRight: 6, verticalAlign: 'middle' }} /> Gửi phản hồi</>}
             </button>
           </div>
         )}
@@ -361,7 +364,7 @@ function LookupTab({ refresh }) {
 
   if (tickets.length === 0) return (
     <div style={{ textAlign: 'center', padding: '48px 24px', color: 'var(--mut)', background: 'var(--s2)', borderRadius: 12, border: '1px dashed var(--bd)' }}>
-      <div style={{ fontSize: 40, marginBottom: 12 }}>🎫</div>
+      <div style={{ marginBottom: 12, color: 'var(--mut)' }}><Ticket size={40} /></div>
       <div style={{ fontWeight: 700, marginBottom: 6, color: 'var(--txt)' }}>Chưa có ticket nào</div>
       <div style={{ fontSize: 13 }}>Gửi ticket ở tab "Gửi ticket" khi bạn cần hỗ trợ kỹ thuật</div>
     </div>
@@ -381,9 +384,9 @@ function LookupTab({ refresh }) {
             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--txt)', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.subject}</div>
             <div style={{ fontSize: 12, color: 'var(--mut)' }}>
               {new Date(t.created_at).toLocaleDateString('vi-VN')}
-              {t.image_urls?.length > 0 && ` · 🖼 ${t.image_urls.length} ảnh`}
+              {t.image_urls?.length > 0 && <> · <Image size={11} style={{ verticalAlign: 'middle' }} /> {t.image_urls.length} ảnh</>}
               {t.replies?.length > 0 && ` · ${t.replies.length} phản hồi`}
-              {t.replies?.some(r => r.from === 'admin') && <span style={{ color: 'var(--grn)' }}> · ✅ Có phản hồi</span>}
+              {t.replies?.some(r => r.from === 'admin') && <span style={{ color: 'var(--grn)', display: 'inline-flex', alignItems: 'center', gap: 3 }}> · <CheckCircle size={11} /> Có phản hồi</span>}
             </div>
           </div>
           <span style={{ background: STATUS_MAP[t.status]?.bg, color: STATUS_MAP[t.status]?.color, borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}>
@@ -433,7 +436,7 @@ function ChatTab() {
         {messages.map((m, i) => (
           <div key={i} style={{ display: 'flex', justifyContent: m.role === 'bot' ? 'flex-start' : 'flex-end', marginBottom: 12 }}>
             {m.role === 'bot' && (
-              <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'linear-gradient(135deg, #0c2a72, #1a3a8f)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, marginRight: 8, flexShrink: 0, alignSelf: 'flex-end' }}>🤖</div>
+              <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 8, flexShrink: 0, alignSelf: 'flex-end', color: '#fff' }}><Bot size={16} /></div>
             )}
             <div style={{
               maxWidth: '76%', padding: '10px 14px', fontSize: 14, lineHeight: 1.7,
@@ -448,10 +451,10 @@ function ChatTab() {
         ))}
         {loading && (
           <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 12 }}>
-            <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'linear-gradient(135deg, #0c2a72, #1a3a8f)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, marginRight: 8 }}>🤖</div>
+            <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 8, color: '#fff' }}><Bot size={16} /></div>
             <div style={{ background: 'var(--s1)', border: '1px solid var(--bd)', padding: '12px 16px', borderRadius: '4px 14px 14px 14px', display: 'flex', gap: 5, alignItems: 'center' }}>
               {[0, 1, 2].map(j => (
-                <span key={j} style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--mut)', display: 'inline-block', animation: `chatbounce 1.2s ease-in-out ${j * 0.2}s infinite` }} />
+                <span key={j} style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--mut)', display: 'inline-block', animation: `chatpulse 1.2s cubic-bezier(.16,1,.3,1) ${j * 0.2}s infinite` }} />
               ))}
             </div>
           </div>
@@ -474,9 +477,9 @@ function ChatTab() {
         AI có thể trả lời chưa chính xác. Với vấn đề khẩn cấp, vui lòng gửi ticket.
       </div>
       <style jsx>{`
-        @keyframes chatbounce {
-          0%, 80%, 100% { transform: translateY(0); opacity: .4; }
-          40% { transform: translateY(-6px); opacity: 1; }
+        @keyframes chatpulse {
+          0%, 80%, 100% { transform: scale(1); opacity: .4; }
+          40% { transform: scale(1.35); opacity: 1; }
         }
       `}</style>
     </div>
@@ -489,9 +492,9 @@ export default function Support() {
   const [refreshSignal, setRefreshSignal] = useState(0)
 
   const TABS = [
-    { id: 'submit', label: '📋 Gửi ticket' },
-    { id: 'lookup', label: '🔍 Phiếu hỗ trợ' },
-    { id: 'chat',   label: '💬 Chat AI' },
+    { id: 'submit', icon: ClipboardList, label: 'Gửi ticket' },
+    { id: 'lookup', icon: Search, label: 'Phiếu hỗ trợ' },
+    { id: 'chat',   icon: MessageCircle, label: 'Chat AI' },
   ]
 
   function handleCreated() {
@@ -501,8 +504,8 @@ export default function Support() {
 
   return (
     <DashboardLayout title="Hỗ trợ kỹ thuật">
-      <div style={{ padding: 24, maxWidth: 760 }}>
-        <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--txt)', marginBottom: 4 }}>🎫 Hỗ trợ kỹ thuật</h1>
+      <div className="support-page" style={{ padding: 24, maxWidth: 760, margin: '0 auto' }}>
+        <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--txt)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}><Ticket size={20} /> Hỗ trợ kỹ thuật</h1>
         <p style={{ fontSize: 13, color: 'var(--mut)', marginBottom: 24 }}>Gửi yêu cầu hỗ trợ — chúng tôi phản hồi trong vòng 2-4 giờ</p>
 
         <div style={{ display: 'flex', borderBottom: '1.5px solid var(--bd)', marginBottom: 24 }}>
@@ -510,15 +513,17 @@ export default function Support() {
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
+              className="support-tab"
               style={{
                 padding: '10px 20px', border: 'none', fontFamily: 'inherit', background: 'transparent',
                 borderBottom: tab === t.id ? '2.5px solid var(--primary)' : '2.5px solid transparent',
                 fontWeight: tab === t.id ? 700 : 500, fontSize: 13,
                 color: tab === t.id ? 'var(--primary)' : 'var(--mut)',
                 cursor: 'pointer', transition: 'all .15s',
+                display: 'inline-flex', alignItems: 'center', gap: 6,
               }}
             >
-              {t.label}
+              <t.icon size={14} />{t.label}
             </button>
           ))}
         </div>
@@ -527,6 +532,31 @@ export default function Support() {
         {tab === 'lookup' && <LookupTab refresh={refreshSignal} />}
         {tab === 'chat'   && <ChatTab />}
       </div>
+      <style jsx>{`
+        /* Focus indicators */
+        .support-tab:focus-visible,
+        :global(.support-page input:focus-visible),
+        :global(.support-page textarea:focus-visible),
+        :global(.support-page select:focus-visible),
+        :global(.support-page button:focus-visible) {
+          outline: 2px solid var(--blue);
+          outline-offset: 2px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+          .support-page { padding: 16px !important; }
+          .support-page h1 { font-size: 16px !important; }
+        }
+
+        /* Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+          :global(.support-page *) {
+            animation: none !important;
+            transition: none !important;
+          }
+        }
+      `}</style>
     </DashboardLayout>
   )
 }

@@ -1,9 +1,11 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import useSWR from 'swr'
 import DashboardLayout from '../../components/DashboardLayout'
 import { useAuth } from '../../lib/AuthContext'
+import { fetcher } from '../../lib/fetcher'
 import { isPlanAllowed } from '../../lib/planLimits'
-import { Lock, Link2, Megaphone, MessageCircle, Lightbulb, Play, History, AlertTriangle } from 'lucide-react'
+import { Lock, Link2, Megaphone, MessageCircle, Lightbulb, Play, History, AlertTriangle, Rocket } from 'lucide-react'
 
 function PlanGate({ feature }) {
   return (
@@ -44,7 +46,6 @@ export default function AutoSet() {
   const [config, setConfig] = useState({ pages: [], default_account: null, max_pages: 0 })
   const [adAccounts, setAdAccounts] = useState([])
   const [selectedAccount, setSelectedAccount] = useState('')
-  const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState(null)
 
   const [step, setStep] = useState(1)
@@ -84,29 +85,28 @@ export default function AutoSet() {
     setTimeout(() => setToast(null), 3500)
   }
 
-  const fetchConfig = useCallback(async () => {
-    try {
-      const r = await fetch('/api/fb/autoset-config')
-      const d = await r.json()
+  const configKey = fbConnected ? '/api/fb/autoset-config' : null
+  const { isValidating: configValidating } = useSWR(configKey, fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 5000,
+    onSuccess: (d) => {
       if (d.ok) {
         setConfig(d)
         if (d.default_account) setSelectedAccount(d.default_account)
       }
-    } catch {}
-  }, [])
+    },
+  })
 
-  const fetchAccounts = useCallback(async () => {
-    try {
-      const r = await fetch('/api/fb/campaigns?date_preset=today&status=ALL')
-      const d = await r.json()
+  const accountsKey = fbConnected ? '/api/fb/campaigns?date_preset=today&status=ALL' : null
+  const { isValidating: accountsValidating } = useSWR(accountsKey, fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 5000,
+    onSuccess: (d) => {
       if (d.ok) setAdAccounts(d.accounts || [])
-    } catch {}
-  }, [])
+    },
+  })
 
-  useEffect(() => {
-    if (!fbConnected) { setLoading(false); return }
-    Promise.all([fetchConfig(), fetchAccounts()]).finally(() => setLoading(false))
-  }, [fbConnected, fetchConfig, fetchAccounts])
+  const loading = (configValidating || accountsValidating) && config.pages.length === 0
 
   async function handleAnalyze() {
     if (!insightText.trim()) return showToast('Vui lòng nhập insight khách hàng', 'error')
@@ -336,7 +336,7 @@ export default function AutoSet() {
 
       <div className="page-wrap">
         <div className="page-header">
-          <span className="page-icon">🚀</span>
+          <span className="page-icon"><Rocket size={22} /></span>
           <div>
             <h1>Tự động tạo quảng cáo</h1>
             <p>AI phân tích insight khách hàng → tự điền targeting → tạo ads trên Meta</p>

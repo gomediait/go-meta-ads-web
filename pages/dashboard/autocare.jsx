@@ -1,7 +1,9 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import Link from 'next/link'
+import useSWR from 'swr'
 import DashboardLayout from '../../components/DashboardLayout'
 import { useAuth } from '../../lib/AuthContext'
+import { fetcher } from '../../lib/fetcher'
 import { isPlanAllowed } from '../../lib/planLimits'
 import { Lock, Link2, HeartHandshake, Pencil, Trash2, Pause, Play, FlaskConical, Info } from 'lucide-react'
 
@@ -31,7 +33,6 @@ export default function AutoCare() {
   const fbConnected = user?.fb_connected
 
   const [rules, setRules] = useState([])
-  const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editingRuleId, setEditingRuleId] = useState(null)
   const [form, setForm] = useState({ ...EMPTY_FORM })
@@ -44,7 +45,6 @@ export default function AutoCare() {
 
   // Campaign tree state
   const [campaigns, setCampaigns] = useState([])
-  const [loadingCamps, setLoadingCamps] = useState(false)
   const [selectedCampIds, setSelectedCampIds] = useState([])
   const [selectedAdsetIds, setSelectedAdsetIds] = useState([])
   const [expandedCampIds, setExpandedCampIds] = useState(new Set())
@@ -57,28 +57,21 @@ export default function AutoCare() {
     setTimeout(() => setToast(null), 3000)
   }
 
-  const fetchRules = useCallback(async () => {
-    try {
-      const r = await fetch('/api/fb/autocare')
-      const d = await r.json()
-      if (d.ok) setRules(d.rules || [])
-    } catch {}
-  }, [])
+  const rulesSwrKey = fbConnected ? '/api/fb/autocare' : null
+  const { isValidating: loadingRules, mutate: mutateRules } = useSWR(rulesSwrKey, fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 5000,
+    onSuccess: (data) => { if (data.ok) setRules(data.rules || []) },
+  })
 
-  const fetchCampaigns = useCallback(async () => {
-    setLoadingCamps(true)
-    try {
-      const r = await fetch('/api/fb/campaigns?date_preset=maximum&status=ALL&level=campaign')
-      const d = await r.json()
-      if (d?.ok) setCampaigns(d.adsets || [])
-    } catch {}
-    finally { setLoadingCamps(false) }
-  }, [])
+  const campsSwrKey = fbConnected ? '/api/fb/campaigns?date_preset=maximum&status=ALL&level=campaign' : null
+  const { isValidating: loadingCamps } = useSWR(campsSwrKey, fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 5000,
+    onSuccess: (data) => { if (data?.ok) setCampaigns(data.adsets || []) },
+  })
 
-  useEffect(() => {
-    if (!fbConnected) { setLoading(false); return }
-    Promise.all([fetchRules(), fetchCampaigns()]).finally(() => setLoading(false))
-  }, [fbConnected, fetchRules, fetchCampaigns])
+  const loading = loadingRules || loadingCamps
 
   const loadAdsetsForCampaign = useCallback(async (campId) => {
     if (campAdsets[campId]) return
@@ -203,7 +196,7 @@ export default function AutoCare() {
       if (!d.ok) return showToast(d.error || 'Lỗi lưu rule', 'error')
       showToast(isEdit ? 'Đã cập nhật rule' : 'Đã tạo rule thành công')
       cancelForm()
-      fetchRules()
+      mutateRules()
     } catch { showToast('Lỗi kết nối', 'error') }
     finally { setSaving(false) }
   }
@@ -214,7 +207,7 @@ export default function AutoCare() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'update', id, enabled: !enabled })
     })
-    fetchRules()
+    mutateRules()
   }
 
   async function deleteRule(id, name) {
@@ -225,7 +218,7 @@ export default function AutoCare() {
       body: JSON.stringify({ action: 'delete', id })
     })
     showToast('Đã xoá rule')
-    fetchRules()
+    mutateRules()
   }
 
   async function handleAction(ruleId, actionType) {
@@ -406,7 +399,7 @@ export default function AutoCare() {
                                   </span>
                                 </div>
                                 {selectedCampIds.includes(c.id) && (
-                                  <div className="camp-tree-hint">Áp dụng: Cả chiến dịch ✓</div>
+                                  <div className="camp-tree-hint">Áp dụng: Cả chiến dịch</div>
                                 )}
                               </div>
                             </div>

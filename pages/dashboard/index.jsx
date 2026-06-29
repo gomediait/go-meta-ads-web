@@ -1,51 +1,56 @@
-import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
+﻿import { useState, useMemo, useRef } from 'react'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
+import useSWR from 'swr'
 import DashboardLayout from '../../components/DashboardLayout'
 import { useAuth } from '../../lib/AuthContext'
-import { Bot, Link2, Archive, Inbox } from 'lucide-react'
+import { fetcher } from '../../lib/fetcher'
+import { Bot, Link2, Archive, Inbox, CheckCircle2, XCircle } from 'lucide-react'
+
+const AIChatPanel = dynamic(() => import('../../components/AIChatPanel'), { ssr: false })
 
 const PAGE_SIZE = 20
 
 const DATE_PRESETS = [
-  { value: 'today',               label: 'Hôm nay'       },
-  { value: 'yesterday',           label: 'Hôm qua'       },
-  { value: 'this_week_mon_today', label: 'Tuần này'      },
-  { value: 'last_week_mon_sun',   label: 'Tuần trước'    },
-  { value: 'this_month',          label: 'Tháng này'     },
-  { value: 'last_month',          label: 'Tháng trước'   },
-  { value: 'this_quarter',        label: 'Quý này'       },
-  { value: 'this_year',           label: 'Năm nay'       },
-  { value: 'last_year',           label: 'Năm ngoái'     },
-  { value: 'maximum',             label: 'Toàn thời gian'},
-  { value: 'custom',              label: '📅 Tùy chỉnh'  },
+  { value: 'today', label: 'Hôm nay' },
+  { value: 'yesterday', label: 'Hôm qua' },
+  { value: 'this_week_mon_today', label: 'Tuần này' },
+  { value: 'last_week_mon_sun', label: 'Tuần trước' },
+  { value: 'this_month', label: 'Tháng này' },
+  { value: 'last_month', label: 'Tháng trước' },
+  { value: 'this_quarter', label: 'Quý này' },
+  { value: 'this_year', label: 'Năm nay' },
+  { value: 'last_year', label: 'Năm ngoái' },
+  { value: 'maximum', label: 'Toàn thời gian' },
+  { value: 'custom', label: '📅 Tùy chỉnh' },
 ]
 
 function getCustomTimeRange(preset) {
-  const now   = new Date()
-  const yyyy  = now.getFullYear()
-  const pad   = n => String(n).padStart(2, '0')
-  const fmt   = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`
+  const now = new Date()
+  const yyyy = now.getFullYear()
+  const pad = n => String(n).padStart(2, '0')
+  const fmt = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
   const today = fmt(now)
   if (preset === 'this_year') {
     return { since: `${yyyy}-01-01`, until: today }
   }
   if (preset === 'last_year') {
-    return { since: `${yyyy-1}-01-01`, until: `${yyyy-1}-12-31` }
+    return { since: `${yyyy - 1}-01-01`, until: `${yyyy - 1}-12-31` }
   }
   return null
 }
 
 const OBJECTIVES = [
-  { value: '',                    label: 'Tất cả mục tiêu' },
-  { value: 'OUTCOME_SALES',       label: 'Doanh số (Sales)' },
-  { value: 'OUTCOME_LEADS',       label: 'Khách hàng tiềm năng (Leads)' },
-  { value: 'OUTCOME_TRAFFIC',     label: 'Lưu lượng (Traffic)' },
-  { value: 'OUTCOME_ENGAGEMENT',  label: 'Tương tác (Engagement)' },
-  { value: 'OUTCOME_AWARENESS',   label: 'Nhận thức thương hiệu' },
+  { value: '', label: 'Tất cả mục tiêu' },
+  { value: 'OUTCOME_SALES', label: 'Doanh số (Sales)' },
+  { value: 'OUTCOME_LEADS', label: 'Khách hàng tiềm năng (Leads)' },
+  { value: 'OUTCOME_TRAFFIC', label: 'Lưu lượng (Traffic)' },
+  { value: 'OUTCOME_ENGAGEMENT', label: 'Tương tác (Engagement)' },
+  { value: 'OUTCOME_AWARENESS', label: 'Nhận thức thương hiệu' },
   { value: 'OUTCOME_APP_PROMOTION', label: 'Quảng bá ứng dụng' },
-  { value: 'CONVERSIONS',         label: 'Chuyển đổi (cũ)' },
-  { value: 'LINK_CLICKS',         label: 'Nhấp link (cũ)' },
-  { value: 'REACH',               label: 'Tiếp cận (cũ)' },
+  { value: 'CONVERSIONS', label: 'Chuyển đổi (cũ)' },
+  { value: 'LINK_CLICKS', label: 'Nhấp link (cũ)' },
+  { value: 'REACH', label: 'Tiếp cận (cũ)' },
 ]
 
 const OBJ_LABEL = Object.fromEntries(OBJECTIVES.slice(1).map(o => [o.value, o.label]))
@@ -80,7 +85,7 @@ function fmtStatNum(v) {
   if (v == null || isNaN(v)) return '0'
   return Number(v).toLocaleString('vi-VN')
 }
-function fmtCtr(v)  { return v ? Number(v).toFixed(2) + '%' : '0.00%' }
+function fmtCtr(v) { return v ? Number(v).toFixed(2) + '%' : '0.00%' }
 function fmtRoas(v) { return v ? Number(v).toFixed(2) : '—' }
 function fmtCpm(v, currency) {
   if (!v) return '—'
@@ -114,7 +119,7 @@ function Toast({ msg, type, onClose, details }) {
   }, [onClose, type])
   return (
     <div className={`toast-item toast-${type}`} role="alert">
-      {type === 'success' ? '✅' : '❌'} {msg}
+      {type === 'success' ? <CheckCircle2 size={14} style={{ color: 'var(--grn)', flexShrink: 0 }} /> : <XCircle size={14} style={{ color: 'var(--red)', flexShrink: 0 }} />} {msg}
       {details && <div className="toast-details">{details}</div>}
       <button className="toast-close" onClick={onClose} aria-label="Đóng thông báo">×</button>
     </div>
@@ -166,8 +171,8 @@ function SkeletonRows({ cols }) {
 }
 
 function BudgetBar({ budget, spend, pct, currency }) {
-  const isOver  = pct > 100
-  const color   = pct >= 85 ? 'var(--red)' : pct >= 65 ? 'var(--ylw)' : 'var(--grn)'
+  const isOver = pct > 100
+  const color = pct >= 85 ? 'var(--red)' : pct >= 65 ? 'var(--ylw)' : 'var(--grn)'
   const pctLabel = pct > 999 ? '>999%' : `${pct}%`
   return (
     <div className="budget-cell">
@@ -189,9 +194,9 @@ function BudgetBar({ budget, spend, pct, currency }) {
 }
 
 function StatusToggle({ item, onToggle, toggling }) {
-  const isActive        = item.effective_status === 'ACTIVE'
-  const isArchived      = item.effective_status === 'ARCHIVED'
-  const isCampaignPaused= item.effective_status === 'CAMPAIGN_PAUSED'
+  const isActive = item.effective_status === 'ACTIVE'
+  const isArchived = item.effective_status === 'ARCHIVED'
+  const isCampaignPaused = item.effective_status === 'CAMPAIGN_PAUSED'
 
   if (isArchived) return <span className="badge-status badge-archived"><Archive size={11} style={{ verticalAlign: -1, marginRight: 3 }} />Đã lưu trữ</span>
   if (isCampaignPaused) return (
@@ -227,9 +232,9 @@ function SortIcon({ col, sortBy, sortDir }) {
 function BudgetModal({ adset, onClose, onSave, saving }) {
   const [inputVal, setInputVal] = useState(adset.daily_budget ? String(Math.round(adset.daily_budget)) : '')
   const [mode, setMode] = useState('amount')
-  const [pct, setPct]   = useState('10')
-  const currentBudget   = adset.daily_budget || 0
-  const computedNew     = useMemo(() => {
+  const [pct, setPct] = useState('10')
+  const currentBudget = adset.daily_budget || 0
+  const computedNew = useMemo(() => {
     if (mode === 'amount') return Number(inputVal) || 0
     return Math.round(currentBudget * (1 + (Number(pct) || 0) / 100))
   }, [mode, inputVal, pct, currentBudget])
@@ -253,8 +258,8 @@ function BudgetModal({ adset, onClose, onSave, saving }) {
           <div className="modal-adset-name">{adset.name}</div>
           <div className="modal-current">Hiện tại: <strong>{fmtMoney(currentBudget, adset.currency)}/ngày</strong></div>
           <div className="modal-mode-tabs">
-            <button className={`mode-tab${mode==='amount'?' active':''}`} onClick={() => setMode('amount')}>Nhập số tiền</button>
-            <button className={`mode-tab${mode==='percent'?' active':''}`} onClick={() => setMode('percent')}>Tăng theo %</button>
+            <button className={`mode-tab${mode === 'amount' ? ' active' : ''}`} onClick={() => setMode('amount')}>Nhập số tiền</button>
+            <button className={`mode-tab${mode === 'percent' ? ' active' : ''}`} onClick={() => setMode('percent')}>Tăng theo %</button>
           </div>
           {mode === 'amount' ? (
             <div className="modal-field">
@@ -268,7 +273,7 @@ function BudgetModal({ adset, onClose, onSave, saving }) {
             </div>
           )}
           <div className="modal-preview">
-            Ngân sách mới: <strong style={{ color:'var(--grn)' }}>{fmtMoney(computedNew, adset.currency)}/ngày</strong>
+            Ngân sách mới: <strong style={{ color: 'var(--grn)' }}>{fmtMoney(computedNew, adset.currency)}/ngày</strong>
             {currentBudget > 0 && computedNew > 0 && (
               <span className="modal-delta"> ({changePct > 0 ? '+' : ''}{changePct}%)</span>
             )}
@@ -311,7 +316,7 @@ function BulkBudgetModal({ count, onClose, onSave, saving }) {
             <label className="modal-label">Tăng ngân sách thêm (%)</label>
             <input type="number" className="modal-input" value={pct} onChange={e => setPct(e.target.value)} placeholder="VD: 20" min="1" max="500" />
           </div>
-          <div className="modal-preview">Tăng thêm <strong style={{ color:'var(--grn)' }}>{pct}%</strong> so với ngân sách hiện tại</div>
+          <div className="modal-preview">Tăng thêm <strong style={{ color: 'var(--grn)' }}>{pct}%</strong> so với ngân sách hiện tại</div>
           {pctNum > 100 && (
             <div className="modal-warning" role="alert">
               ⚠️ Tăng hơn 100% — chi tiêu sẽ tăng đáng kể. Hãy kiểm tra lại.
@@ -330,48 +335,48 @@ function BulkBudgetModal({ count, onClose, onSave, saving }) {
 }
 
 const DEFAULT_COLS = {
-  campaign: true,    objective: false,
-  reach: true,       impressions: true, cpm: false,      frequency: false,
-  clicks: false,     linkClicks: false, cpc: false,
-  messages: false,   costPerMsg: false,
+  campaign: true, objective: false,
+  reach: true, impressions: true, cpm: false, frequency: false,
+  clicks: false, linkClicks: false, cpc: false,
+  messages: false, costPerMsg: false,
   engagement: false, costPerEngage: false, reactions: false, comments: false, shares: false,
-  addToCart: false,  checkout: false,
+  addToCart: false, checkout: false,
   videoViews: false, thruplays: false,
-  leads: false,      costPerLead: false,
+  leads: false, costPerLead: false,
 }
 
 const COL_GROUPS = [
   {
     label: 'Hiển thị',
     cols: [
-      { key: 'reach',       name: 'Tiếp cận'  },
-      { key: 'impressions', name: 'Hiển thị'  },
-      { key: 'frequency',   name: 'Tần suất'  },
-      { key: 'cpm',         name: 'CPM'        },
+      { key: 'reach', name: 'Tiếp cận' },
+      { key: 'impressions', name: 'Hiển thị' },
+      { key: 'frequency', name: 'Tần suất' },
+      { key: 'cpm', name: 'CPM' },
     ]
   },
   {
     label: 'Nhấp & Click',
     cols: [
-      { key: 'clicks',     name: 'Tổng click' },
-      { key: 'linkClicks', name: 'Link click'  },
-      { key: 'cpc',        name: 'Chi phí/click (CPC)' },
+      { key: 'clicks', name: 'Tổng click' },
+      { key: 'linkClicks', name: 'Link click' },
+      { key: 'cpc', name: 'Chi phí/click (CPC)' },
     ]
   },
   {
     label: 'Tương tác',
     cols: [
-      { key: 'engagement',    name: 'Tổng tương tác' },
+      { key: 'engagement', name: 'Tổng tương tác' },
       { key: 'costPerEngage', name: 'Chi phí/tương tác' },
-      { key: 'reactions',     name: 'Cảm xúc (Reaction)' },
-      { key: 'comments',      name: 'Bình luận' },
-      { key: 'shares',        name: 'Chia sẻ'   },
+      { key: 'reactions', name: 'Cảm xúc (Reaction)' },
+      { key: 'comments', name: 'Bình luận' },
+      { key: 'shares', name: 'Chia sẻ' },
     ]
   },
   {
     label: 'Tin nhắn',
     cols: [
-      { key: 'messages',   name: 'Lượt nhắn tin' },
+      { key: 'messages', name: 'Lượt nhắn tin' },
       { key: 'costPerMsg', name: 'Chi phí/tin nhắn' },
     ]
   },
@@ -379,232 +384,37 @@ const COL_GROUPS = [
     label: 'Video',
     cols: [
       { key: 'videoViews', name: 'Lượt xem video' },
-      { key: 'thruplays',  name: 'ThruPlay (xem hết)' },
+      { key: 'thruplays', name: 'ThruPlay (xem hết)' },
     ]
   },
   {
     label: 'Chuyển đổi',
     cols: [
-      { key: 'addToCart',   name: 'Thêm vào giỏ' },
-      { key: 'checkout',    name: 'Bắt đầu TT'   },
-      { key: 'leads',       name: 'Lead'          },
-      { key: 'costPerLead', name: 'Chi phí/lead'  },
+      { key: 'addToCart', name: 'Thêm vào giỏ' },
+      { key: 'checkout', name: 'Bắt đầu TT' },
+      { key: 'leads', name: 'Lead' },
+      { key: 'costPerLead', name: 'Chi phí/lead' },
     ]
   },
   {
     label: 'Chiến dịch',
     cols: [
-      { key: 'campaign',  name: 'Tên chiến dịch' },
-      { key: 'objective', name: 'Mục tiêu'        },
+      { key: 'campaign', name: 'Tên chiến dịch' },
+      { key: 'objective', name: 'Mục tiêu' },
     ]
   },
 ]
 
-const AI_SUGGESTIONS = [
-  'Chiến dịch nào đang hoạt động tốt nhất?',
-  'Nhóm nào nên tắt để tiết kiệm ngân sách?',
-  'Làm sao tăng ROAS hiệu quả?',
-  'Phân tích các cảnh báo đang có',
-  'Tài khoản nào có hiệu quả tốt nhất?',
-  'Chi tiêu hôm nay tổng bao nhiêu?',
-]
 
-function renderMd(text) {
-  if (!text) return null
-
-  function inlineFmt(str) {
-    const parts = str.split(/(\*\*[^*\n]+\*\*|\*[^*\n]+\*|`[^`\n]+`)/g)
-    return parts.map((p, i) => {
-      if (p.startsWith('**') && p.endsWith('**') && p.length > 4)
-        return <strong key={i}>{p.slice(2, -2)}</strong>
-      if (p.startsWith('*') && p.endsWith('*') && p.length > 2 && !p.startsWith('**'))
-        return <em key={i}>{p.slice(1, -1)}</em>
-      if (p.startsWith('`') && p.endsWith('`') && p.length > 2)
-        return <code key={i} className="md-code">{p.slice(1, -1)}</code>
-      return p
-    })
-  }
-
-  const lines = text.split('\n')
-  const nodes = []
-  let i = 0
-
-  while (i < lines.length) {
-    const line = lines[i]
-    const trimmed = line.trim()
-
-    if (!trimmed) { i++; continue }
-
-    // Horizontal rule
-    if (/^-{3,}$/.test(trimmed)) {
-      nodes.push(<hr key={i} className="md-hr" />)
-      i++; continue
-    }
-
-    // Headings ## / ###
-    const hm = trimmed.match(/^(#{1,3})\s+(.+)/)
-    if (hm) {
-      nodes.push(<div key={i} className={`md-h${hm[1].length}`}>{inlineFmt(hm[2])}</div>)
-      i++; continue
-    }
-
-    // Blockquote
-    if (trimmed.startsWith('> ')) {
-      nodes.push(<div key={i} className="md-quote">{inlineFmt(trimmed.slice(2))}</div>)
-      i++; continue
-    }
-
-    // Table block
-    if (trimmed.startsWith('|')) {
-      const tbl = []
-      while (i < lines.length && lines[i].trim().startsWith('|')) {
-        tbl.push(lines[i].trim())
-        i++
-      }
-      const rows = tbl
-        .filter(r => !/^\|[\s\-:|]+\|$/.test(r))
-        .map(r => r.split('|').slice(1, -1).map(c => c.trim()))
-      if (rows.length) {
-        nodes.push(
-          <div key={`t${i}`} className="md-table-wrap">
-            <table className="md-table">
-              <thead><tr>{rows[0].map((c, ci) => <th key={ci}>{inlineFmt(c)}</th>)}</tr></thead>
-              <tbody>{rows.slice(1).map((row, ri) => (
-                <tr key={ri}>{row.map((c, ci) => <td key={ci}>{inlineFmt(c)}</td>)}</tr>
-              ))}</tbody>
-            </table>
-          </div>
-        )
-      }
-      continue
-    }
-
-    // Unordered list
-    if (/^[-*]\s/.test(trimmed)) {
-      const items = []
-      while (i < lines.length && /^[-*]\s/.test(lines[i].trim())) {
-        items.push(lines[i].trim().replace(/^[-*]\s+/, ''))
-        i++
-      }
-      nodes.push(<ul key={`ul${i}`} className="md-list">{items.map((it, idx) => <li key={idx}>{inlineFmt(it)}</li>)}</ul>)
-      continue
-    }
-
-    // Ordered list
-    if (/^\d+\.\s/.test(trimmed)) {
-      const items = []
-      while (i < lines.length && /^\d+\.\s/.test(lines[i].trim())) {
-        items.push(lines[i].trim().replace(/^\d+\.\s+/, ''))
-        i++
-      }
-      nodes.push(<ol key={`ol${i}`} className="md-list md-ol">{items.map((it, idx) => <li key={idx}>{inlineFmt(it)}</li>)}</ol>)
-      continue
-    }
-
-    // Normal paragraph
-    nodes.push(<p key={i} className="md-p">{inlineFmt(trimmed)}</p>)
-    i++
-  }
-
-  return nodes
-}
-
-function AIChatPanel({ items, onClose }) {
-  const [msgs, setMsgs] = useState([{
-    role: 'assistant',
-    content: `Xin chào! Tôi là trợ lý AI Meta Ads. Đang phân tích **${items.length} chiến dịch/nhóm** trong view hiện tại. Tôi có thể giúp bạn phân tích hiệu quả, tìm vấn đề và đề xuất tối ưu.`
-  }])
-  const [input, setInput]     = useState('')
-  const [loading, setLoading] = useState(false)
-  const bottomRef = useRef(null)
-
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [msgs])
-
-  async function send(text) {
-    if (!text?.trim() || loading) return
-    const userMsg = text.trim()
-    setMsgs(m => [...m, { role: 'user', content: userMsg }])
-    setInput('')
-    setLoading(true)
-    try {
-      const res = await fetch('/api/ai/campaign-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMsg, campaigns: items.slice(0, 40), history: msgs.slice(-8) })
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Server error')
-      setMsgs(m => [...m, { role: 'assistant', content: data.reply || 'Không có phản hồi.' }])
-    } catch (e) {
-      setMsgs(m => [...m, { role: 'assistant', content: `⚠️ ${e.message || 'Lỗi kết nối. Vui lòng thử lại.'}` }])
-    }
-    setLoading(false)
-  }
-
-  return (
-    <div className="ai-panel">
-      <div className="ai-panel-hd">
-        <div className="ai-panel-title">
-          <Bot size={20} />
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 13 }}>Trợ lý AI Meta Ads</div>
-            <div style={{ fontSize: 10, color: 'var(--mut)' }}>{items.length} chiến dịch đang xem · ~$0.004/tin nhắn</div>
-          </div>
-        </div>
-        <button className="ai-panel-close" onClick={onClose} title="Đóng">×</button>
-      </div>
-
-      <div className="ai-msgs">
-        {msgs.map((m, i) => (
-          <div key={i} className={`ai-msg ai-msg-${m.role}`}>
-            {m.role === 'assistant' && <span className="ai-avatar"><Bot size={16} /></span>}
-            <div className="ai-bubble">{renderMd(m.content)}</div>
-          </div>
-        ))}
-        {loading && (
-          <div className="ai-msg ai-msg-assistant">
-            <span className="ai-avatar"><Bot size={16} /></span>
-            <div className="ai-bubble ai-typing"><span /><span /><span /></div>
-          </div>
-        )}
-        <div ref={bottomRef} />
-      </div>
-
-      {msgs.length <= 1 && (
-        <div className="ai-suggests">
-          {AI_SUGGESTIONS.map(s => (
-            <button key={s} className="ai-suggest-btn" onClick={() => send(s)}>{s}</button>
-          ))}
-        </div>
-      )}
-
-      <div className="ai-input-row">
-        <input
-          className="ai-input"
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), send(input))}
-          placeholder="Hỏi về chiến dịch quảng cáo..."
-          disabled={loading}
-          autoFocus
-        />
-        <button className="ai-send-btn" onClick={() => send(input)} disabled={loading || !input.trim()}>
-          {loading ? '…' : '↑'}
-        </button>
-      </div>
-    </div>
-  )
-}
 
 export default function DashboardHome() {
   const { user, planName, isExpired } = useAuth()
   const fbConnected = user?.fb_connected
 
-  const [level, setLevel]     = useState('adset')
-  const [adsets, setAdsets]   = useState([])
+  const [level, setLevel] = useState('adset')
+  const [adsets, setAdsets] = useState([])
   const [accounts, setAccounts] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [page, setPage]       = useState(1)
+  const [page, setPage] = useState(1)
 
   const [filters, setFilters] = useState({
     search: '', account_id: '', status: 'ALL',
@@ -614,21 +424,19 @@ export default function DashboardHome() {
     cpa_max: '', roas_min: '', spend_min: '',
   })
 
-  const [sortBy,  setSortBy]  = useState('spend')
+  const [sortBy, setSortBy] = useState('spend')
   const [sortDir, setSortDir] = useState('desc')
   const [selectedIds, setSelectedIds] = useState(new Set())
-  const [toggling,    setToggling]    = useState({})
+  const [toggling, setToggling] = useState({})
   const [budgetModal, setBudgetModal] = useState(null)
-  const [bulkModal,   setBulkModal]   = useState(false)
+  const [bulkModal, setBulkModal] = useState(false)
   const [budgetSaving, setBudgetSaving] = useState(false)
-  const [toasts, setToasts]   = useState([])
-  const [cols, setCols]       = useState(DEFAULT_COLS)
+  const [toasts, setToasts] = useState([])
+  const [cols, setCols] = useState(DEFAULT_COLS)
   const [showColPicker, setShowColPicker] = useState(false)
   const [showAdvFilter, setShowAdvFilter] = useState(false)
-  const [showAI, setShowAI]   = useState(false)
+  const [showAI, setShowAI] = useState(false)
   const [confirmDialog, setConfirmDialog] = useState(null)
-
-  const abortRef = useRef(null)
 
   function addToast(msg, type = 'success', details = null) {
     const id = Date.now()
@@ -636,57 +444,45 @@ export default function DashboardHome() {
   }
   function removeToast(id) { setToasts(t => t.filter(x => x.id !== id)) }
 
-  const fetchAdsets = useCallback(async () => {
-    if (!fbConnected) return
-    if (abortRef.current) abortRef.current.abort()
-    const ctrl = new AbortController()
-    abortRef.current = ctrl
-    setLoading(true)
-    setPage(1)
-    setSelectedIds(new Set())
-    try {
-      // Resolve custom/computed presets to time_range
-      let since = filters.since, until = filters.until
-      let datePreset = filters.date_preset
-      if (['this_year', 'last_year'].includes(datePreset)) {
-        const range = getCustomTimeRange(datePreset)
-        if (range) { since = range.since; until = range.until; datePreset = '' }
-      }
-      const isCustom = datePreset === 'custom'
+  const swrKey = useMemo(() => {
+    if (!fbConnected) return null
+    let since = filters.since, until = filters.until
+    let datePreset = filters.date_preset
+    if (['this_year', 'last_year'].includes(datePreset)) {
+      const range = getCustomTimeRange(datePreset)
+      if (range) { since = range.since; until = range.until; datePreset = '' }
+    }
+    const isCustom = datePreset === 'custom'
+    const params = new URLSearchParams({
+      status: filters.status, compare: filters.compare ? 'true' : 'false', level,
+      ...(filters.account_id && { account_id: filters.account_id }),
+      ...(filters.campaign_id && { campaign_id: filters.campaign_id }),
+      ...(filters.objective && { objective: filters.objective }),
+      ...((isCustom || datePreset === '') && since && until
+        ? { since, until }
+        : { date_preset: isCustom ? 'today' : datePreset }),
+    })
+    return `/api/fb/campaigns?${params}`
+  }, [fbConnected, level, filters.date_preset, filters.status, filters.compare,
+    filters.account_id, filters.campaign_id, filters.objective,
+    filters.since, filters.until])
 
-      const params = new URLSearchParams({
-        status:  filters.status,
-        compare: filters.compare ? 'true' : 'false',
-        level,
-        ...(filters.account_id  && { account_id:  filters.account_id  }),
-        ...(filters.campaign_id && { campaign_id: filters.campaign_id }),
-        ...(filters.objective   && { objective:   filters.objective   }),
-        // custom or computed range
-        ...((isCustom || datePreset === '') && since && until
-          ? { since, until }
-          : { date_preset: isCustom ? 'today' : datePreset }),
-      })
-      const res  = await fetch(`/api/fb/campaigns?${params}`, { signal: ctrl.signal })
-      if (!res.ok) throw new Error('API error')
-      const data = await res.json()
+  const { isValidating, mutate: refreshData } = useSWR(swrKey, fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 5000,
+    onSuccess: (data) => {
       if (data.ok) {
         setAdsets(data.adsets || [])
         if (data.accounts?.length) setAccounts(data.accounts)
         if (data.meta_errors?.length) {
-          const errMsg = data.meta_errors.map(e => e.error).join('; ')
-          addToast(`Meta API: ${errMsg}`, 'error')
+          addToast(`Meta API: ${data.meta_errors.map(e => e.error).join('; ')}`, 'error')
         }
       }
-    } catch (err) {
-      if (err.name !== 'AbortError') console.error('[fetch]', err)
-    } finally {
-      setLoading(false)
+      setPage(1)
+      setSelectedIds(new Set())
     }
-  }, [fbConnected, level, filters.date_preset, filters.status, filters.compare,
-      filters.account_id, filters.campaign_id, filters.objective,
-      filters.since, filters.until])
-
-  useEffect(() => { fetchAdsets() }, [fetchAdsets])
+  })
+  const loading = isValidating && adsets.length === 0
 
   // Campaign list for dropdown (from loaded adset data)
   const campaignOptions = useMemo(() => {
@@ -705,14 +501,14 @@ export default function DashboardHome() {
       list = list.filter(a =>
         a.name.toLowerCase().includes(q) ||
         (a.campaign_name || '').toLowerCase().includes(q) ||
-        (a.account_name  || '').toLowerCase().includes(q)
+        (a.account_name || '').toLowerCase().includes(q)
       )
     }
-    const cpaMax   = Number(filters.cpa_max)   || 0
-    const roasMin  = Number(filters.roas_min)  || 0
+    const cpaMax = Number(filters.cpa_max) || 0
+    const roasMin = Number(filters.roas_min) || 0
     const spendMin = Number(filters.spend_min) || 0
     if (spendMin > 0) list = list.filter(a => a.spend >= spendMin)
-    if (cpaMax  > 0) list = list.filter(a => a.cpa  === 0 || a.cpa  <= cpaMax)
+    if (cpaMax > 0) list = list.filter(a => a.cpa === 0 || a.cpa <= cpaMax)
     if (roasMin > 0) list = list.filter(a => a.roas === 0 || a.roas >= roasMin)
 
     list.sort((a, b) => {
@@ -737,24 +533,24 @@ export default function DashboardHome() {
     for (const a of filtered) {
       const c = a.currency || 'VND'
       if (!curMap[c]) curMap[c] = { spend: 0, budget: 0, purchases: 0, revenue: 0 }
-      curMap[c].spend    += (a.spend        || 0)
-      curMap[c].budget   += (a.daily_budget || 0)
-      curMap[c].purchases+= (a.purchases    || 0)
-      curMap[c].revenue  += (a.revenue      || 0)
+      curMap[c].spend += (a.spend || 0)
+      curMap[c].budget += (a.daily_budget || 0)
+      curMap[c].purchases += (a.purchases || 0)
+      curMap[c].revenue += (a.revenue || 0)
     }
     const currencies = Object.keys(curMap)
 
     // Currency-independent totals
-    const totalPurchases = filtered.reduce((s, a) => s + (a.purchases  || 0), 0)
-    const totalReach     = filtered.reduce((s, a) => s + (a.reach      || 0), 0)
-    const totalImpr      = filtered.reduce((s, a) => s + (a.impressions|| 0), 0)
-    const totalClicks    = filtered.reduce((s, a) => s + (a.clicks     || 0), 0)
-    const avgCtr         = totalImpr > 0 ? (totalClicks / totalImpr * 100) : 0
-    const acctSet        = new Set(filtered.map(a => a.account_id))
+    const totalPurchases = filtered.reduce((s, a) => s + (a.purchases || 0), 0)
+    const totalReach = filtered.reduce((s, a) => s + (a.reach || 0), 0)
+    const totalImpr = filtered.reduce((s, a) => s + (a.impressions || 0), 0)
+    const totalClicks = filtered.reduce((s, a) => s + (a.clicks || 0), 0)
+    const avgCtr = totalImpr > 0 ? (totalClicks / totalImpr * 100) : 0
+    const acctSet = new Set(filtered.map(a => a.account_id))
 
     // Build display strings for monetary stats (one line per currency)
-    const spendStr  = currencies.length
-      ? currencies.map(c => fmtMoney(curMap[c].spend,  c, { zero: true })).join(' + ')
+    const spendStr = currencies.length
+      ? currencies.map(c => fmtMoney(curMap[c].spend, c, { zero: true })).join(' + ')
       : '₫0'
     const budgetStr = currencies.length
       ? currencies.map(c => fmtMoney(curMap[c].budget, c, { zero: true })).join(' + ')
@@ -773,12 +569,14 @@ export default function DashboardHome() {
       ? currencies.map(c => fmtMoney(curMap[c].revenue, c, { zero: true })).join(' + ')
       : '₫0'
 
-    return { active, currencies, curMap, spendStr, budgetStr, cpaStr, revenueStr, avgRoas,
-             totalPurchases, totalReach, totalImpr, totalClicks, avgCtr, accountCount: acctSet.size }
+    return {
+      active, currencies, curMap, spendStr, budgetStr, cpaStr, revenueStr, avgRoas,
+      totalPurchases, totalReach, totalImpr, totalClicks, avgCtr, accountCount: acctSet.size
+    }
   }, [filtered])
 
-  const totalPages  = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
-  const pageItems   = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   function setFilter(key, val) { setFilters(f => ({ ...f, [key]: val })); setPage(1) }
   function handleSort(col) {
@@ -818,6 +616,8 @@ export default function DashboardHome() {
   }
 
   async function executeToggle(itemId, newStatus) {
+    const prevAdsets = [...adsets]
+    setAdsets(prev => prev.map(a => a.id === itemId ? { ...a, status: newStatus, effective_status: newStatus } : a))
     setToggling(t => ({ ...t, [itemId]: true }))
     try {
       const res = await fetch('/api/fb/campaign-toggle', {
@@ -826,29 +626,30 @@ export default function DashboardHome() {
         body: JSON.stringify({ campaign_id: itemId, status: newStatus })
       })
       if (res.ok) {
-        setAdsets(prev => prev.map(a => a.id === itemId ? { ...a, status: newStatus, effective_status: newStatus } : a))
         addToast(`Đã ${newStatus === 'ACTIVE' ? 'bật' : 'tạm dừng'}`)
       } else {
+        setAdsets(prevAdsets)
         addToast('Lỗi khi đổi trạng thái', 'error')
       }
-    } catch { addToast('Lỗi kết nối', 'error') }
+    } catch { setAdsets(prevAdsets); addToast('Lỗi kết nối', 'error') }
     finally { setToggling(t => ({ ...t, [itemId]: false })) }
   }
 
   async function handleBudgetSave(adsetId, newBudget) {
+    const prevAdsets = [...adsets]
+    setAdsets(prev => prev.map(a => a.id === adsetId ? { ...a, daily_budget: newBudget } : a))
     setBudgetSaving(true)
+    setBudgetModal(null)
     try {
-      const res  = await fetch('/api/fb/budget-update', {
+      const res = await fetch('/api/fb/budget-update', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ adset_id: adsetId, new_budget: newBudget, budget_type: 'daily' })
       })
       const data = await res.json()
       if (data.ok) {
-        setAdsets(prev => prev.map(a => a.id === adsetId ? { ...a, daily_budget: newBudget } : a))
         addToast('Đã cập nhật ngân sách')
-        setBudgetModal(null)
-      } else addToast(data.error || 'Lỗi cập nhật NS', 'error')
-    } catch { addToast('Lỗi kết nối', 'error') }
+      } else { setAdsets(prevAdsets); addToast(data.error || 'Lỗi cập nhật NS', 'error') }
+    } catch { setAdsets(prevAdsets); addToast('Lỗi kết nối', 'error') }
     finally { setBudgetSaving(false) }
   }
 
@@ -859,7 +660,7 @@ export default function DashboardHome() {
     for (const adset of adsets.filter(a => selectedIds.has(a.id) && a.daily_budget > 0)) {
       const newBudget = Math.round(adset.daily_budget * (1 + pct / 100))
       try {
-        const res  = await fetch('/api/fb/budget-update', {
+        const res = await fetch('/api/fb/budget-update', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ adset_id: adset.id, new_budget: newBudget, budget_type: 'daily' })
         })
@@ -869,7 +670,7 @@ export default function DashboardHome() {
       } catch { failNames.push(adset.name) }
     }
     setBudgetSaving(false); setBulkModal(false)
-    if (ok)   addToast(`Đã tăng NS ${ok} nhóm QC`)
+    if (ok) addToast(`Đã tăng NS ${ok} nhóm QC`)
     if (failNames.length) addToast(`${failNames.length} nhóm thất bại`, 'error', failNames.join(', '))
   }
 
@@ -924,7 +725,7 @@ export default function DashboardHome() {
   }
 
   const expireDate = user?.expire_at ? new Date(user.expire_at).toLocaleDateString('vi-VN') : null
-  const cpaMaxVal  = Number(filters.cpa_max)  || 0
+  const cpaMaxVal = Number(filters.cpa_max) || 0
   const roasMinVal = Number(filters.roas_min) || 0
 
   const Th = ({ col, children, className = '' }) => (
@@ -976,8 +777,8 @@ export default function DashboardHome() {
               {/* Row 1: Level + main filters */}
               <div className="filter-row">
                 <div className="level-tabs">
-                  <button className={`level-tab${level==='adset'?' active':''}`}    onClick={() => { setLevel('adset');    setFilter('campaign_id', '') }}>Nhóm QC</button>
-                  <button className={`level-tab${level==='campaign'?' active':''}`} onClick={() => { setLevel('campaign'); setFilter('campaign_id', '') }}>Chiến dịch</button>
+                  <button className={`level-tab${level === 'adset' ? ' active' : ''}`} onClick={() => { setLevel('adset'); setFilter('campaign_id', '') }}>Nhóm QC</button>
+                  <button className={`level-tab${level === 'campaign' ? ' active' : ''}`} onClick={() => { setLevel('campaign'); setFilter('campaign_id', '') }}>Chiến dịch</button>
                 </div>
 
                 <input
@@ -1011,7 +812,7 @@ export default function DashboardHome() {
                       onChange={e => setFilter('until', e.target.value)}
                     />
                     {filters.since && filters.until && (
-                      <button className="custom-range-go" onClick={fetchAdsets}>Áp dụng</button>
+                      <button className="custom-range-go" onClick={refreshData}>Áp dụng</button>
                     )}
                   </div>
                 )}
@@ -1022,7 +823,7 @@ export default function DashboardHome() {
                   <option value="PAUSED">Đã dừng</option>
                 </select>
 
-                <button className="filter-refresh" onClick={fetchAdsets} disabled={loading}>
+                <button className="filter-refresh" onClick={refreshData} disabled={loading}>
                   {loading ? '…' : '↻ Làm mới'}
                 </button>
                 <button className="filter-adv-toggle" onClick={() => setShowAdvFilter(v => !v)}>
@@ -1154,7 +955,7 @@ export default function DashboardHome() {
                 <div className="sel-bar">
                   Đã chọn <strong>{selectedIds.size}</strong>
                   <button className="sel-clear" onClick={() => setSelectedIds(new Set())}>Bỏ chọn</button>
-                  <button className="sel-act sel-act--on"  onClick={() => requestBulkToggle('ACTIVE')}>▶ Bật tất cả</button>
+                  <button className="sel-act sel-act--on" onClick={() => requestBulkToggle('ACTIVE')}>▶ Bật tất cả</button>
                   <button className="sel-act sel-act--off" onClick={() => requestBulkToggle('PAUSED')}>⏸ Dừng tất cả</button>
                   <button className="sel-budget" onClick={() => setBulkModal(true)}>↑ Tăng NS</button>
                 </div>
@@ -1171,35 +972,35 @@ export default function DashboardHome() {
                     </th>
                     <Th col="name" className="th-name">{level === 'adset' ? 'Nhóm quảng cáo' : 'Chiến dịch'}</Th>
                     <Th col="account_name">Tài khoản</Th>
-                    {level === 'adset' && cols.campaign  && <Th col="campaign_name">Chiến dịch</Th>}
+                    {level === 'adset' && cols.campaign && <Th col="campaign_name">Chiến dịch</Th>}
                     {cols.objective && <th>Mục tiêu</th>}
                     <th className="th-status">Trạng thái</th>
                     <Th col="spend" className="th-num">Chi tiêu</Th>
                     <Th col="daily_budget" className="th-budget">Ngân sách</Th>
-                    <Th col="purchases"   className="th-num">Lượt mua</Th>
-                    <Th col="cpa"         className="th-num">CPA</Th>
-                    <Th col="roas"        className="th-num">ROAS</Th>
-                    <Th col="revenue"     className="th-num">Doanh thu</Th>
-                    {cols.reach        && <Th col="reach"        className="th-num">Tiếp cận</Th>}
-                    {cols.impressions  && <Th col="impressions"  className="th-num">Hiển thị</Th>}
-                    {cols.frequency    && <Th col="frequency"    className="th-num">Tần suất</Th>}
-                    {cols.cpm          && <Th col="cpm"          className="th-num">CPM</Th>}
-                    {cols.clicks       && <Th col="clicks"       className="th-num">Click</Th>}
-                    {cols.linkClicks   && <Th col="linkClicks"   className="th-num">Link click</Th>}
-                    {cols.cpc          && <Th col="cpc"          className="th-num">CPC</Th>}
-                    {cols.messages     && <Th col="messages"     className="th-num">Tin nhắn</Th>}
-                    {cols.costPerMsg   && <Th col="costPerMsg"   className="th-num">CP/Tin nhắn</Th>}
-                    {cols.engagement   && <Th col="engagement"   className="th-num">Tương tác</Th>}
-                    {cols.costPerEngage&& <Th col="costPerEngage"className="th-num">CP/Tương tác</Th>}
-                    {cols.reactions    && <Th col="reactions"    className="th-num">Cảm xúc</Th>}
-                    {cols.comments     && <Th col="comments"     className="th-num">Bình luận</Th>}
-                    {cols.shares       && <Th col="shares"       className="th-num">Chia sẻ</Th>}
-                    {cols.videoViews   && <Th col="videoViews"   className="th-num">Xem video</Th>}
-                    {cols.thruplays    && <Th col="thruplays"    className="th-num">ThruPlay</Th>}
-                    {cols.addToCart    && <Th col="addToCart"    className="th-num">Thêm giỏ</Th>}
-                    {cols.checkout     && <Th col="checkout"     className="th-num">Bắt đầu TT</Th>}
-                    {cols.leads        && <Th col="leads"        className="th-num">Lead</Th>}
-                    {cols.costPerLead  && <Th col="costPerLead"  className="th-num">CP/Lead</Th>}
+                    <Th col="purchases" className="th-num">Lượt mua</Th>
+                    <Th col="cpa" className="th-num">CPA</Th>
+                    <Th col="roas" className="th-num">ROAS</Th>
+                    <Th col="revenue" className="th-num">Doanh thu</Th>
+                    {cols.reach && <Th col="reach" className="th-num">Tiếp cận</Th>}
+                    {cols.impressions && <Th col="impressions" className="th-num">Hiển thị</Th>}
+                    {cols.frequency && <Th col="frequency" className="th-num">Tần suất</Th>}
+                    {cols.cpm && <Th col="cpm" className="th-num">CPM</Th>}
+                    {cols.clicks && <Th col="clicks" className="th-num">Click</Th>}
+                    {cols.linkClicks && <Th col="linkClicks" className="th-num">Link click</Th>}
+                    {cols.cpc && <Th col="cpc" className="th-num">CPC</Th>}
+                    {cols.messages && <Th col="messages" className="th-num">Tin nhắn</Th>}
+                    {cols.costPerMsg && <Th col="costPerMsg" className="th-num">CP/Tin nhắn</Th>}
+                    {cols.engagement && <Th col="engagement" className="th-num">Tương tác</Th>}
+                    {cols.costPerEngage && <Th col="costPerEngage" className="th-num">CP/Tương tác</Th>}
+                    {cols.reactions && <Th col="reactions" className="th-num">Cảm xúc</Th>}
+                    {cols.comments && <Th col="comments" className="th-num">Bình luận</Th>}
+                    {cols.shares && <Th col="shares" className="th-num">Chia sẻ</Th>}
+                    {cols.videoViews && <Th col="videoViews" className="th-num">Xem video</Th>}
+                    {cols.thruplays && <Th col="thruplays" className="th-num">ThruPlay</Th>}
+                    {cols.addToCart && <Th col="addToCart" className="th-num">Thêm giỏ</Th>}
+                    {cols.checkout && <Th col="checkout" className="th-num">Bắt đầu TT</Th>}
+                    {cols.leads && <Th col="leads" className="th-num">Lead</Th>}
+                    {cols.costPerLead && <Th col="costPerLead" className="th-num">CP/Lead</Th>}
                     <th className="th-ctr" onClick={() => handleSort('ctr')}>CTR <SortIcon col="ctr" sortBy={sortBy} sortDir={sortDir} /></th>
                     <th className="td-warn">Cảnh báo</th>
                   </tr>
@@ -1222,13 +1023,13 @@ export default function DashboardHome() {
                       </td>
                     </tr>
                   ) : pageItems.map(item => {
-                    const isHighCpa    = cpaMaxVal  > 0 && item.cpa  > cpaMaxVal
-                    const isLowRoas    = roasMinVal > 0 && item.roas > 0 && item.roas < roasMinVal
+                    const isHighCpa = cpaMaxVal > 0 && item.cpa > cpaMaxVal
+                    const isLowRoas = roasMinVal > 0 && item.roas > 0 && item.roas < roasMinVal
                     const isHighBudget = (item.budget_util_pct || 0) >= 85
-                    const isLosingMoney= (item.roas || 0) > 0 && item.roas < 1
+                    const isLosingMoney = (item.roas || 0) > 0 && item.roas < 1
                     const noConversion = (item.spend || 0) > 200000 && (item.purchases || 0) === 0
-                    const selected   = selectedIds.has(item.id)
-                    const doComp     = filters.compare
+                    const selected = selectedIds.has(item.id)
+                    const doComp = filters.compare
                     return (
                       <tr key={item.id} className={`adset-row${selected ? ' row-selected' : ''}${loading ? ' row-dimmed' : ''}`}>
                         <td className="td-chk">
@@ -1275,7 +1076,7 @@ export default function DashboardHome() {
 
                         <td className="td-budget">
                           {item.daily_budget ? (
-                            <div className="budget-wrap" onClick={() => level === 'adset' && setBudgetModal({ adset: item })} title={level==='adset'?'Nhấn để chỉnh':'Campaign budget'}>
+                            <div className="budget-wrap" onClick={() => level === 'adset' && setBudgetModal({ adset: item })} title={level === 'adset' ? 'Nhấn để chỉnh' : 'Campaign budget'}>
                               <BudgetBar budget={item.daily_budget} spend={item.spend} pct={item.budget_util_pct} currency={item.currency} />
                             </div>
                           ) : item.lifetime_budget ? (
@@ -1321,32 +1122,32 @@ export default function DashboardHome() {
                           ) : <span className="val-muted">—</span>}
                         </td>
 
-                        {cols.reach         && <td className="td-num">{fmtNum(item.reach)}</td>}
-                        {cols.impressions   && <td className="td-num">{fmtNum(item.impressions)}</td>}
-                        {cols.frequency     && <td className="td-num">{fmtFreq(item.frequency)}</td>}
-                        {cols.cpm           && <td className="td-num">{fmtCpm(item.cpm, item.currency)}</td>}
-                        {cols.clicks        && <td className="td-num">{fmtNum(item.clicks)}</td>}
-                        {cols.linkClicks    && <td className="td-num">{fmtNum(item.linkClicks)}</td>}
-                        {cols.cpc           && <td className="td-num">{fmtMoney(item.cpc, item.currency)}</td>}
-                        {cols.messages      && <td className="td-num">{item.messages   > 0 ? <span className="val-blue">{fmtNum(item.messages)}</span>   : <span className="val-muted">—</span>}</td>}
-                        {cols.costPerMsg    && <td className="td-num">{fmtMoney(item.costPerMsg, item.currency)}</td>}
-                        {cols.engagement    && <td className="td-num">{item.engagement > 0 ? <span className="val-blue">{fmtNum(item.engagement)}</span> : <span className="val-muted">—</span>}</td>}
+                        {cols.reach && <td className="td-num">{fmtNum(item.reach)}</td>}
+                        {cols.impressions && <td className="td-num">{fmtNum(item.impressions)}</td>}
+                        {cols.frequency && <td className="td-num">{fmtFreq(item.frequency)}</td>}
+                        {cols.cpm && <td className="td-num">{fmtCpm(item.cpm, item.currency)}</td>}
+                        {cols.clicks && <td className="td-num">{fmtNum(item.clicks)}</td>}
+                        {cols.linkClicks && <td className="td-num">{fmtNum(item.linkClicks)}</td>}
+                        {cols.cpc && <td className="td-num">{fmtMoney(item.cpc, item.currency)}</td>}
+                        {cols.messages && <td className="td-num">{item.messages > 0 ? <span className="val-blue">{fmtNum(item.messages)}</span> : <span className="val-muted">—</span>}</td>}
+                        {cols.costPerMsg && <td className="td-num">{fmtMoney(item.costPerMsg, item.currency)}</td>}
+                        {cols.engagement && <td className="td-num">{item.engagement > 0 ? <span className="val-blue">{fmtNum(item.engagement)}</span> : <span className="val-muted">—</span>}</td>}
                         {cols.costPerEngage && <td className="td-num">{fmtMoney(item.costPerEngage, item.currency)}</td>}
-                        {cols.reactions     && <td className="td-num">{fmtNum(item.reactions)}</td>}
-                        {cols.comments      && <td className="td-num">{fmtNum(item.comments)}</td>}
-                        {cols.shares        && <td className="td-num">{fmtNum(item.shares)}</td>}
-                        {cols.videoViews    && <td className="td-num">{item.videoViews > 0 ? <span className="val-blue">{fmtNum(item.videoViews)}</span> : <span className="val-muted">—</span>}</td>}
-                        {cols.thruplays     && <td className="td-num">{fmtNum(item.thruplays)}</td>}
-                        {cols.addToCart     && <td className="td-num">{item.addToCart  > 0 ? <span className="val-green">{fmtNum(item.addToCart)}</span>  : <span className="val-muted">—</span>}</td>}
-                        {cols.checkout      && <td className="td-num">{item.checkout   > 0 ? <span className="val-green">{fmtNum(item.checkout)}</span>   : <span className="val-muted">—</span>}</td>}
-                        {cols.leads         && <td className="td-num">{item.leads      > 0 ? <span className="val-green">{fmtNum(item.leads)}</span>      : <span className="val-muted">—</span>}</td>}
-                        {cols.costPerLead   && <td className="td-num">{fmtMoney(item.costPerLead, item.currency)}</td>}
+                        {cols.reactions && <td className="td-num">{fmtNum(item.reactions)}</td>}
+                        {cols.comments && <td className="td-num">{fmtNum(item.comments)}</td>}
+                        {cols.shares && <td className="td-num">{fmtNum(item.shares)}</td>}
+                        {cols.videoViews && <td className="td-num">{item.videoViews > 0 ? <span className="val-blue">{fmtNum(item.videoViews)}</span> : <span className="val-muted">—</span>}</td>}
+                        {cols.thruplays && <td className="td-num">{fmtNum(item.thruplays)}</td>}
+                        {cols.addToCart && <td className="td-num">{item.addToCart > 0 ? <span className="val-green">{fmtNum(item.addToCart)}</span> : <span className="val-muted">—</span>}</td>}
+                        {cols.checkout && <td className="td-num">{item.checkout > 0 ? <span className="val-green">{fmtNum(item.checkout)}</span> : <span className="val-muted">—</span>}</td>}
+                        {cols.leads && <td className="td-num">{item.leads > 0 ? <span className="val-green">{fmtNum(item.leads)}</span> : <span className="val-muted">—</span>}</td>}
+                        {cols.costPerLead && <td className="td-num">{fmtMoney(item.costPerLead, item.currency)}</td>}
 
                         <td className="td-num">{fmtCtr(item.ctr)}</td>
 
                         <td className="td-warn">
                           <div className="warn-list">
-                            {isHighCpa    && <span className="warn-badge warn-cpa">⚠️ CPA cao</span>}
+                            {isHighCpa && <span className="warn-badge warn-cpa">⚠️ CPA cao</span>}
                             {(isLowRoas || isLosingMoney) && <span className="warn-badge warn-roas">⚠️ ROAS &lt; 1</span>}
                             {isHighBudget && <span className="warn-badge warn-ns">⚠️ NS gần hết</span>}
                             {noConversion && <span className="warn-badge warn-noconv">⚠️ Không chuyển đổi</span>}
@@ -1364,12 +1165,12 @@ export default function DashboardHome() {
             {filtered.length > PAGE_SIZE && (
               <div className="pagination">
                 <div className="pagi-info">
-                  {Math.min((page-1)*PAGE_SIZE+1, filtered.length)}–{Math.min(page*PAGE_SIZE, filtered.length)} / {filtered.length}
+                  {Math.min((page - 1) * PAGE_SIZE + 1, filtered.length)}–{Math.min(page * PAGE_SIZE, filtered.length)} / {filtered.length}
                 </div>
                 <div className="pagi-btns">
-                  <button className="pagi-btn" onClick={() => setPage(p => Math.max(1, p-1))}        disabled={page === 1}>← Trước</button>
+                  <button className="pagi-btn" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>← Trước</button>
                   <span className="pagi-label">Trang {page}/{totalPages}</span>
-                  <button className="pagi-btn" onClick={() => setPage(p => Math.min(totalPages, p+1))} disabled={page === totalPages}>Tiếp →</button>
+                  <button className="pagi-btn" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Tiếp →</button>
                 </div>
               </div>
             )}

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
 import { useAuth } from '../../lib/AuthContext'
 import Link from 'next/link'
+import { Settings2, User, Link2, CheckCircle2 } from 'lucide-react'
 
 export default function Settings() {
   const { user, refreshUser } = useAuth()
@@ -20,9 +21,9 @@ export default function Settings() {
         body: JSON.stringify({ action: 'update_name', name: name.trim() })
       })
       const d = await r.json()
-      if (r.ok && d.ok) { await refreshUser(); setMsg('✅ Đã cập nhật tên') }
-      else setMsg('❌ ' + (d.error || 'Lỗi'))
-    } catch { setMsg('❌ Lỗi kết nối') }
+      if (r.ok && d.ok) { await refreshUser(); setMsg('Đã cập nhật tên') }
+      else setMsg('Lỗi: ' + (d.error || 'Không xác định'))
+    } catch { setMsg('Lỗi kết nối') }
     finally { setSaving(false) }
   }
 
@@ -33,7 +34,7 @@ export default function Settings() {
     <DashboardLayout title="Cài đặt">
       <div className="settings-page">
         <div className="page-header">
-          <span className="ph-icon">⚙️</span>
+          <span className="ph-icon"><Settings2 size={22} /></span>
           <div>
             <h1>Cài đặt tài khoản</h1>
             <p>Quản lý thông tin cá nhân và kết nối</p>
@@ -42,7 +43,7 @@ export default function Settings() {
 
         {/* Account info */}
         <div className="card">
-          <div className="card-title"><span>👤</span> Thông tin tài khoản</div>
+          <div className="card-title"><User size={15} /> Thông tin tài khoản</div>
 
           <div className="info-row">
             <span className="ir-label">Email</span>
@@ -64,7 +65,7 @@ export default function Settings() {
               <label>Họ và tên</label>
               <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Tên của bạn" />
             </div>
-            {msg && <div className={`msg ${msg.startsWith('✅') ? 'ok' : 'err'}`}>{msg}</div>}
+            {msg && <div className={`msg ${msg.startsWith('Đã') ? 'ok' : 'err'}`}>{msg}</div>}
             <button type="submit" className="save-btn" disabled={saving}>
               {saving ? 'Đang lưu...' : 'Lưu tên'}
             </button>
@@ -73,18 +74,18 @@ export default function Settings() {
 
         {/* Facebook connection */}
         <div className="card">
-          <div className="card-title"><span>📘</span> Kết nối Facebook Ads</div>
+          <div className="card-title"><Link2 size={15} /> Kết nối Facebook Ads</div>
 
           {fbConnected ? (
             <div className="fb-connected">
-              <div className="fbc-status">✅ Đã kết nối</div>
+              <div className="fbc-status"><CheckCircle2 size={14} style={{ verticalAlign: -2 }} /> Đã kết nối</div>
               {user?.fb_name && <div className="fbc-name">{user.fb_name}</div>}
               <Link href="/settings/connect-facebook" className="fbc-manage">Quản lý kết nối →</Link>
             </div>
           ) : (
             <div className="fb-disconnected">
               <div className="fbd-text">Chưa kết nối Facebook Ads. Kết nối để dùng đầy đủ tính năng.</div>
-              <Link href="/settings/connect-facebook" className="fbc-btn">🔗 Kết nối ngay</Link>
+              <Link href="/settings/connect-facebook" className="fbc-btn"><Link2 size={13} style={{ verticalAlign: -2 }} /> Kết nối ngay</Link>
             </div>
           )}
         </div>
@@ -102,14 +103,19 @@ export default function Settings() {
       </div>
 
       <style jsx>{`
-        .settings-page { padding: 24px; max-width: 600px; }
+        .settings-page { padding: 24px; max-width: 600px; margin: 0 auto; }
         .page-header { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
-        .ph-icon { font-size: 32px; }
+        .ph-icon {
+          width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: center;
+          background: rgba(59,130,246,.1); color: var(--blue);
+        }
         h1 { font-size: 18px; font-weight: 700; color: var(--txt); margin-bottom: 4px; }
         p  { font-size: 13px; color: var(--mut); }
 
         .card { background: var(--s1); border: 1px solid var(--bd); border-radius: 14px; padding: 18px; margin-bottom: 16px; }
-        .card-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: var(--mut); margin-bottom: 16px; display: flex; align-items: center; gap: 6px; }
+        .card-title { font-size: 13px; font-weight: 700; color: var(--txt); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+        .card-title svg { color: var(--blue); }
 
         .info-row { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--bd); font-size: 13px; }
         .info-row:last-of-type { margin-bottom: 16px; }
@@ -135,7 +141,7 @@ export default function Settings() {
 
         .fb-disconnected { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
         .fbd-text { font-size: 13px; color: var(--mut); }
-        .fbc-btn { background: #1877f2; color: #fff; border-radius: 9px; padding: 8px 16px; font-size: 13px; font-weight: 700; text-decoration: none; white-space: nowrap; transition: opacity .15s; }
+        .fbc-btn { background: var(--blue); color: #fff; border-radius: 9px; padding: 8px 16px; font-size: 13px; font-weight: 700; text-decoration: none; white-space: nowrap; transition: opacity .15s; }
         .fbc-btn:hover { opacity: .88; }
 
         .upgrade-card { display: flex; align-items: center; gap: 16px; background: rgba(254,95,1,.06); border-color: rgba(254,95,1,.3); }

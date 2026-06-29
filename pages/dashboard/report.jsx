@@ -1,17 +1,20 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
+import useSWR from 'swr'
 import DashboardLayout from '../../components/DashboardLayout'
 import { useAuth } from '../../lib/AuthContext'
+import { fetcher } from '../../lib/fetcher'
+import { BarChart3, Link2, Wallet, Eye, MousePointerClick, TrendingUp, Target, Inbox, RefreshCw, Bot } from 'lucide-react'
 
 const DailyCharts = dynamic(() => import('../../components/DailyCharts'), { ssr: false })
-import ReportChatPanel from '../../components/ReportChatPanel'
+const ReportChatPanel = dynamic(() => import('../../components/ReportChatPanel'), { ssr: false })
 
 const DATE_PRESETS = [
-  { key: 'today',      label: 'Hôm nay' },
-  { key: 'yesterday',  label: 'Hôm qua' },
-  { key: 'last_7d',    label: '7 ngày' },
-  { key: 'last_30d',   label: '30 ngày' },
+  { key: 'today', label: 'Hôm nay' },
+  { key: 'yesterday', label: 'Hôm qua' },
+  { key: 'last_7d', label: '7 ngày' },
+  { key: 'last_30d', label: '30 ngày' },
   { key: 'this_month', label: 'Tháng này' },
 ]
 
@@ -25,31 +28,28 @@ export default function Report() {
   const [rawDaily, setRawDaily] = useState([])
   const [accounts, setAccounts] = useState([])
   const [accountFilter, setAccountFilter] = useState('all')
-  const [loading, setLoading] = useState(false)
   const [chartTab, setChartTab] = useState('spend')
   const [campaignDailyRaw, setCampaignDailyRaw] = useState([])
   const [expandedCampId, setExpandedCampId] = useState(null)
   const [campChartTab, setCampChartTab] = useState('spend')
   const [showAI, setShowAI] = useState(false)
 
-  const loadReport = useCallback((p) => {
-    if (!fbConnected) return
-    setLoading(true)
-    setExpandedCampId(null)
-    fetch(`/api/fb/report?date_preset=${p}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(d => {
-        if (d?.ok) {
-          setRawData(d.data || [])
-          setRawDaily(d.daily || [])
-          setRawDailyRaw(d.dailyRaw || [])
-          setCampaignDailyRaw(d.campaignDailyRaw || [])
-          setAccounts(d.accounts || [])
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [fbConnected])
+  const reportKey = fbConnected ? `/api/fb/report?date_preset=${preset}` : null
+  const { isValidating, mutate: refreshReport } = useSWR(reportKey, fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 5000,
+    onSuccess: (d) => {
+      if (d?.ok) {
+        setRawData(d.data || [])
+        setRawDaily(d.daily || [])
+        setRawDailyRaw(d.dailyRaw || [])
+        setCampaignDailyRaw(d.campaignDailyRaw || [])
+        setAccounts(d.accounts || [])
+      }
+      setExpandedCampId(null)
+    },
+  })
+  const loading = isValidating && rawData.length === 0
 
   function getCampaignDaily(campaignId) {
     const map = {}
@@ -114,9 +114,6 @@ export default function Report() {
     }))
   })()
 
-  useEffect(() => {
-    loadReport(preset)
-  }, [preset, loadReport])
 
   function fmt(v, digits = 0) {
     if (v == null) return '—'
@@ -134,18 +131,18 @@ export default function Report() {
   }
 
   const summaryCards = [
-    { label: 'Tổng chi phí',     value: fmtMoney(totals?.spend),       color: '#f59e0b', icon: '💸' },
-    { label: 'Impressions',      value: fmt(totals?.impressions),       color: '#3b82f6', icon: '👁' },
-    { label: 'Clicks',           value: fmt(totals?.clicks),            color: '#8b5cf6', icon: '🖱' },
-    { label: 'CTR trung bình',   value: fmtPct(totals?.ctr),           color: '#10b981', icon: '📈' },
-    { label: 'CPC trung bình',   value: fmtMoney(totals?.cpc),         color: '#ef4444', icon: '🎯' },
+    { label: 'Tổng chi phí', value: fmtMoney(totals?.spend), color: 'var(--yellow)', bg: 'rgba(217,119,6,.12)', icon: <Wallet size={18} /> },
+    { label: 'Impressions', value: fmt(totals?.impressions), color: 'var(--blue)', bg: 'rgba(26,111,255,.12)', icon: <Eye size={18} /> },
+    { label: 'Clicks', value: fmt(totals?.clicks), color: 'var(--primary)', bg: 'rgba(254,95,1,.12)', icon: <MousePointerClick size={18} /> },
+    { label: 'CTR trung bình', value: fmtPct(totals?.ctr), color: 'var(--green)', bg: 'rgba(22,163,74,.12)', icon: <TrendingUp size={18} /> },
+    { label: 'CPC trung bình', value: fmtMoney(totals?.cpc), color: 'var(--red)', bg: 'rgba(220,38,38,.12)', icon: <Target size={18} /> },
   ]
 
   return (
     <DashboardLayout title="Report">
       <div className="page-wrap">
         <div className="page-header">
-          <span className="page-icon">📈</span>
+          <span className="page-icon"><BarChart3 size={32} /></span>
           <div>
             <h1>Report</h1>
             <p>Báo cáo hiệu suất chiến dịch quảng cáo</p>
@@ -154,7 +151,7 @@ export default function Report() {
 
         {!fbConnected ? (
           <div className="fb-required">
-            <div className="fbr-icon">🔗</div>
+            <div className="fbr-icon"><Link2 size={40} /></div>
             <div className="fbr-title">Cần kết nối Facebook Ads</div>
             <div className="fbr-desc">Tính năng này yêu cầu bạn kết nối tài khoản Facebook Ads để lấy dữ liệu báo cáo.</div>
             <Link href="/settings/connect-facebook" className="fbr-btn">Kết nối ngay →</Link>
@@ -162,13 +159,14 @@ export default function Report() {
         ) : (
           <>
             {/* Filters */}
-            <div className="filter-bar">
-              <div className="preset-bar">
+            <div className="filter-bar" role="toolbar" aria-label="Bộ lọc báo cáo">
+              <div className="preset-bar" role="group" aria-label="Khoảng thời gian">
                 {DATE_PRESETS.map(p => (
                   <button
                     key={p.key}
                     className={`preset-btn${preset === p.key ? ' active' : ''}`}
                     onClick={() => setPreset(p.key)}
+                    aria-pressed={preset === p.key}
                   >
                     {p.label}
                   </button>
@@ -179,6 +177,7 @@ export default function Report() {
                   className="account-select"
                   value={accountFilter}
                   onChange={e => setAccountFilter(e.target.value)}
+                  aria-label="Chọn tài khoản quảng cáo"
                 >
                   <option value="all">Tất cả tài khoản</option>
                   {accounts.map(a => (
@@ -191,7 +190,7 @@ export default function Report() {
             {/* Summary cards */}
             {loading && !totals ? (
               <div className="summary-row">
-                {[1,2,3,4,5].map(i => (
+                {[1, 2, 3, 4, 5].map(i => (
                   <div key={i} className="sum-card skel-card" />
                 ))}
               </div>
@@ -199,7 +198,7 @@ export default function Report() {
               <div className="summary-row">
                 {summaryCards.map(c => (
                   <div key={c.label} className="sum-card">
-                    <div className="sum-icon" style={{ background: c.color + '22', color: c.color }}>{c.icon}</div>
+                    <div className="sum-icon" style={{ background: c.bg, color: c.color }}>{c.icon}</div>
                     <div className="sum-body">
                       <div className="sum-label">{c.label}</div>
                       <div className="sum-value">{c.value}</div>
@@ -214,7 +213,7 @@ export default function Report() {
               <div className="chart-card">
                 <div className="chart-header">
                   <div className="chart-title">Biểu đồ theo ngày</div>
-                  <div className="chart-tabs">
+                  <div className="chart-tabs" role="tablist" aria-label="Loại biểu đồ">
                     {[
                       { key: 'spend', label: 'Chi phí' },
                       { key: 'traffic', label: 'Traffic' },
@@ -222,6 +221,8 @@ export default function Report() {
                     ].map(t => (
                       <button
                         key={t.key}
+                        role="tab"
+                        aria-selected={chartTab === t.key}
                         className={`chart-tab${chartTab === t.key ? ' active' : ''}`}
                         onClick={() => setChartTab(t.key)}
                       >{t.label}</button>
@@ -238,18 +239,18 @@ export default function Report() {
             <div className="table-card">
               <div className="table-header">
                 <div className="table-title">Chi tiết theo chiến dịch</div>
-                <button className="refresh-btn" onClick={() => loadReport(preset)} disabled={loading}>
-                  {loading ? '…' : '↻ Làm mới'}
+                <button className="refresh-btn" onClick={() => refreshReport()} disabled={loading} aria-label="Làm mới dữ liệu">
+                  {loading ? '…' : <><RefreshCw size={13} style={{ marginRight: 4 }} /> Làm mới</>}
                 </button>
               </div>
 
               {loading && data.length === 0 ? (
                 <div className="skel-rows">
-                  {[1,2,3,4].map(i => <div key={i} className="skel-row" />)}
+                  {[1, 2, 3, 4].map(i => <div key={i} className="skel-row" />)}
                 </div>
               ) : data.length === 0 ? (
                 <div className="empty-state">
-                  <div className="empty-icon">📭</div>
+                  <div className="empty-icon"><Inbox size={32} /></div>
                   <div className="empty-text">Không có dữ liệu cho khoảng thời gian này</div>
                 </div>
               ) : (
@@ -277,6 +278,10 @@ export default function Report() {
                               className={`camp-row${isExpanded ? ' camp-expanded' : ''}`}
                               onClick={() => { setExpandedCampId(isExpanded ? null : row.campaign_id); setCampChartTab('spend') }}
                               style={{ cursor: 'pointer' }}
+                              role="button"
+                              tabIndex={0}
+                              aria-expanded={isExpanded}
+                              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandedCampId(isExpanded ? null : row.campaign_id); setCampChartTab('spend') } }}
                             >
                               <td className="camp-name" title={row.campaign_name}>
                                 <span className="expand-arrow">{isExpanded ? '▼' : '▶'}</span>
@@ -296,7 +301,7 @@ export default function Report() {
                                   <div className="camp-detail">
                                     {campDaily.length > 0 ? (
                                       <>
-                                        <div className="camp-chart-tabs">
+                                        <div className="camp-chart-tabs" role="tablist" aria-label="Loại biểu đồ chiến dịch">
                                           {[
                                             { key: 'spend', label: 'Chi phí' },
                                             { key: 'traffic', label: 'Traffic' },
@@ -304,6 +309,8 @@ export default function Report() {
                                           ].map(t => (
                                             <button
                                               key={t.key}
+                                              role="tab"
+                                              aria-selected={campChartTab === t.key}
                                               className={`chart-tab${campChartTab === t.key ? ' active' : ''}`}
                                               onClick={e => { e.stopPropagation(); setCampChartTab(t.key) }}
                                             >{t.label}</button>
@@ -343,8 +350,8 @@ export default function Report() {
 
       {/* AI Floating Button */}
       {fbConnected && (
-        <button className="ai-fab" onClick={() => setShowAI(v => !v)} title="Trợ lý AI Report">
-          <span className="ai-fab-icon">🤖</span>
+        <button className="ai-fab" onClick={() => setShowAI(v => !v)} title="Trợ lý AI Report" aria-label="Mở trợ lý AI Report" aria-expanded={showAI}>
+          <span className="ai-fab-icon"><Bot size={16} /></span>
           <span className="ai-fab-label">AI</span>
         </button>
       )}
@@ -358,9 +365,9 @@ export default function Report() {
       )}
 
       <style jsx>{`
-        .page-wrap { padding: 24px; max-width: 1100px; }
+        .page-wrap { padding: 24px; max-width: 1100px; margin: 0 auto; }
         .page-header { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
-        .page-icon { font-size: 32px; }
+        .page-icon { font-size: 32px; color: var(--primary); display: flex; align-items: center; }
         h1 { font-size: 20px; font-weight: 700; color: var(--txt); margin-bottom: 4px; }
         p  { font-size: 13px; color: var(--mut); }
 
@@ -370,11 +377,11 @@ export default function Report() {
           background: var(--s1); border: 1px solid var(--bd); border-radius: 16px;
           padding: 48px 32px; text-align: center; gap: 12px;
         }
-        .fbr-icon  { font-size: 40px; }
+        .fbr-icon  { font-size: 40px; color: var(--blue); }
         .fbr-title { font-size: 16px; font-weight: 700; color: var(--txt); }
         .fbr-desc  { font-size: 13px; color: var(--mut); max-width: 380px; line-height: 1.6; }
         .fbr-btn {
-          background: #1877f2; color: #fff; border-radius: 9px;
+          background: var(--blue); color: #fff; border-radius: 9px;
           padding: 10px 20px; font-size: 13px; font-weight: 700;
           text-decoration: none; margin-top: 8px; transition: opacity .15s;
         }
@@ -388,19 +395,19 @@ export default function Report() {
           background: var(--s1); color: var(--txt); font-size: 13px; font-weight: 500;
           cursor: pointer; font-family: inherit; min-width: 180px;
         }
-        .account-select:focus { outline: none; border-color: var(--primary); }
+        .account-select:focus { border-color: var(--primary); }
 
         .ai-fab {
-          position: fixed; bottom: 28px; right: 28px; z-index: 1100;
+          position: fixed; bottom: 28px; right: 28px; z-index: 50;
           display: flex; align-items: center; gap: 6px;
           padding: 12px 18px; border-radius: 50px; border: none;
-          background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff;
+          background: var(--blue); color: #fff;
           font-size: 13px; font-weight: 700; font-family: inherit;
           cursor: pointer;
-          box-shadow: 0 4px 20px rgba(99,102,241,.5);
+          box-shadow: 0 4px 20px rgba(26,111,255,.35);
           transition: transform .15s, box-shadow .15s;
         }
-        .ai-fab:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(99,102,241,.6); }
+        .ai-fab:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(26,111,255,.45); }
         .ai-fab-icon { font-size: 16px; }
         .preset-btn {
           padding: 7px 16px; border-radius: 9px; border: 1px solid var(--bd);
@@ -455,7 +462,7 @@ export default function Report() {
         .refresh-btn {
           background: var(--s2); border: 1px solid var(--bd); border-radius: 8px;
           padding: 6px 12px; font-size: 12px; color: var(--txt); cursor: pointer;
-          transition: background .15s;
+          transition: background .15s; display: inline-flex; align-items: center;
         }
         .refresh-btn:hover:not(:disabled) { background: var(--s3); }
         .refresh-btn:disabled { opacity: .6; cursor: default; }
@@ -469,7 +476,7 @@ export default function Report() {
         @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 
         .empty-state { display: flex; flex-direction: column; align-items: center; padding: 40px 20px; gap: 10px; }
-        .empty-icon  { font-size: 32px; }
+        .empty-icon  { font-size: 32px; color: var(--mut); }
         .empty-text  { font-size: 14px; color: var(--mut); }
 
         .table-wrap { overflow-x: auto; }
@@ -489,7 +496,7 @@ export default function Report() {
 
         .camp-row { transition: background .15s; }
         .camp-row:hover td { background: var(--s2); }
-        .camp-row.camp-expanded td { background: rgba(99,102,241,.06); font-weight: 600; }
+        .camp-row.camp-expanded td { background: rgba(26,111,255,.06); font-weight: 600; }
         .expand-arrow { font-size: 9px; color: var(--mut); margin-right: 8px; display: inline-block; width: 12px; }
         .camp-name { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
         .acc-name  { color: var(--mut); font-size: 12px; white-space: nowrap; }
@@ -502,6 +509,41 @@ export default function Report() {
         .totals-row td {
           background: var(--s2) !important; border-top: 2px solid var(--bd);
           border-bottom: none;
+        }
+
+        /* Focus indicators */
+        .preset-btn:focus-visible,
+        .chart-tab:focus-visible,
+        .refresh-btn:focus-visible,
+        .account-select:focus-visible,
+        .ai-fab:focus-visible,
+        .fbr-btn:focus-visible,
+        .camp-row:focus-visible {
+          outline: 2px solid var(--blue); outline-offset: 2px;
+        }
+
+        /* Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+          .skel-row { animation: none; }
+          .ai-fab,
+          .preset-btn,
+          .chart-tab,
+          .refresh-btn,
+          .fbr-btn,
+          .camp-row { transition: none; }
+          .ai-fab:hover { transform: none; }
+        }
+
+        /* Responsive — small screens */
+        @media (max-width: 768px) {
+          .page-wrap { padding: 16px; }
+          .page-header { gap: 10px; margin-bottom: 16px; }
+          .filter-bar { flex-direction: column; align-items: stretch; }
+          .account-select { min-width: unset; width: 100%; }
+          .chart-card, .table-card { padding: 14px 12px; }
+          .chart-body { height: 240px !important; min-height: 200px; }
+          .camp-name { max-width: 120px; }
+          .ai-fab { bottom: 16px; right: 16px; padding: 10px 14px; }
         }
       `}</style>
     </DashboardLayout>

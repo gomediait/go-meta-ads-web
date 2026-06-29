@@ -95,7 +95,7 @@ export default function Profit() {
       const name = p.name || ('Sản phẩm ' + (prev.indexOf(p) + 1))
       return { ...p, name, result: r }
     }))
-    showToast('✅ Đã tính xong!')
+    showToast('Đã tính xong!')
   }
 
   function saveSettings() {
@@ -104,7 +104,7 @@ export default function Profit() {
     try {
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(data))
       setSavedSettings(data)
-      showToast('✅ Đã lưu cài đặt mặc định!')
+      showToast('Đã lưu cài đặt mặc định!')
     } catch { showToast('⚠️ Lưu thất bại') }
   }
 
@@ -216,7 +216,7 @@ export default function Profit() {
                     className={`ptab${p.id === activeId ? ' active' : ''}`}
                     onClick={() => setActiveId(p.id)}
                   >
-                    {p.name || 'Sản phẩm'}{p.result ? (p.result.profit >= 0 ? ' ✅' : ' ❌') : ''}
+                    {p.name || 'Sản phẩm'}{p.result ? (p.result.profit >= 0 ? ' ✓' : ' ✗') : ''}
                     {products.length > 1 && (
                       <span className="tab-x" onClick={e => { e.stopPropagation(); removeProduct(p.id) }}>×</span>
                     )}
@@ -619,13 +619,13 @@ function QuickBtns({ items, onSet, onAdd, prefix, suffix, fmt: fmtFn }) {
 function ResultCard({ result: r, formState, targetProfit, setTargetProfit, targetResult }) {
   const cls = r.profit > 0 ? 'profit' : r.profit < 0 ? 'loss' : 'zero'
   const clsColor = { profit: 'var(--grn)', loss: 'var(--red)', zero: 'var(--ylw)' }[cls]
-  const badge = { profit: '✅ Có lãi', loss: '❌ Đang lỗ', zero: '⚠️ Hoà vốn' }[cls]
+  const badge = { profit: 'Có lãi', loss: 'Đang lỗ', zero: 'Hoà vốn' }[cls]
 
   let advice = ''
-  if (r.profit < 0) advice = `❌ Đang lỗ ${fmt(Math.abs(r.profit))}/đơn. Giá bán tối thiểu để hoà vốn: ${fmt(r.totalCost)}.`
+  if (r.profit < 0) advice = `Đang lỗ ${fmt(Math.abs(r.profit))}/đơn. Giá bán tối thiểu để hoà vốn: ${fmt(r.totalCost)}.`
   else if (r.returnPct > 20) advice = `⚠️ Tỉ lệ hoàn hàng cao (${r.returnPct}%)! Dù đang lãi ${fmt(r.profit)}/đơn, hoàn hàng cao đang ăn mòn lợi nhuận. Nên giảm về dưới 15%.`
   else if (r.margin < 15) advice = `⚠️ Biên lợi nhuận mỏng (${r.margin.toFixed(1)}%). Chỉ cần hoàn tăng nhẹ là lỗ. Nên tăng giá hoặc giảm chi phí ads.`
-  else if (r.margin < 30) advice = `✅ Biên lợi nhuận ổn (${r.margin.toFixed(1)}%). Đang lãi ${fmt(r.profit)}/đơn.`
+  else if (r.margin < 30) advice = `Biên lợi nhuận ổn (${r.margin.toFixed(1)}%). Đang lãi ${fmt(r.profit)}/đơn.`
   else advice = `🔥 Margin tốt (${r.margin.toFixed(1)}%) — lãi ${fmt(r.profit)}/đơn! Có thể tăng ngân sách ads để scale mạnh.`
 
   return (

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useAuth } from '../../lib/AuthContext'
 import { useLang } from '../../lib/LangContext'
 import DashboardLayout from '../../components/DashboardLayout'
+import { Link2, CheckCircle2, AlertTriangle, BarChart3, Settings2, TrendingUp } from 'lucide-react'
 
 export default function ConnectFacebook() {
   const { user, refreshUser } = useAuth()
@@ -16,9 +17,9 @@ export default function ConnectFacebook() {
     { title: 'Chọn tài khoản Ads', desc: 'Chọn tài khoản quảng cáo bạn muốn quản lý' },
   ]
   const perms = tr.perms || [
-    { icon: '📊', label: 'ads_read',       desc: 'Đọc dữ liệu chiến dịch & báo cáo' },
-    { icon: '⚙️', label: 'ads_management', desc: 'Bật/tắt, điều chỉnh ngân sách' },
-    { icon: '📈', label: 'read_insights',  desc: 'Xem số liệu hiệu suất quảng cáo' },
+    { icon: 'chart', label: 'ads_read',       desc: 'Đọc dữ liệu chiến dịch & báo cáo' },
+    { icon: 'settings', label: 'ads_management', desc: 'Bật/tắt, điều chỉnh ngân sách' },
+    { icon: 'trend', label: 'read_insights',  desc: 'Xem số liệu hiệu suất quảng cáo' },
   ]
 
   const [status, setStatus] = useState('idle') // idle | loading | success | error
@@ -87,7 +88,7 @@ export default function ConnectFacebook() {
       <div className="cf-page">
 
         <div className="cf-header">
-          <div className="cf-header-icon">🔗</div>
+          <div className="cf-header-icon"><Link2 size={24} /></div>
           <div>
             <h1 className="cf-title">{tr.title || 'Kết nối Facebook Ads'}</h1>
             <p className="cf-sub">{tr.subtitle || 'Cấp quyền để Go Meta Ads Pro quản lý chiến dịch quảng cáo của bạn'}</p>
@@ -97,7 +98,7 @@ export default function ConnectFacebook() {
         {/* Success banner */}
         {successMsg && (
           <div className="success-box">
-            <span>✅</span>
+            <CheckCircle2 size={16} />
             <span>{successMsg}</span>
           </div>
         )}
@@ -105,7 +106,7 @@ export default function ConnectFacebook() {
         {/* Already connected */}
         {fbConnected && (
           <div className="connected-card">
-            <div className="conn-icon">✅</div>
+            <div className="conn-icon"><CheckCircle2 size={28} /></div>
             <div className="conn-body">
               <div className="conn-title">{tr.connected || 'Facebook đã được kết nối'}</div>
               <div className="conn-meta">
@@ -142,7 +143,7 @@ export default function ConnectFacebook() {
             {/* Error */}
             {status === 'error' && (
               <div className="err-box">
-                <span>⚠️</span>
+                <AlertTriangle size={16} />
                 <span>{errorMsg}</span>
               </div>
             )}
@@ -154,7 +155,7 @@ export default function ConnectFacebook() {
               disabled={status === 'loading'}
             >
               {status === 'loading'
-                ? (tr.connecting || '⏳ Đang xử lý...')
+                ? (tr.connecting || 'Đang xử lý...')
                 : <><span className="fb-f">f</span> {tr.connectBtn || 'Kết nối với Facebook Ads'}</>
               }
             </button>
@@ -169,7 +170,7 @@ export default function ConnectFacebook() {
           <div className="perm-grid">
             {perms.map(p => (
               <div key={p.label} className="perm-card">
-                <span className="perm-icon">{p.icon}</span>
+                <span className="perm-icon">{p.icon === 'chart' ? <BarChart3 size={16} /> : p.icon === 'settings' ? <Settings2 size={16} /> : <TrendingUp size={16} />}</span>
                 <div>
                   <code className="perm-name">{p.label}</code>
                   <div className="perm-desc">{p.desc}</div>
@@ -199,7 +200,7 @@ export default function ConnectFacebook() {
           background: rgba(0,196,140,.08); border: 1px solid rgba(0,196,140,.25);
           border-radius: 14px; padding: 18px 22px; margin-bottom: 24px;
         }
-        .conn-icon  { font-size: 28px; flex-shrink: 0; }
+        .conn-icon  { flex-shrink: 0; color: var(--grn); }
         .conn-body  { flex: 1; }
         .conn-title { font-size: 14px; font-weight: 700; color: var(--txt); margin-bottom: 4px; }
         .conn-meta  { font-size: 13px; color: var(--mut); }
@@ -265,7 +266,7 @@ export default function ConnectFacebook() {
         .perm-title { font-size: 11px; font-weight: 700; color: var(--mut); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 12px; }
         .perm-grid { display: flex; flex-direction: column; gap: 10px; }
         .perm-card { display: flex; align-items: flex-start; gap: 12px; }
-        .perm-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+        .perm-icon { flex-shrink: 0; margin-top: 2px; color: var(--blue); }
         .perm-name { font-size: 12px; font-weight: 700; color: var(--blue); background: rgba(59,130,246,.1); padding: 2px 7px; border-radius: 5px; display: inline-block; margin-bottom: 3px; }
         .perm-desc { font-size: 12px; color: var(--mut); }
 

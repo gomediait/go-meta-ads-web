@@ -1,18 +1,21 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
+import useSWR from 'swr'
 import DashboardLayout from '../../components/DashboardLayout'
 import { useAuth } from '../../lib/AuthContext'
+import { fetcher } from '../../lib/fetcher'
 import { isPlanAllowed } from '../../lib/planLimits'
+import { Bell, Lock, Link2, Send, MessageSquare, Clock, ShieldAlert, BarChart3, AlertTriangle, Save } from 'lucide-react'
 
 function PlanGate({ feature }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', textAlign: 'center', padding: 40 }}>
-      <div style={{ fontSize: 64, marginBottom: 16 }}>🔒</div>
+      <div style={{ marginBottom: 16, color: 'var(--mut)' }}><Lock size={48} /></div>
       <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8 }}>Tính năng này yêu cầu nâng cấp gói</h2>
       <p style={{ color: 'var(--mut)', marginBottom: 24, maxWidth: 400 }}>
         {feature} chỉ dành cho gói <strong>Personal</strong> trở lên. Nâng cấp ngay để sử dụng đầy đủ tính năng.
       </p>
-      <Link href="/mua-goi" style={{ background: '#fe5f01', color: '#fff', padding: '12px 28px', borderRadius: 10, fontWeight: 700, textDecoration: 'none', fontSize: 15 }}>
+      <Link href="/mua-goi" style={{ background: 'var(--primary)', color: '#fff', padding: '12px 28px', borderRadius: 10, fontWeight: 700, textDecoration: 'none', fontSize: 15 }}>
         Nâng cấp ngay →
       </Link>
     </div>
@@ -46,20 +49,20 @@ export default function Notifications() {
   const fbConnected = user?.fb_connected
 
   const [settings, setSettings] = useState(DEFAULTS)
-  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [testingTg, setTestingTg] = useState(false)
   const [testingLark, setTestingLark] = useState(false)
   const [toast, setToast] = useState(null)
 
-  useEffect(() => {
-    if (!fbConnected) { setLoading(false); return }
-    fetch('/api/fb/notifications')
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d?.ok) setSettings({ ...DEFAULTS, ...d.settings }) })
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [fbConnected])
+  const settingsKey = fbConnected ? '/api/fb/notifications' : null
+  const { isValidating: settingsValidating } = useSWR(settingsKey, fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 5000,
+    onSuccess: (d) => {
+      if (d?.ok) setSettings({ ...DEFAULTS, ...d.settings })
+    },
+  })
+  const loading = settingsValidating && settings === DEFAULTS
 
   function showToast(msg, type = 'success') {
     setToast({ msg, type })
@@ -165,11 +168,11 @@ export default function Notifications() {
 
         {/* Toast */}
         {toast && (
-          <div className={`toast toast-${toast.type}`}>{toast.msg}</div>
+          <div className={`toast toast-${toast.type}`} role="alert" aria-live="assertive">{toast.msg}</div>
         )}
 
         <div className="page-header">
-          <span className="page-icon">🔔</span>
+          <span className="page-icon"><Bell size={28} /></span>
           <div>
             <h1>Thông báo tự động</h1>
             <p>Nhận báo cáo và cảnh báo qua Telegram hoặc Lark/Feishu</p>
@@ -178,7 +181,7 @@ export default function Notifications() {
 
         {!fbConnected ? (
           <div className="fb-required">
-            <div className="fbr-icon">🔗</div>
+            <div className="fbr-icon"><Link2 size={36} /></div>
             <div className="fbr-title">Cần kết nối Facebook Ads</div>
             <div className="fbr-desc">Tính năng thông báo yêu cầu kết nối Facebook Ads để theo dõi và gửi báo cáo real-time.</div>
             <Link href="/settings/connect-facebook" className="fbr-btn">Kết nối ngay →</Link>
@@ -196,7 +199,7 @@ export default function Notifications() {
                   <div className="field-desc">Khi tắt, tất cả thông báo sẽ không được gửi dù đã cài đặt</div>
                 </div>
                 <label className="toggle">
-                  <input type="checkbox" checked={settings.master_enabled} onChange={e => set('master_enabled', e.target.checked)} />
+                  <input type="checkbox" role="switch" aria-checked={settings.master_enabled} aria-label="Bật hệ thống thông báo" checked={settings.master_enabled} onChange={e => set('master_enabled', e.target.checked)} />
                   <span className="slider" />
                 </label>
               </div>
@@ -205,10 +208,10 @@ export default function Notifications() {
             {/* Telegram section */}
             <div className="card">
               <div className="section-header">
-                <div className="section-icon tg-icon">✈️</div>
+                <div className="section-icon tg-icon"><Send size={20} /></div>
                 <div className="section-title">Telegram</div>
                 <label className="toggle ml-auto">
-                  <input type="checkbox" checked={settings.tg_enabled} onChange={e => set('tg_enabled', e.target.checked)} />
+                  <input type="checkbox" role="switch" aria-checked={settings.tg_enabled} aria-label="Bật Telegram" checked={settings.tg_enabled} onChange={e => set('tg_enabled', e.target.checked)} />
                   <span className="slider" />
                 </label>
               </div>
@@ -239,7 +242,7 @@ export default function Notifications() {
                 </div>
 
                 <div className="test-row">
-                  <button className="btn-test" onClick={handleTestTelegram} disabled={testingTg}>
+                  <button className="btn-test" onClick={handleTestTelegram} disabled={testingTg} aria-label="Gửi tin test Telegram">
                     {testingTg ? 'Đang gửi…' : 'Gửi tin test'}
                   </button>
                 </div>
@@ -249,10 +252,10 @@ export default function Notifications() {
             {/* Lark section */}
             <div className="card">
               <div className="section-header">
-                <div className="section-icon lk-icon">🐦</div>
+                <div className="section-icon lk-icon"><MessageSquare size={20} /></div>
                 <div className="section-title">Lark / Feishu</div>
                 <label className="toggle ml-auto">
-                  <input type="checkbox" checked={settings.lark_enabled} onChange={e => set('lark_enabled', e.target.checked)} />
+                  <input type="checkbox" role="switch" aria-checked={settings.lark_enabled} aria-label="Bật Lark / Feishu" checked={settings.lark_enabled} onChange={e => set('lark_enabled', e.target.checked)} />
                   <span className="slider" />
                 </label>
               </div>
@@ -271,7 +274,7 @@ export default function Notifications() {
                 </div>
 
                 <div className="test-row">
-                  <button className="btn-test" onClick={handleTestLark} disabled={testingLark}>
+                  <button className="btn-test" onClick={handleTestLark} disabled={testingLark} aria-label="Gửi tin test Lark">
                     {testingLark ? 'Đang gửi…' : 'Gửi tin test'}
                   </button>
                 </div>
@@ -307,7 +310,7 @@ export default function Notifications() {
                     <div className="field-desc">Gửi tổng kết chi phí, clicks, impressions theo lịch đã cài</div>
                   </div>
                   <label className="toggle">
-                    <input type="checkbox" checked={settings.noti_report} onChange={e => set('noti_report', e.target.checked)} />
+                    <input type="checkbox" role="switch" aria-checked={settings.noti_report} aria-label="Báo cáo định kỳ" checked={settings.noti_report} onChange={e => set('noti_report', e.target.checked)} />
                     <span className="slider" />
                   </label>
                 </div>
@@ -318,7 +321,7 @@ export default function Notifications() {
                     <div className="field-desc">Thông báo khi chiến dịch bị tắt/bật hoặc bị từ chối</div>
                   </div>
                   <label className="toggle">
-                    <input type="checkbox" checked={settings.noti_audit} onChange={e => set('noti_audit', e.target.checked)} />
+                    <input type="checkbox" role="switch" aria-checked={settings.noti_audit} aria-label="Cảnh báo thay đổi trạng thái" checked={settings.noti_audit} onChange={e => set('noti_audit', e.target.checked)} />
                     <span className="slider" />
                   </label>
                 </div>
@@ -329,7 +332,7 @@ export default function Notifications() {
                     <div className="field-desc">Thông báo khi ngân sách gần cạn hoặc CPM tăng đột biến</div>
                   </div>
                   <label className="toggle">
-                    <input type="checkbox" checked={settings.noti_critical} onChange={e => set('noti_critical', e.target.checked)} />
+                    <input type="checkbox" role="switch" aria-checked={settings.noti_critical} aria-label="Cảnh báo khẩn cấp" checked={settings.noti_critical} onChange={e => set('noti_critical', e.target.checked)} />
                     <span className="slider" />
                   </label>
                 </div>
@@ -348,15 +351,15 @@ export default function Notifications() {
       </div>
 
       <style jsx>{`
-        .page-wrap { padding: 24px; max-width: 720px; position: relative; }
+        .page-wrap { padding: 24px; max-width: 720px; margin: 0 auto; position: relative; }
         .page-header { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
-        .page-icon { font-size: 32px; }
+        .page-icon { color: var(--primary); display: flex; align-items: center; }
         h1 { font-size: 20px; font-weight: 700; color: var(--txt); margin-bottom: 4px; }
         p  { font-size: 13px; color: var(--mut); }
 
         /* Toast */
         .toast {
-          position: fixed; top: 20px; right: 20px; z-index: 9999;
+          position: fixed; top: 20px; right: 20px; z-index: 50;
           padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 600;
           box-shadow: 0 4px 20px rgba(0,0,0,.2); animation: slideIn .25s ease;
           max-width: 320px;
@@ -371,11 +374,11 @@ export default function Notifications() {
           background: var(--s1); border: 1px solid var(--bd); border-radius: 16px;
           padding: 48px 32px; text-align: center; gap: 12px;
         }
-        .fbr-icon  { font-size: 40px; }
+        .fbr-icon  { color: var(--mut); display: flex; align-items: center; justify-content: center; }
         .fbr-title { font-size: 16px; font-weight: 700; color: var(--txt); }
         .fbr-desc  { font-size: 13px; color: var(--mut); max-width: 380px; line-height: 1.6; }
         .fbr-btn {
-          background: #1877f2; color: #fff; border-radius: 9px;
+          background: var(--blue); color: #fff; border-radius: 9px;
           padding: 10px 20px; font-size: 13px; font-weight: 700;
           text-decoration: none; margin-top: 8px; transition: opacity .15s;
         }
@@ -424,7 +427,7 @@ export default function Notifications() {
 
         /* Section header */
         .section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
-        .section-icon { font-size: 22px; }
+        .section-icon { display: flex; align-items: center; color: var(--primary); }
         .section-title { font-size: 15px; font-weight: 700; color: var(--txt); }
 
         .section-body { display: flex; flex-direction: column; gap: 16px; transition: opacity .2s; }
@@ -440,6 +443,7 @@ export default function Notifications() {
           transition: border-color .15s;
         }
         .text-input:focus { outline: none; border-color: var(--primary); }
+        .text-input:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 
         .test-row { display: flex; margin-top: 4px; }
         .btn-test {
@@ -474,6 +478,33 @@ export default function Notifications() {
         }
         .btn-save:hover:not(:disabled) { opacity: .88; }
         .btn-save:disabled { opacity: .6; cursor: default; }
+
+        /* Focus indicators */
+        .btn-test:focus-visible, .btn-save:focus-visible,
+        .hour-btn:focus-visible, .fbr-btn:focus-visible,
+        .toggle input:focus-visible + .slider {
+          outline: 2px solid var(--blue); outline-offset: 2px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+          .page-wrap { padding: 16px; }
+          .page-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+          .hours-row { flex-direction: column; }
+          .hour-btn { width: 100%; text-align: center; }
+          .save-row { justify-content: stretch; }
+          .btn-save { width: 100%; }
+          .fb-required { padding: 32px 16px; }
+          .field-row { flex-direction: column; align-items: flex-start; gap: 8px; }
+          .field-row .toggle { align-self: flex-end; }
+        }
+
+        /* Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+          .toast { animation: none; }
+          .skel-block { animation: none; }
+          .slider, .slider::before { transition: none; }
+        }
       `}</style>
     </DashboardLayout>
   )

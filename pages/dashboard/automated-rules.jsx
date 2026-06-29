@@ -1,7 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useCallback } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
 import { useAuth } from '../../lib/AuthContext'
 import Link from 'next/link'
+import useSWR from 'swr'
+import { fetcher } from '../../lib/fetcher'
 import { isPlanAllowed } from '../../lib/planLimits'
 import { Settings2, Link2, Lock, Pencil, Trash2, Save, Eye, Play, Plus, History, Lightbulb, Pause, TrendingUp, TrendingDown, Bell as BellIcon } from 'lucide-react'
 
@@ -100,7 +102,6 @@ export default function AutomatedRules() {
 
   const [rules, setRules] = useState([])
   const [accounts, setAccounts] = useState([])
-  const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ ...EMPTY_RULE, conditions: [{ metric: 'cpa', operator: 'gt', value: '' }] })
   const [saving, setSaving] = useState(false)
@@ -135,34 +136,28 @@ export default function AutomatedRules() {
     setTimeout(() => setToast(null), 3500)
   }
 
-  const fetchRules = useCallback(async () => {
-    try {
-      const r = await fetch('/api/fb/autoset')
-      const d = await r.json()
-      if (d.ok) setRules(d.rules)
-    } catch {}
-  }, [])
+  const rulesSwrKey = fbConnected ? '/api/fb/autoset' : null
+  const { isValidating: loadingRules, mutate: mutateRules } = useSWR(rulesSwrKey, fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 5000,
+    onSuccess: (data) => { if (data.ok) setRules(data.rules) },
+  })
 
-  const fetchAccounts = useCallback(async () => {
-    try {
-      const r = await fetch('/api/fb/campaigns?date_preset=today&status=ALL')
-      const d = await r.json()
-      if (d.ok) setAccounts(d.accounts || [])
-    } catch {}
-  }, [])
+  const accountsSwrKey = fbConnected ? '/api/fb/campaigns?date_preset=today&status=ALL' : null
+  const { isValidating: loadingAccounts } = useSWR(accountsSwrKey, fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 5000,
+    onSuccess: (data) => { if (data.ok) setAccounts(data.accounts || []) },
+  })
 
-  const fetchCampaigns = useCallback(async () => {
-    try {
-      const r = await fetch('/api/fb/campaigns?date_preset=maximum&status=ALL&level=campaign')
-      const d = await r.json()
-      if (d?.ok) setCampaigns(d.adsets || [])
-    } catch {}
-  }, [])
+  const campsSwrKey = fbConnected ? '/api/fb/campaigns?date_preset=maximum&status=ALL&level=campaign' : null
+  const { isValidating: loadingCamps } = useSWR(campsSwrKey, fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 5000,
+    onSuccess: (data) => { if (data?.ok) setCampaigns(data.adsets || []) },
+  })
 
-  useEffect(() => {
-    if (!fbConnected) { setLoading(false); return }
-    Promise.all([fetchRules(), fetchAccounts(), fetchCampaigns()]).finally(() => setLoading(false))
-  }, [fbConnected, fetchRules, fetchAccounts, fetchCampaigns])
+  const loading = loadingRules || loadingAccounts || loadingCamps
 
   const loadAdsetsForCampaign = useCallback(async (campId) => {
     if (campAdsets[campId]) return
@@ -331,7 +326,7 @@ export default function AutomatedRules() {
       setSelectedCampIds([])
       setSelectedAdsetIds([])
       setTreeSearch('')
-      fetchRules()
+      mutateRules()
     } catch { showToast('Lỗi kết nối', 'error') }
     finally { setSaving(false) }
   }
@@ -342,7 +337,7 @@ export default function AutomatedRules() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'update', id, enabled: !enabled })
     })
-    fetchRules()
+    mutateRules()
   }
 
   async function deleteRule(id, name) {
@@ -353,7 +348,7 @@ export default function AutomatedRules() {
       body: JSON.stringify({ action: 'delete', id })
     })
     showToast('Đã xoá rule')
-    fetchRules()
+    mutateRules()
   }
 
   async function handleRun() {
@@ -365,7 +360,7 @@ export default function AutomatedRules() {
       if (!d.ok) return showToast(d.error || 'Lỗi chạy rules', 'error')
       setRunResults(d)
       showToast(`Đã chạy xong — ${d.total_affected} adset bị tác động`)
-      fetchRules()
+      mutateRules()
       if (historyOpen) fetchHistory()
     } catch { showToast('Lỗi kết nối', 'error') }
     finally { setRunning(false) }
