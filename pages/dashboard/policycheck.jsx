@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
 import { useAuth } from '../../lib/AuthContext'
 import Link from 'next/link'
@@ -23,6 +23,14 @@ const OVERALL_CONFIG = {
 const SEVERITY_COLOR = { high: 'var(--red)', medium: 'var(--ylw)', low: 'var(--mut)' }
 const SEVERITY_LABEL = { high: 'Nghiêm trọng', medium: 'Trung bình', low: 'Nhẹ' }
 
+const LOADING_MESSAGES = [
+  "Đang đọc nội dung quảng cáo...",
+  "Đang đối chiếu chính sách Meta...",
+  "Đang phân tích từ ngữ nhạy cảm...",
+  "Đang dò tìm vi phạm tiềm ẩn...",
+  "Đang tổng hợp kết quả..."
+]
+
 export default function PolicyCheck() {
   const { user, isPro } = useAuth()
   const [headline, setHeadline]   = useState('')
@@ -32,6 +40,18 @@ export default function PolicyCheck() {
   const [loading,  setLoading]    = useState(false)
   const [result,   setResult]     = useState(null)
   const [error,    setError]      = useState('')
+  const [loadingIdx, setLoadingIdx] = useState(0)
+
+  useEffect(() => {
+    if (!loading) {
+      setLoadingIdx(0)
+      return
+    }
+    const timer = setInterval(() => {
+      setLoadingIdx(i => (i + 1) % LOADING_MESSAGES.length)
+    }, 1500)
+    return () => clearInterval(timer)
+  }, [loading])
 
   async function handleCheck() {
     if (!headline.trim() && !body.trim()) { setError('Vui lòng nhập Tiêu đề hoặc Nội dung chính'); return }
@@ -145,7 +165,7 @@ export default function PolicyCheck() {
               {loading && (
                 <div className="placeholder" role="status" aria-live="polite">
                   <div className="ph-icon-lg"><Loader2 size={40} className="spinning" /></div>
-                  <strong>AI đang phân tích...</strong>
+                  <strong>{LOADING_MESSAGES[loadingIdx]}</strong>
                   <div>Thường mất 3-8 giây</div>
                 </div>
               )}

@@ -127,32 +127,6 @@ export default function AutoSet() {
     finally { setAnalyzing(false) }
   }
 
-  async function handlePdfUpload(e) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (!file.name.toLowerCase().endsWith('.pdf')) return showToast('Chỉ hỗ trợ file PDF', 'error')
-    if (file.size > 5 * 1024 * 1024) return showToast('File quá lớn (tối đa 5MB)', 'error')
-    const reader = new FileReader()
-    reader.onload = async () => {
-      const base64 = reader.result.split(',')[1]
-      setAnalyzing(true)
-      try {
-        const r = await fetch('/api/ai/targeting-analyze', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ file_base64: base64, industry: industry || undefined })
-        })
-        const d = await r.json()
-        if (!d.ok) return showToast(d.error || 'Lỗi AI', 'error')
-        if (d.extracted_text) setInsightText(d.extracted_text)
-        applyAiResult(d.targeting)
-        setStep(2)
-        await searchTargets(d.targeting.interests || [], d.targeting.behaviors || [])
-      } catch (e) { showToast('Lỗi: ' + e.message, 'error') }
-      finally { setAnalyzing(false) }
-    }
-    reader.readAsDataURL(file)
-  }
 
   function applyAiResult(t) {
     setTargeting({
@@ -228,6 +202,19 @@ export default function AutoSet() {
       if (d.ok) setPosts((d.posts || []).filter(p => p.page_id === pageId || !pageId))
     } catch {}
     finally { setLoadingPosts(false) }
+  }
+
+  async function deleteHistory(id) {
+    if (!confirm('Bạn có chắc muốn xóa lịch sử này? Bài viết sẽ được giải phóng để tạo mới.')) return
+    try {
+      const r = await fetch('/api/fb/autoset-scan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'delete_history', history_id: id }) })
+      const d = await r.json()
+      if (d.ok) {
+        setHistory(p => p.filter(x => x.id !== id))
+        showToast('Đã xóa lịch sử')
+        loadPagePosts(selectedPageId)
+      } else { showToast(d.error || 'Lỗi', 'error') }
+    } catch { showToast('Lỗi', 'error') }
   }
 
   function handlePageChange(pageId) {
@@ -397,11 +384,6 @@ export default function AutoSet() {
                   <div className="hint">{insightText.length}/3000 ký tự</div>
                 </div>
 
-                <div className="fr">
-                  <label className="lb">Hoặc upload file PDF</label>
-                  <input type="file" accept=".pdf" onChange={handlePdfUpload} style={{ fontSize: 13 }} />
-                </div>
-
                 <button className="btn-p" onClick={handleAnalyze} disabled={analyzing || !insightText.trim()}>
                   {analyzing ? '🤖 AI đang phân tích...' : '🤖 AI Phân tích targeting'}
                 </button>
@@ -533,12 +515,12 @@ export default function AutoSet() {
                     <label className="lb">Chọn bài viết</label>
                     {loadingPosts ? <div className="hint">Đang tải...</div>
                     : !posts.length ? <div className="hint">Không có bài viết mới.</div>
-                    : <div className="pl">{posts.slice(0, 10).map(p => (
+                    : <div className="pl">{posts.slice(0, 15).map(p => (
                         <div key={p.id} className={`pi${selectedPost?.id === p.id ? ' sel' : ''}`} onClick={() => setSelectedPost(p)}>
                           {p.full_picture && <img src={p.full_picture} className="pt" alt="" />}
                           <div className="pb">
                             <div className="pm">{(p.message || p.story || '').slice(0, 80)}</div>
-                            <div className="px">{p.page_name} · {p.created_time ? new Date(p.created_time).toLocaleDateString('vi-VN') : ''}</div>
+                            <div className="px">{p.page_name} · {p.created_time ? new Date(p.created_time).toLocaleDateString('vi-VN') : ''} {p.is_used && <span style={{color: 'var(--red)', fontWeight: 'bold'}}> · (Đã dùng)</span>}</div>
                           </div>
                         </div>
                       ))}</div>}
@@ -585,8 +567,8 @@ export default function AutoSet() {
                 <span>{historyOpen ? '▲' : '▼'}</span>
               </div>
               {historyOpen && (loadingHistory ? <div className="hint">Đang tải...</div> : !history.length ? <div className="hint">Chưa có lịch sử</div> : (
-                <table className="ht"><thead><tr><th>Nội dung</th><th>Campaign</th><th>Thời gian</th></tr></thead>
-                <tbody>{history.map(h => <tr key={h.id}><td>{(h.post_message || '').slice(0, 50)}</td><td><code>{h.campaign_id}</code></td><td>{h.created_at ? new Date(h.created_at).toLocaleString('vi-VN') : '—'}</td></tr>)}</tbody></table>
+                <table className="ht"><thead><tr><th>Nội dung</th><th>Campaign</th><th>Thời gian</th><th>Thao tác</th></tr></thead>
+                <tbody>{history.map(h => <tr key={h.id}><td>{(h.post_message || '').slice(0, 50)}</td><td><code>{h.campaign_id}</code></td><td>{h.created_at ? new Date(h.created_at).toLocaleString('vi-VN') : '—'}</td><td><button className="btn-s" style={{padding: '4px 8px', fontSize: 11}} onClick={(e) => { e.stopPropagation(); deleteHistory(h.id); }}>Xóa</button></td></tr>)}</tbody></table>
               ))}
             </div>
           </>

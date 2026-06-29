@@ -120,7 +120,8 @@ export default async function handler(req, res) {
           }
 
           for (const post of fetchedPosts) {
-            if (createdPostIds.has(post.id)) { skippedCreated++; continue }
+            const is_used = createdPostIds.has(post.id)
+            if (is_used) { skippedCreated++ }
 
             if (page.hashtag) {
               const text = (post.message || '') + ' ' + (post.story || '')
@@ -129,6 +130,7 @@ export default async function handler(req, res) {
 
             allNewPosts.push({
               ...post,
+              is_used,
               page_id: page.page_id,
               page_name: page.page_name,
               daily_budget: page.daily_budget,
@@ -156,6 +158,18 @@ export default async function handler(req, res) {
       const errors = allNewPosts.filter(p => p.__error)
       const posts  = allNewPosts.filter(p => !p.__error)
       return res.json({ ok: true, posts, errors, diagnostics })
+    } catch (err) {
+      return res.status(500).json({ ok: false, error: err.message })
+    }
+  }
+
+  if (action === 'delete_history') {
+    const { history_id } = body
+    if (!history_id) return res.status(400).json({ ok: false, error: 'Thiếu history_id' })
+    try {
+      const { error } = await sb.from('autoset_created_ads').delete().eq('id', history_id).eq('user_id', user.id)
+      if (error) throw error
+      return res.json({ ok: true })
     } catch (err) {
       return res.status(500).json({ ok: false, error: err.message })
     }
