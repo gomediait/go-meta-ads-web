@@ -154,6 +154,24 @@ export default function Notifications() {
     }
   }
 
+  const [testingReport, setTestingReport] = useState(false)
+  async function handleTestReport() {
+    setTestingReport(true)
+    try {
+      const res = await fetch('/api/cron/notify?test=true')
+      const d = await res.json()
+      if (d.ok && d.processed > 0) {
+        showToast('Đã gửi báo cáo test thành công!')
+      } else {
+        showToast('Không thể gửi (có thể chưa có data ngày hôm nay hoặc chưa lưu settings)', 'error')
+      }
+    } catch {
+      showToast('Lỗi kết nối', 'error')
+    } finally {
+      setTestingReport(false)
+    }
+  }
+
   if (!isPlanAllowed(user?.plan, 'notifications')) {
     return <DashboardLayout title="Thông báo tự động"><PlanGate feature="Thông báo tự động" /></DashboardLayout>
   }
@@ -299,6 +317,17 @@ export default function Notifications() {
                     </>
                   )
                 })()}
+              </div>
+
+              <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--bd)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontSize: 13, color: 'var(--mut)' }}>Bạn muốn xem form mẫu của báo cáo thực tế?</div>
+                <button 
+                  onClick={handleTestReport} 
+                  disabled={testingReport} 
+                  style={{ background: 'var(--s2)', border: '1px solid var(--bd)', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, color: 'var(--txt)', cursor: testingReport ? 'default' : 'pointer', opacity: testingReport ? 0.6 : 1 }}
+                >
+                  {testingReport ? 'Đang lấy data...' : 'Gửi Báo cáo ngay (Test)'}
+                </button>
               </div>
             </div>
 

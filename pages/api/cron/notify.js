@@ -1,5 +1,6 @@
 import { getSupabase } from '../../../lib/supabase'
 import { getUserFbData, callMeta } from '../../../lib/metaApi'
+import { getUserFromReq } from '../../../lib/auth'
 
 function getVietnamTime() {
   const now = new Date()
@@ -62,20 +63,32 @@ export default async function handler(req, res) {
   const authHeader = req.headers['authorization']
   const isVercelCron = !!req.headers['x-vercel-cron']
   const isBearerValid = cronSecret && authHeader === `Bearer ${cronSecret}`
+  
+  const user = getUserFromReq(req)
+  const isTest = req.query.test === 'true' && user
 
-  if (!isVercelCron && !isBearerValid) {
+  if (!isVercelCron && !isBearerValid && !isTest) {
     return res.status(401).json({ error: 'Unauthorized' })
   }
 
   const sb = getSupabase()
+  
+  // Lấy đúng giờ VN
+  const vnTimeStr = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    hour: '2-digit',
+    hour12: false
+  }).format(new Date())
+  const currentHour = parseInt(vnTimeStr, 10)
   const vnNow = getVietnamTime()
-  const currentHour = vnNow.getUTCHours()
 
-  // Get all users with notifications enabled
-  const { data: allNotif, error } = await sb
-    .from('user_notifications')
-    .select('*')
-    .eq('master_enabled', true)
+  // Build query
+  let query = sb.from('user_notifications').select('*').eq('master_enabled', true)
+  if (isTest) {
+    query = query.eq('user_id', user.id)
+  }
+
+  const { data: allNotif, error } = await query
 
   if (error) {
     console.error('[cron/notify] Error fetching notifications:', error)
@@ -86,12 +99,14 @@ export default async function handler(req, res) {
 
   for (const notif of allNotif || []) {
     try {
-      // Check if current hour matches schedule
-      const scheduledHours = (notif.schedule_value || '8,12,18')
-        .split(',')
-        .map(h => parseInt(h.trim(), 10))
+      // Check schedule (bypass if testing)
+      if (!isTest) {
+        const scheduledHours = (notif.schedule_value || '8,12,18')
+          .split(',')
+          .map(h => parseInt(h.trim(), 10))
 
-      if (!scheduledHours.includes(currentHour)) continue
+        if (!scheduledHours.includes(currentHour)) continue
+      }
 
       // Get user's FB data and today's insights
       const fbData = await getUserFbData(notif.user_id, sb)
