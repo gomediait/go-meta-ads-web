@@ -126,7 +126,7 @@ export default async function handler(req, res) {
             `${account.account_id}/insights`,
             token,
             {
-              fields: 'campaign_name,spend,actions,impressions,clicks',
+              fields: 'account_name,campaign_name,spend,actions,impressions,clicks',
               date_preset: 'today',
               level: 'campaign',
               filtering: JSON.stringify([{ field: 'spend', operator: 'GREATER_THAN', value: 0 }])
@@ -146,6 +146,7 @@ export default async function handler(req, res) {
 
           for (let i = 0; i < rows.length; i++) {
             const row = rows[i]
+            if (row.account_name) accName = row.account_name
             const cName = row.campaign_name || 'Không rõ'
             const cSpend = Number(row.spend || 0)
             const cResults = extractResults(row.actions)
@@ -175,7 +176,7 @@ export default async function handler(req, res) {
             const spendStr = `${formatCurrency(accSpend)}đ`
             const cpaStr = accCpa > 0 ? `${formatCurrency(accCpa)}đ` : '—'
             
-            let block = `━━━━━━━━━━━━━━━━━━━━\n💼 <b>[Tài khoản] ${accName}</b>\nChi: ${spendStr} | KQ: ${accResults} | CPA: ${cpaStr}\n👁️ H.thị: ${formatNumber(accImpressions)} | 🖱️ Click: ${formatNumber(accClicks)} (CPC: ${accCpc > 0 ? formatCurrency(accCpc)+'đ' : '—'})`
+            let block = `━━━━━━━━━━━━━━━━━━━━\n💼 [Tài khoản] ${accName}\nChi: ${spendStr} | KQ: ${accResults} | CPA: ${cpaStr}\n👁️ Hiển thị: ${formatNumber(accImpressions)} | 🖱️ Click: ${formatNumber(accClicks)} (CPC: ${accCpc > 0 ? formatCurrency(accCpc)+'đ' : '—'})`
             
             if (campaignLines.length > 0) {
                block += `\n\n🔥 <b>Các Chiến Dịch (Tiêu > 0đ):</b>\n` + campaignLines.join('\n')
