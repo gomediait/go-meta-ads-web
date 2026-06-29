@@ -6,5 +6,5 @@
     "pages/api/cron/notify.js": {
       "maxDuration": 60
     }
-
+  }
 }
