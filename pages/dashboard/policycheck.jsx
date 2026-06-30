@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
+import RestrictedView from '../../components/RestrictedView'
 import { useAuth } from '../../lib/AuthContext'
 import Link from 'next/link'
 import { ShieldCheck, ShieldX, Lock, FileText, Loader2, CheckCircle2, AlertTriangle, RotateCcw } from 'lucide-react'
@@ -97,6 +98,8 @@ export default function PolicyCheck() {
             <div className="uc-desc">Kiểm tra không giới hạn vi phạm chính sách Meta bằng AI. Tránh bị khoá tài khoản quảng cáo.</div>
             <Link href="/mua-goi" className="uc-btn">Nâng cấp ngay →</Link>
           </div>
+        ) : user?.role === 'viewer' ? (
+          <RestrictedView requiredRole="Manager" />
         ) : (
           <div className="main-grid">
             {/* LEFT: form */}

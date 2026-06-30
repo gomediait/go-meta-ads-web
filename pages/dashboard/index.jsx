@@ -193,7 +193,7 @@ function BudgetBar({ budget, spend, pct, currency }) {
   )
 }
 
-function StatusToggle({ item, onToggle, toggling }) {
+function StatusToggle({ item, onToggle, toggling, isViewer, onUnauthorized }) {
   const isActive = item.effective_status === 'ACTIVE'
   const isArchived = item.effective_status === 'ARCHIVED'
   const isCampaignPaused = item.effective_status === 'CAMPAIGN_PAUSED'
@@ -208,11 +208,17 @@ function StatusToggle({ item, onToggle, toggling }) {
   return (
     <div className="status-toggle-cell">
       <button
-        className={`toggle-sw${isActive ? ' toggle-sw--on' : ''}`}
+        className={`toggle-sw${isActive ? ' toggle-sw--on' : ''}${isViewer ? ' toggle-sw--disabled' : ''}`}
         role="switch"
         aria-checked={isActive}
         aria-label={`${item.name}: ${isActive ? 'đang chạy' : 'đã dừng'}`}
-        onClick={() => onToggle(item)}
+        onClick={() => {
+          if (isViewer) {
+            if (onUnauthorized) onUnauthorized()
+            return
+          }
+          onToggle(item)
+        }}
         disabled={toggling[item.id]}
       >
         <span className="toggle-knob" />
@@ -410,6 +416,7 @@ const COL_GROUPS = [
 export default function DashboardHome() {
   const { user, planName, isExpired } = useAuth()
   const fbConnected = user?.fb_connected
+  const isViewer = user?.role === 'viewer'
 
   const [level, setLevel] = useState('adset')
   const [adsets, setAdsets] = useState([])
@@ -955,9 +962,9 @@ export default function DashboardHome() {
                 <div className="sel-bar">
                   Đã chọn <strong>{selectedIds.size}</strong>
                   <button className="sel-clear" onClick={() => setSelectedIds(new Set())}>Bỏ chọn</button>
-                  <button className="sel-act sel-act--on" onClick={() => requestBulkToggle('ACTIVE')}>▶ Bật tất cả</button>
-                  <button className="sel-act sel-act--off" onClick={() => requestBulkToggle('PAUSED')}>⏸ Dừng tất cả</button>
-                  <button className="sel-budget" onClick={() => setBulkModal(true)}>↑ Tăng NS</button>
+                  <button className={`sel-act sel-act--on${isViewer ? ' locked-btn' : ''}`} onClick={() => isViewer ? addToast('Chức năng cần quyền Manager', 'error') : requestBulkToggle('ACTIVE')}>▶ Bật tất cả</button>
+                  <button className={`sel-act sel-act--off${isViewer ? ' locked-btn' : ''}`} onClick={() => isViewer ? addToast('Chức năng cần quyền Manager', 'error') : requestBulkToggle('PAUSED')}>⏸ Dừng tất cả</button>
+                  <button className={`sel-budget${isViewer ? ' locked-btn' : ''}`} onClick={() => isViewer ? addToast('Chức năng cần quyền Manager', 'error') : setBulkModal(true)}>↑ Tăng NS</button>
                 </div>
               )}
             </div>
@@ -1066,7 +1073,7 @@ export default function DashboardHome() {
                         )}
 
                         <td className="td-status">
-                          <StatusToggle item={item} onToggle={requestToggle} toggling={toggling} />
+                          <StatusToggle item={item} onToggle={requestToggle} toggling={toggling} isViewer={isViewer} onUnauthorized={() => addToast('Chức năng cần quyền Manager', 'error')} />
                         </td>
 
                         <td className="td-num">
@@ -1076,7 +1083,10 @@ export default function DashboardHome() {
 
                         <td className="td-budget">
                           {item.daily_budget ? (
-                            <div className="budget-wrap" onClick={() => level === 'adset' && setBudgetModal({ adset: item })} title={level === 'adset' ? 'Nhấn để chỉnh' : 'Campaign budget'}>
+                            <div className={`budget-wrap${isViewer ? ' locked-btn' : ''}`} onClick={() => {
+                                if (isViewer) return addToast('Chức năng cần quyền Manager', 'error')
+                                level === 'adset' && setBudgetModal({ adset: item })
+                              }} title={level === 'adset' ? 'Nhấn để chỉnh' : 'Campaign budget'}>
                               <BudgetBar budget={item.daily_budget} spend={item.spend} pct={item.budget_util_pct} currency={item.currency} />
                             </div>
                           ) : item.lifetime_budget ? (

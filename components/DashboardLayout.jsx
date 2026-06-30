@@ -137,23 +137,21 @@ export default function DashboardLayout({ children, title = 'Dashboard' }) {
                 const isViewer = userRole === 'viewer'
                 const isManager = userRole === 'manager'
                 
-                // Hide menus based on role
-                let roleHidden = false
+                // Lock menus based on role
+                let roleLocked = false
                 if (item.feature) {
                   if (isViewer && !['campaigns', 'profit', 'report', 'support'].includes(item.feature)) {
-                    roleHidden = true
+                    roleLocked = true
                   }
                   if (isManager && !['campaigns', 'profit', 'report', 'autoset', 'policycheck', 'support'].includes(item.feature)) {
-                    roleHidden = true
+                    roleLocked = true
                   }
                 }
-                
-                if (roleHidden) return null;
 
                 const isActive   = !item.external && router.pathname === item.href
                 const fbLocked   = item.needFb && !fbConnected
                 const planLocked = item.feature && !isPlanAllowed(user?.plan || 'trial', item.feature)
-                const locked     = fbLocked || planLocked
+                const locked     = fbLocked || planLocked || roleLocked
 
                 const IconComp = NAV_ICONS[item.iconKey] || LayoutDashboard
                 if (item.external) {
@@ -164,10 +162,12 @@ export default function DashboardLayout({ children, title = 'Dashboard' }) {
                     </a>
                   )
                 }
-                const lockTitle = fbLocked ? (dt.sidebar?.fbNeeded || 'Cần kết nối Facebook Ads') : planLocked ? (dt.sidebar?.upgradePlan || 'Nâng cấp gói để sử dụng') : item.label
+                const lockTitle = fbLocked ? (dt.sidebar?.fbNeeded || 'Cần kết nối Facebook Ads') : 
+                                  planLocked ? (dt.sidebar?.upgradePlan || 'Nâng cấp gói để sử dụng') : 
+                                  roleLocked ? 'Tài khoản của bạn không có quyền sử dụng chức năng này' : item.label
                 const lockHref  = fbLocked ? '/settings/connect-facebook' : planLocked ? '/mua-goi' : item.href
                 return (
-                  <Link key={item.href} href={locked ? lockHref : item.href}
+                  <Link key={item.href} href={locked && !roleLocked ? lockHref : item.href}
                     className={`sidebar-btn${isActive ? ' active' : ''}${locked ? ' locked' : ''}`}
                     title={lockTitle}>
                     <span className="sb-icon"><IconComp size={18} /></span>

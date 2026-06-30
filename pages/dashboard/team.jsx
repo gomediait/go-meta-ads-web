@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
+import RestrictedView from '../../components/RestrictedView'
 import { useAuth } from '../../lib/AuthContext'
 import Link from 'next/link'
 import { isPlanAllowed, getMaxTeamMembers } from '../../lib/planLimits'
@@ -21,8 +22,20 @@ export default function Team() {
   const atLimit = maxMembers !== Infinity && members.length >= maxMembers
 
   useEffect(() => {
-    fetchMembers()
-  }, [])
+    if (user?.role === 'admin' || !user?.role) {
+      fetchMembers()
+    } else {
+      setLoading(false)
+    }
+  }, [user?.role])
+
+  if (user?.role === 'viewer' || user?.role === 'manager') {
+    return (
+      <DashboardLayout title="Nhân viên">
+        <RestrictedView requiredRole="Admin" />
+      </DashboardLayout>
+    )
+  }
 
   async function fetchMembers() {
     setLoading(true)

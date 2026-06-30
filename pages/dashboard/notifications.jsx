@@ -2,6 +2,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import useSWR from 'swr'
 import DashboardLayout from '../../components/DashboardLayout'
+import RestrictedView from '../../components/RestrictedView'
 import { useAuth } from '../../lib/AuthContext'
 import { fetcher } from '../../lib/fetcher'
 import { isPlanAllowed } from '../../lib/planLimits'
@@ -192,6 +193,14 @@ export default function Notifications() {
 
   if (!isPlanAllowed(user?.plan, 'notifications')) {
     return <DashboardLayout title="Thông báo tự động"><PlanGate feature="Thông báo tự động" /></DashboardLayout>
+  }
+  
+  if (user?.role === 'viewer' || user?.role === 'manager') {
+    return (
+      <DashboardLayout title="Thông báo tự động">
+        <RestrictedView requiredRole="Admin" />
+      </DashboardLayout>
+    )
   }
 
   return (

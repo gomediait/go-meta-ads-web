@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import useSWR from 'swr'
 import DashboardLayout from '../../components/DashboardLayout'
+import RestrictedView from '../../components/RestrictedView'
 import { useAuth } from '../../lib/AuthContext'
 import { fetcher } from '../../lib/fetcher'
 import { isPlanAllowed } from '../../lib/planLimits'
@@ -315,6 +316,14 @@ export default function AutoSet() {
 
   if (!isPlanAllowed(user?.plan, 'autoset')) {
     return <DashboardLayout title="Tự động tạo QC"><PlanGate feature="Tự động tạo quảng cáo" /></DashboardLayout>
+  }
+  
+  if (user?.role === 'viewer') {
+    return (
+      <DashboardLayout title="Tự động tạo QC">
+        <RestrictedView requiredRole="Manager" />
+      </DashboardLayout>
+    )
   }
 
   return (

@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import Link from 'next/link'
 import useSWR from 'swr'
 import DashboardLayout from '../../components/DashboardLayout'
+import RestrictedView from '../../components/RestrictedView'
 import { useAuth } from '../../lib/AuthContext'
 import { fetcher } from '../../lib/fetcher'
 import { isPlanAllowed } from '../../lib/planLimits'
@@ -259,6 +260,14 @@ export default function AutoCare() {
 
   if (!isPlanAllowed(user?.plan, 'autocare')) {
     return <DashboardLayout title="Auto Care"><PlanGate feature="Auto Care" /></DashboardLayout>
+  }
+  
+  if (user?.role === 'viewer' || user?.role === 'manager') {
+    return (
+      <DashboardLayout title="Auto Care">
+        <RestrictedView requiredRole="Admin" />
+      </DashboardLayout>
+    )
   }
 
   return (
