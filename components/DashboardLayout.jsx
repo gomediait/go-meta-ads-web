@@ -132,6 +132,24 @@ export default function DashboardLayout({ children, title = 'Dashboard' }) {
             <div className="sidebar-inner">
               {NAV.map((item, i) => {
                 if (item.divider) return <div key={i} className="sidebar-divider" />
+                
+                const userRole = user?.role || 'admin'
+                const isViewer = userRole === 'viewer'
+                const isManager = userRole === 'manager'
+                
+                // Hide menus based on role
+                let roleHidden = false
+                if (item.feature) {
+                  if (isViewer && !['campaigns', 'profit', 'report', 'support'].includes(item.feature)) {
+                    roleHidden = true
+                  }
+                  if (isManager && !['campaigns', 'profit', 'report', 'autoset', 'policycheck', 'support'].includes(item.feature)) {
+                    roleHidden = true
+                  }
+                }
+                
+                if (roleHidden) return null;
+
                 const isActive   = !item.external && router.pathname === item.href
                 const fbLocked   = item.needFb && !fbConnected
                 const planLocked = item.feature && !isPlanAllowed(user?.plan || 'trial', item.feature)
