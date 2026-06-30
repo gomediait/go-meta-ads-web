@@ -63,7 +63,7 @@ export default async function handler(req, res) {
   const authHeader = req.headers['authorization']
   const isVercelCron = !!req.headers['x-vercel-cron']
   const isBearerValid = cronSecret && authHeader === `Bearer ${cronSecret}`
-  
+
   const user = getUserFromReq(req)
   const isTest = req.query.test === 'true' && user
 
@@ -72,7 +72,7 @@ export default async function handler(req, res) {
   }
 
   const sb = getSupabase()
-  
+
   // Lấy đúng giờ VN
   const vnTimeStr = new Intl.DateTimeFormat('en-US', {
     timeZone: 'Asia/Ho_Chi_Minh',
@@ -117,7 +117,7 @@ export default async function handler(req, res) {
       let totalSpend = 0
       let totalConversions = 0
       let totalRevenue = 0
-      
+
       const accountLines = []
 
       for (const account of accounts) {
@@ -142,7 +142,7 @@ export default async function handler(req, res) {
           const campaignLines = []
 
           // Sắp xếp chiến dịch tiêu nhiều nhất lên đầu
-          rows.sort((a,b) => Number(b.spend || 0) - Number(a.spend || 0))
+          rows.sort((a, b) => Number(b.spend || 0) - Number(a.spend || 0))
 
           for (let i = 0; i < rows.length; i++) {
             const row = rows[i]
@@ -160,10 +160,10 @@ export default async function handler(req, res) {
 
             const cCpa = cResults > 0 ? (cSpend / cResults) : 0
             const cCpc = cClicks > 0 ? (cSpend / cClicks) : 0
-            
+
             let cpaStr = cCpa > 0 ? `${formatCurrency(cCpa)}đ` : '—'
-            
-            campaignLines.push(`${i+1}️⃣ ${cName}:\n   Chi: ${formatCurrency(cSpend)}đ | KQ: ${cResults} | CPA: ${cpaStr}\n   (Click: ${cClicks} - CPC: ${cCpc > 0 ? formatCurrency(cCpc)+'đ' : '—'})`)
+
+            campaignLines.push(`${i + 1}️⃣ ${cName}:\n   Chi: ${formatCurrency(cSpend)}đ | KQ: ${cResults} | CPA: ${cpaStr}\n   (Click: ${cClicks} - CPC: ${cCpc > 0 ? formatCurrency(cCpc) + 'đ' : '—'})`)
           }
 
           if (accSpend > 0) {
@@ -172,14 +172,14 @@ export default async function handler(req, res) {
 
             const accCpa = accResults > 0 ? (accSpend / accResults) : 0
             const accCpc = accClicks > 0 ? (accSpend / accClicks) : 0
-            
+
             const spendStr = `${formatCurrency(accSpend)}đ`
             const cpaStr = accCpa > 0 ? `${formatCurrency(accCpa)}đ` : '—'
-            
-            let block = `━━━━━━━━━━━━━━━━━━━━\n💼 [Tài khoản] ${accName}\nChi: ${spendStr} | KQ: ${accResults} | CPA: ${cpaStr}\n👁️ Hiển thị: ${formatNumber(accImpressions)} | 🖱️ Click: ${formatNumber(accClicks)} (CPC: ${accCpc > 0 ? formatCurrency(accCpc)+'đ' : '—'})`
-            
+
+            let block = `━━━━━━━━━━━━━━━━━━━━\n💼 [Tài khoản] ${accName}\nChi: ${spendStr} | KQ: ${accResults} | CPA: ${cpaStr}\n👁️ Hiển thị: ${formatNumber(accImpressions)} | 🖱️ Click: ${formatNumber(accClicks)} (CPC: ${accCpc > 0 ? formatCurrency(accCpc) + 'đ' : '—'})`
+
             if (campaignLines.length > 0) {
-               block += `\n\n🔥 <b>Các Chiến Dịch (Tiêu > 0đ):</b>\n` + campaignLines.join('\n')
+              block += `\n\n🔥 <b>Các Chiến Dịch (Tiêu > 0đ):</b>\n` + campaignLines.join('\n')
             }
             accountLines.push(block)
           }
@@ -192,7 +192,7 @@ export default async function handler(req, res) {
 
       const vnTime = vnNow.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })
       const overallCpa = totalConversions > 0 ? (totalSpend / totalConversions) : 0
-      
+
       const summaryLines = [
         `💸 Tổng Chi: <b>${formatCurrency(totalSpend)} đ</b>`,
         `📩 Tổng Kết quả (Mess/Lead): <b>${formatNumber(totalConversions)}</b>`,
