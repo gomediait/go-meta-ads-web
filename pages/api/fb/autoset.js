@@ -1,11 +1,17 @@
 import { getUserFromReq } from '../../../lib/auth'
 import { getSupabase } from '../../../lib/supabase'
+import { getEffectiveContext, hasPermission } from '../../../lib/teamAccess'
 
 export default async function handler(req, res) {
   const user = getUserFromReq(req)
   if (!user) return res.status(401).json({ error: 'Chưa đăng nhập' })
 
   const sb = getSupabase()
+  const ctx = await getEffectiveContext(user.id, sb)
+
+  if (!hasPermission(ctx, 'manage_autoset')) {
+    return res.status(403).json({ error: 'Bạn không có quyền quản lý quy tắc cắt lỗ' })
+  }
 
   if (req.method === 'GET') {
     const { action: getAction } = req.query || {}
@@ -15,7 +21,7 @@ export default async function handler(req, res) {
       const { data, error } = await sb
         .from('autoset_rule_logs')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', ctx.ownerId)
         .order('created_at', { ascending: false })
         .limit(limit)
       if (error) return res.status(500).json({ error: error.message })
@@ -25,7 +31,7 @@ export default async function handler(req, res) {
     const { data, error } = await sb
       .from('user_autoset_rules')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', ctx.ownerId)
       .order('created_at', { ascending: false })
 
     if (error) return res.status(500).json({ error: error.message })
@@ -45,7 +51,7 @@ export default async function handler(req, res) {
       const { data, error } = await sb
         .from('user_autoset_rules')
         .insert({
-          user_id: user.id,
+          user_id: ctx.ownerId,
           name: name || 'Rule mới',
           enabled: true,
           conditions,
@@ -89,7 +95,7 @@ export default async function handler(req, res) {
         .from('user_autoset_rules')
         .update(update)
         .eq('id', id)
-        .eq('user_id', user.id)
+        .eq('user_id', ctx.ownerId)
 
       if (error) return res.status(500).json({ error: error.message })
       return res.json({ ok: true })
@@ -103,7 +109,7 @@ export default async function handler(req, res) {
         .from('user_autoset_rules')
         .delete()
         .eq('id', id)
-        .eq('user_id', user.id)
+        .eq('user_id', ctx.ownerId)
 
       if (error) return res.status(500).json({ error: error.message })
       return res.json({ ok: true })

@@ -1,6 +1,7 @@
 import { getUserFromReq } from '../../../lib/auth'
 import { getSupabase } from '../../../lib/supabase'
 import { getUserFbData, callMetaAll } from '../../../lib/metaApi'
+import { getEffectiveContext, hasPermission } from '../../../lib/teamAccess'
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' })
@@ -12,7 +13,13 @@ export default async function handler(req, res) {
   if (!campaign_id) return res.status(400).json({ error: 'Thiếu campaign_id' })
 
   const sb = getSupabase()
-  const fbData = await getUserFbData(user.id, sb)
+  const ctx = await getEffectiveContext(user.id, sb)
+
+  if (!hasPermission(ctx, 'view_dashboard')) {
+    return res.status(403).json({ error: 'Bạn không có quyền xem thông tin chiến dịch' })
+  }
+
+  const fbData = await getUserFbData(ctx.ownerId, sb)
   if (!fbData) return res.json({ ok: true, adsets: [] })
 
   const { token, accounts } = fbData

@@ -1,6 +1,7 @@
 import { getUserFromReq } from '../../../lib/auth'
 import { getSupabase } from '../../../lib/supabase'
 import { getUserFbData, callMeta } from '../../../lib/metaApi'
+import { getEffectiveContext, hasPermission } from '../../../lib/teamAccess'
 
 const META_BASE = 'https://graph.facebook.com/v23.0'
 
@@ -100,13 +101,18 @@ export default async function handler(req, res) {
   if (!user) return res.status(401).json({ error: 'Chưa đăng nhập' })
 
   const sb = getSupabase()
+  const ctx = await getEffectiveContext(user.id, sb)
+
+  if (!hasPermission(ctx, 'manage_autocare')) {
+    return res.status(403).json({ error: 'Bạn không có quyền quản lý Auto Care' })
+  }
 
   // GET: list all rules for user
   if (req.method === 'GET') {
     const { data, error } = await sb
       .from('user_autocare_rules')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', ctx.ownerId)
       .order('created_at', { ascending: false })
 
     if (error) return res.status(500).json({ error: error.message })
@@ -123,7 +129,7 @@ export default async function handler(req, res) {
       const { data, error } = await sb
         .from('user_autocare_rules')
         .insert({
-          user_id: user.id,
+          user_id: ctx.ownerId,
           name: name || 'Rule mới',
           enabled: true,
           pause_at: pause_at || '22:00',
@@ -155,7 +161,7 @@ export default async function handler(req, res) {
         .from('user_autocare_rules')
         .update(update)
         .eq('id', id)
-        .eq('user_id', user.id)
+        .eq('user_id', ctx.ownerId)
 
       if (error) return res.status(500).json({ error: error.message })
       return res.json({ ok: true })
@@ -170,7 +176,7 @@ export default async function handler(req, res) {
         .from('user_autocare_rules')
         .delete()
         .eq('id', id)
-        .eq('user_id', user.id)
+        .eq('user_id', ctx.ownerId)
 
       if (error) return res.status(500).json({ error: error.message })
       return res.json({ ok: true })
@@ -185,12 +191,12 @@ export default async function handler(req, res) {
         .from('user_autocare_rules')
         .select('*')
         .eq('id', id)
-        .eq('user_id', user.id)
+        .eq('user_id', ctx.ownerId)
         .single()
 
       if (!rule) return res.json({ ok: false, error: 'Không tìm thấy rule' })
 
-      const fbData = await getUserFbData(user.id, sb)
+      const fbData = await getUserFbData(ctx.ownerId, sb)
       if (!fbData) return res.status(400).json({ error: 'Chưa kết nối Facebook Ads' })
 
       const actionType = action === 'pause_now' ? 'pause' : 'resume'

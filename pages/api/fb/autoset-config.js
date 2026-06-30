@@ -1,6 +1,7 @@
 import { getUserFromReq } from '../../../lib/auth'
 import { getSupabase } from '../../../lib/supabase'
 import { getUserFbData } from '../../../lib/metaApi'
+import { getEffectiveContext, hasPermission } from '../../../lib/teamAccess'
 
 const PLAN_MAX_PAGES = {
   trial: 0,
@@ -14,12 +15,16 @@ export default async function handler(req, res) {
   if (!user) return res.status(401).json({ error: 'Chưa đăng nhập' })
 
   const sb = getSupabase()
+  const ctx = await getEffectiveContext(user.id, sb)
 
   if (req.method === 'GET') {
+    if (!hasPermission(ctx, 'manage_autoset')) {
+      return res.status(403).json({ error: 'Bạn không có quyền xem cấu hình' })
+    }
     try {
       const [pagesResult, configResult] = await Promise.all([
-        sb.from('user_autoset_pages').select('*').eq('user_id', user.id),
-        sb.from('user_autoset_config').select('*').eq('user_id', user.id).single(),
+        sb.from('user_autoset_pages').select('*').eq('user_id', ctx.ownerId),
+        sb.from('user_autoset_config').select('*').eq('user_id', ctx.ownerId).single(),
       ])
 
       const pages = pagesResult.data || []
@@ -39,6 +44,10 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
+    if (!hasPermission(ctx, 'manage_autoset')) {
+      return res.status(403).json({ error: 'Bạn không có quyền quản lý cấu hình' })
+    }
+
     const body = req.body || {}
     const { action } = body
 
@@ -46,7 +55,7 @@ export default async function handler(req, res) {
       try {
         const { error } = await sb.from('user_autoset_config').upsert(
           {
-            user_id: user.id,
+            user_id: ctx.ownerId,
             default_ad_account_id: body.default_ad_account_id,
             updated_at: new Date().toISOString(),
           },
@@ -61,7 +70,7 @@ export default async function handler(req, res) {
 
     if (action === 'get_my_pages') {
       try {
-        const fbData = await getUserFbData(user.id, sb)
+        const fbData = await getUserFbData(ctx.ownerId, sb)
         if (!fbData) return res.json({ ok: false, error: 'Chưa kết nối Facebook' })
 
         const url = `https://graph.facebook.com/v23.0/me/accounts?access_token=${fbData.token}&fields=id,name,category&limit=50`
@@ -83,14 +92,14 @@ export default async function handler(req, res) {
         const { data: existing } = await sb
           .from('user_autoset_pages')
           .select('id')
-          .eq('user_id', user.id)
+          .eq('user_id', ctx.ownerId)
 
         if ((existing || []).length >= max_pages) {
           return res.json({ ok: false, error: `Gói của bạn chỉ cho phép tối đa ${max_pages} page` })
         }
 
         // Page audit: kiểm tra quyền truy cập Page
-        const fbData = await getUserFbData(user.id, sb)
+        const fbData = await getUserFbData(ctx.ownerId, sb)
         if (fbData) {
           const auditRes = await fetch(
             `https://graph.facebook.com/v23.0/${body.page_id}?fields=access_token&access_token=${fbData.token}`
@@ -112,7 +121,7 @@ export default async function handler(req, res) {
         }
 
         const { error } = await sb.from('user_autoset_pages').insert({
-          user_id: user.id,
+          user_id: ctx.ownerId,
           page_id: body.page_id,
           page_name: body.page_name,
           hashtag: body.hashtag || null,
@@ -136,7 +145,7 @@ export default async function handler(req, res) {
         const { error } = await sb
           .from('user_autoset_pages')
           .delete()
-          .eq('user_id', user.id)
+          .eq('user_id', ctx.ownerId)
           .eq(deleteField, deleteId)
 
         if (error) return res.json({ ok: false, error: error.message })

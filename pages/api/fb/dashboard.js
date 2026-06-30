@@ -1,6 +1,7 @@
 import { getUserFromReq } from '../../../lib/auth'
 import { getSupabase } from '../../../lib/supabase'
 import { getUserFbData, callMeta, callMetaAll } from '../../../lib/metaApi'
+import { getEffectiveContext, hasPermission } from '../../../lib/teamAccess'
 
 // In-memory cache: key → { data, ts }
 const cache = new Map()
@@ -95,7 +96,12 @@ export default async function handler(req, res) {
   const { range = '7d', account_id, since: qSince, until: qUntil } = req.query
 
   const sb = getSupabase()
-  const fbData = await getUserFbData(user.id, sb)
+  const ctx = await getEffectiveContext(user.id, sb)
+  if (!hasPermission(ctx, 'view_dashboard')) {
+    return res.status(403).json({ error: 'Bạn không có quyền xem dữ liệu này' })
+  }
+
+  const fbData = await getUserFbData(ctx.ownerId, sb)
 
   if (!fbData) {
     return res.json({ ok: true, empty: true })
@@ -127,7 +133,7 @@ export default async function handler(req, res) {
   const compareRange = getCompareRange(dateRange.since, dateRange.until, dateRange.days)
 
   // Check cache
-  const cacheKey = getCacheKey(user.id, account_id, range, qSince, qUntil)
+  const cacheKey = getCacheKey(ctx.ownerId, account_id, range, qSince, qUntil)
   const cached = cache.get(cacheKey)
   if (cached && Date.now() - cached.ts < CACHE_TTL) {
     return res.json(cached.data)

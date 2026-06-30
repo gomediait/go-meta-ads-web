@@ -1,5 +1,6 @@
 import { getUserFromReq } from '../../lib/auth'
 import { getSupabase } from '../../lib/supabase'
+import { getEffectiveContext, hasPermission } from '../../lib/teamAccess'
 
 const DEFAULT_POLICY_DOC = `# META ADVERTISING POLICIES — CHECKLIST
 
@@ -58,9 +59,15 @@ export default async function handler(req, res) {
   if (!user) return res.status(401).json({ ok: false, error: 'Chưa đăng nhập' })
 
   const sb = getSupabase()
+  const ctx = await getEffectiveContext(user.id, sb)
+
+  if (!hasPermission(ctx, 'policy_check')) {
+    return res.status(403).json({ ok: false, error: 'Bạn không có quyền kiểm tra vi phạm' })
+  }
+
   const { data: dbUser } = await sb.from('users')
     .select('plan, expire_at')
-    .eq('id', user.id)
+    .eq('id', ctx.ownerId)
     .single()
 
   if (!dbUser) return res.status(401).json({ ok: false, error: 'Không tìm thấy tài khoản' })
@@ -72,7 +79,7 @@ export default async function handler(req, res) {
   if (dailyLimit === 0) {
     return res.status(403).json({ ok: false, error: 'Tính năng này yêu cầu gói Personal trở lên', upgrade: true })
   }
-  const usageToday = await getUsageToday(user.id)
+  const usageToday = await getUsageToday(ctx.ownerId)
   if (usageToday >= dailyLimit) {
     return res.status(429).json({
       ok: false,
@@ -149,7 +156,7 @@ Trả lời CHÍNH XÁC theo format JSON sau, KHÔNG thêm bất kỳ text nào 
     try { result = JSON.parse(cleanJson) }
     catch { return res.json({ ok: false, error: 'AI trả về định dạng không hợp lệ. Vui lòng thử lại.' }) }
 
-    await logUsage(user.id, dbUser.plan, industry, result.overall)
+    await logUsage(ctx.ownerId, dbUser.plan, industry, result.overall)
 
     return res.status(200).json({
       ok: true,

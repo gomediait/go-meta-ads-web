@@ -1,6 +1,7 @@
 import { getUserFromReq } from '../../../lib/auth'
 import { getSupabase } from '../../../lib/supabase'
 import { getUserFbData } from '../../../lib/metaApi'
+import { getEffectiveContext, hasPermission } from '../../../lib/teamAccess'
 
 const META_BASE = 'https://graph.facebook.com/v23.0'
 
@@ -21,7 +22,13 @@ export default async function handler(req, res) {
   }
 
   const sb = getSupabase()
-  const fbData = await getUserFbData(user.id, sb)
+  const ctx = await getEffectiveContext(user.id, sb)
+
+  if (!hasPermission(ctx, 'toggle_campaign')) {
+    return res.status(403).json({ error: 'Bạn không có quyền bật/tắt chiến dịch' })
+  }
+
+  const fbData = await getUserFbData(ctx.ownerId, sb)
 
   if (!fbData) {
     return res.status(400).json({ error: 'Chưa kết nối Facebook Ads' })
@@ -43,6 +50,9 @@ export default async function handler(req, res) {
 
     if (json.error) {
       console.error('[campaign-toggle] Meta error:', json.error)
+      if (json.error.code === 190) {
+        return res.status(401).json({ error: 'TOKEN_EXPIRED' })
+      }
       return res.status(400).json({ error: json.error.message || 'Lỗi từ Meta API' })
     }
 

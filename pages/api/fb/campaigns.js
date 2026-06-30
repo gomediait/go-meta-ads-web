@@ -1,6 +1,7 @@
 import { getUserFromReq } from '../../../lib/auth'
 import { getSupabase } from '../../../lib/supabase'
 import { getUserFbData, callMeta, callMetaAll } from '../../../lib/metaApi'
+import { getEffectiveContext, hasPermission } from '../../../lib/teamAccess'
 
 const PURCHASE_TYPES  = ['purchase', 'offsite_conversion.fb_pixel_purchase', 'omni_purchase']
 const CART_TYPES      = ['add_to_cart', 'omni_add_to_cart']
@@ -125,7 +126,12 @@ export default async function handler(req, res) {
   if (!user) return res.status(401).json({ error: 'Chưa đăng nhập' })
 
   const sb = getSupabase()
-  const fbData = await getUserFbData(user.id, sb)
+  const ctx = await getEffectiveContext(user.id, sb)
+  if (!hasPermission(ctx, 'view_dashboard')) {
+    return res.status(403).json({ error: 'Bạn không có quyền xem dữ liệu này' })
+  }
+
+  const fbData = await getUserFbData(ctx.ownerId, sb)
   if (!fbData) return res.json({ ok: true, adsets: [], accounts: [] })
 
   const { token, accounts } = fbData
