@@ -1,6 +1,7 @@
 import { getUserFromReq } from '../../../lib/auth'
 import { getSupabase } from '../../../lib/supabase'
 import { getUserFbData, callMeta } from '../../../lib/metaApi'
+import { getEffectiveContext, hasPermission } from '../../../lib/teamAccess'
 
 const META_BASE = 'https://graph.facebook.com/v23.0'
 
@@ -182,7 +183,13 @@ export default async function handler(req, res) {
   if (!user) return res.status(401).json({ error: 'Chưa đăng nhập' })
 
   const sb = getSupabase()
-  const fbData = await getUserFbData(user.id, sb)
+  const ctx = await getEffectiveContext(user.id, sb)
+
+  if (!hasPermission(ctx, 'manage_autoset')) {
+    return res.status(403).json({ error: 'Bạn không có quyền thực thi Rule' })
+  }
+
+  const fbData = await getUserFbData(ctx.ownerId, sb)
   if (!fbData) return res.status(400).json({ error: 'Chưa kết nối Facebook Ads' })
 
   const { token, accounts } = fbData
@@ -191,7 +198,7 @@ export default async function handler(req, res) {
   const { data: rules } = await sb
     .from('user_autoset_rules')
     .select('*')
-    .eq('user_id', user.id)
+    .eq('user_id', ctx.ownerId)
     .eq('enabled', true)
 
   if (!rules?.length) {
@@ -363,7 +370,7 @@ export default async function handler(req, res) {
       // Gửi thông báo nếu notify_only
       if (rule.action === 'notify_only' && affected.length > 0) {
         try {
-          await sendNotification(sb, user.id, rule.name, affected)
+          await sendNotification(sb, ctx.ownerId, rule.name, affected)
         } catch (e) {
           console.error('[autoset-run] Notification error:', e)
         }
@@ -371,7 +378,7 @@ export default async function handler(req, res) {
 
       // Lưu log
       const { error: insertErr } = await sb.from('autoset_rule_logs').insert({
-        user_id: user.id,
+        user_id: ctx.ownerId,
         rule_id: rule.id,
         rule_name: rule.name,
         action: rule.action,

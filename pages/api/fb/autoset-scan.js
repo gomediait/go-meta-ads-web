@@ -1,6 +1,7 @@
 import { getUserFromReq } from '../../../lib/auth'
 import { getSupabase } from '../../../lib/supabase'
 import { getUserFbData } from '../../../lib/metaApi'
+import { getEffectiveContext, hasPermission } from '../../../lib/teamAccess'
 
 const META_BASE = 'https://graph.facebook.com/v23.0'
 
@@ -54,18 +55,24 @@ export default async function handler(req, res) {
   if (!user) return res.status(401).json({ error: 'Chưa đăng nhập' })
 
   const sb = getSupabase()
+  const ctx = await getEffectiveContext(user.id, sb)
+
+  if (!hasPermission(ctx, 'manage_autoset')) {
+    return res.status(403).json({ error: 'Bạn không có quyền lên AutoSet' })
+  }
+
   const body = req.body || {}
   const { action } = body
 
   if (action === 'scan') {
     try {
-      const fbData = await getUserFbData(user.id, sb)
+      const fbData = await getUserFbData(ctx.ownerId, sb)
       if (!fbData) return res.json({ ok: false, error: 'Chưa kết nối Facebook' })
 
       const { data: configuredPages } = await sb
         .from('user_autoset_pages')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', ctx.ownerId)
 
       if (!configuredPages || configuredPages.length === 0) {
         return res.json({ ok: true, posts: [], message: 'Chưa cấu hình page nào' })
@@ -74,7 +81,7 @@ export default async function handler(req, res) {
       const { data: createdAds } = await sb
         .from('autoset_created_ads')
         .select('post_id')
-        .eq('user_id', user.id)
+        .eq('user_id', ctx.ownerId)
 
       const createdPostIds = new Set((createdAds || []).map(a => a.post_id))
 
@@ -167,7 +174,7 @@ export default async function handler(req, res) {
     const { history_id } = body
     if (!history_id) return res.status(400).json({ ok: false, error: 'Thiếu history_id' })
     try {
-      const { error } = await sb.from('autoset_created_ads').delete().eq('id', history_id).eq('user_id', user.id)
+      const { error } = await sb.from('autoset_created_ads').delete().eq('id', history_id).eq('user_id', ctx.ownerId)
       if (error) throw error
       return res.json({ ok: true })
     } catch (err) {
@@ -179,7 +186,7 @@ export default async function handler(req, res) {
     const { post_id, page_id, page_name, ad_account_id, daily_budget, objective, post_message } = body
 
     try {
-      const fbData = await getUserFbData(user.id, sb)
+      const fbData = await getUserFbData(ctx.ownerId, sb)
       if (!fbData) return res.json({ ok: false, error: 'Chưa kết nối Facebook' })
 
       // Validate token expiry
@@ -303,7 +310,7 @@ export default async function handler(req, res) {
 
       // Insert history record
       const { error: histError } = await sb.from('autoset_created_ads').insert({
-        user_id: user.id,
+        user_id: ctx.ownerId,
         page_id,
         post_id,
         post_message: (post_message || '').slice(0, 500),
@@ -343,7 +350,7 @@ export default async function handler(req, res) {
     } = body
 
     try {
-      const fbData = await getUserFbData(user.id, sb)
+      const fbData = await getUserFbData(ctx.ownerId, sb)
       if (!fbData) return res.json({ ok: false, error: 'Chưa kết nối Facebook' })
       if (fbData.conn?.token_expires_at && new Date(fbData.conn.token_expires_at) < new Date()) {
         return res.json({ ok: false, error: 'Token Facebook đã hết hạn. Vui lòng kết nối lại.' })
@@ -459,7 +466,7 @@ export default async function handler(req, res) {
 
       // Save history
       const { error: histError } = await sb.from('autoset_created_ads').insert({
-        user_id: user.id, page_id, post_id,
+        user_id: ctx.ownerId, page_id, post_id,
         post_message: (post_message || '').slice(0, 500),
         campaign_id, adset_id, ad_id, ad_account_id, status: 'paused',
       })
@@ -480,7 +487,7 @@ export default async function handler(req, res) {
     const { campaign_id, adset_id, ad_id } = body
 
     try {
-      const fbData = await getUserFbData(user.id, sb)
+      const fbData = await getUserFbData(ctx.ownerId, sb)
       if (!fbData) return res.json({ ok: false, error: 'Chưa kết nối Facebook' })
 
       if (fbData.conn?.token_expires_at && new Date(fbData.conn.token_expires_at) < new Date()) {
@@ -509,7 +516,7 @@ export default async function handler(req, res) {
       await sb.from('autoset_created_ads')
         .update({ status: 'active' })
         .eq('campaign_id', campaign_id)
-        .eq('user_id', user.id)
+        .eq('user_id', ctx.ownerId)
 
       return res.json({ ok: true })
     } catch (err) {
@@ -523,7 +530,7 @@ export default async function handler(req, res) {
       const { data: history, error } = await sb
         .from('autoset_created_ads')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', ctx.ownerId)
         .order('created_at', { ascending: false })
         .limit(30)
 
@@ -542,7 +549,7 @@ export default async function handler(req, res) {
         .from('autoset_created_ads')
         .delete()
         .eq('id', id)
-        .eq('user_id', user.id)
+        .eq('user_id', ctx.ownerId)
       if (error) return res.json({ ok: false, error: error.message })
       return res.json({ ok: true })
     } catch (err) {
@@ -555,7 +562,7 @@ export default async function handler(req, res) {
       const { error } = await sb
         .from('autoset_created_ads')
         .delete()
-        .eq('user_id', user.id)
+        .eq('user_id', ctx.ownerId)
       if (error) return res.json({ ok: false, error: error.message })
       return res.json({ ok: true })
     } catch (err) {
