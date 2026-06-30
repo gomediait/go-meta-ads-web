@@ -128,7 +128,15 @@ export default async function handler(req, res) {
 
     const token = signToken({ id: user.id, email: user.email, plan: user.plan, sid })
     setSessionCookie(res, token)
-    return res.json({ ok: true, user })
+
+    // Check effective context
+    const { getEffectiveContext } = require('../../lib/teamAccess')
+    const ctx = await getEffectiveContext(user.id, db)
+    const { data: fbConn } = await db.from('fb_connections')
+      .select('fb_name,fb_email,token_expires_at,connected_at')
+      .eq('user_id', ctx.ownerId).single()
+
+    return res.json({ ok: true, user: { ...user, fb_connected: !!fbConn, fb_info: fbConn || null, role: ctx.role } })
   }
 
   // ─── LOGIN ──────────────────────────────────────────────────
@@ -154,7 +162,15 @@ export default async function handler(req, res) {
     const { password_hash, ...safeUser } = user
     const token = signToken({ id: user.id, email: user.email, plan: user.plan, sid })
     setSessionCookie(res, token)
-    return res.json({ ok: true, user: safeUser })
+
+    // Check effective context
+    const { getEffectiveContext } = require('../../lib/teamAccess')
+    const ctx = await getEffectiveContext(user.id, db)
+    const { data: fbConn } = await db.from('fb_connections')
+      .select('fb_name,fb_email,token_expires_at,connected_at')
+      .eq('user_id', ctx.ownerId).single()
+
+    return res.json({ ok: true, user: { ...safeUser, fb_connected: !!fbConn, fb_info: fbConn || null, role: ctx.role } })
   }
 
   // ─── ME (lấy thông tin user hiện tại) ───────────────────────
