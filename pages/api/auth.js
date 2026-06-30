@@ -176,13 +176,16 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.' })
     }
 
-    // Kiểm tra FB connection
+    // Kiểm tra FB connection (sử dụng getEffectiveContext để tự lấy token của Sếp nếu là nhân viên)
+    const { getEffectiveContext } = require('../../lib/teamAccess')
+    const ctx = await getEffectiveContext(user.id, db)
+
     const { data: fbConn } = await db.from('fb_connections')
       .select('fb_name,fb_email,token_expires_at,connected_at')
-      .eq('user_id', user.id).single()
+      .eq('user_id', ctx.ownerId).single()
 
     const { session_id, ...safeUser } = user
-    return res.json({ ok: true, user: { ...safeUser, fb_connected: !!fbConn, fb_info: fbConn || null } })
+    return res.json({ ok: true, user: { ...safeUser, fb_connected: !!fbConn, fb_info: fbConn || null, role: ctx.role } })
   }
 
   // ─── LOGOUT ─────────────────────────────────────────────────
