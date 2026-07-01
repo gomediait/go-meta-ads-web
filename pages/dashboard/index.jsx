@@ -830,8 +830,8 @@ export default function DashboardHome() {
                   <option value="PAUSED">Đã dừng</option>
                 </select>
 
-                <button className="filter-refresh" onClick={() => refreshData()} disabled={loading}>
-                  {loading ? '…' : '↻ Làm mới'}
+                <button className="filter-refresh" onClick={() => refreshData()} disabled={isValidating}>
+                  {isValidating ? '…' : '↻ Làm mới'}
                 </button>
                 <button className="filter-adv-toggle" onClick={() => setShowAdvFilter(v => !v)}>
                   {showAdvFilter ? '▲ Ẩn bộ lọc' : '▼ Bộ lọc nâng cao'}
