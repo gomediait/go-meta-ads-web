@@ -819,7 +819,7 @@ export default function DashboardHome() {
                       onChange={e => setFilter('until', e.target.value)}
                     />
                     {filters.since && filters.until && (
-                      <button className="custom-range-go" onClick={refreshData}>Áp dụng</button>
+                      <button className="custom-range-go" onClick={() => refreshData()}>Áp dụng</button>
                     )}
                   </div>
                 )}
@@ -830,7 +830,7 @@ export default function DashboardHome() {
                   <option value="PAUSED">Đã dừng</option>
                 </select>
 
-                <button className="filter-refresh" onClick={refreshData} disabled={loading}>
+                <button className="filter-refresh" onClick={() => refreshData()} disabled={loading}>
                   {loading ? '…' : '↻ Làm mới'}
                 </button>
                 <button className="filter-adv-toggle" onClick={() => setShowAdvFilter(v => !v)}>
