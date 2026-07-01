@@ -188,7 +188,7 @@ export default async function handler(req, res) {
         }
       }
 
-      if (totalSpend === 0) continue // Skip if no spend today
+      if (totalSpend === 0 && !isTest) continue // Skip if no spend today (but allow for test)
 
       const vnTime = vnNow.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })
       const overallCpa = totalConversions > 0 ? (totalSpend / totalConversions) : 0
