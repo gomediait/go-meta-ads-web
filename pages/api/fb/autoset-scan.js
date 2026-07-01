@@ -21,15 +21,15 @@ async function metaGet(path, token, params = {}) {
 }
 
 const OBJECTIVE_SETTINGS = {
-  OUTCOME_AWARENESS:  { optimization_goal: 'REACH',           billing_event: 'IMPRESSIONS' },
-  OUTCOME_TRAFFIC:    { optimization_goal: 'LINK_CLICKS',     billing_event: 'IMPRESSIONS', destination_type: 'WEBSITE' },
+  OUTCOME_AWARENESS: { optimization_goal: 'REACH', billing_event: 'IMPRESSIONS' },
+  OUTCOME_TRAFFIC: { optimization_goal: 'LINK_CLICKS', billing_event: 'IMPRESSIONS', destination_type: 'WEBSITE' },
   OUTCOME_ENGAGEMENT: { optimization_goal: 'POST_ENGAGEMENT', billing_event: 'IMPRESSIONS', destination_type: 'ON_POST' },
 }
 
 const META_ERROR_VI = {
-  190:     'Token đã hết hạn. Vui lòng kết nối lại Facebook.',
-  200:     'Không có quyền thực hiện thao tác này.',
-  100:     'Tham số không hợp lệ.',
+  190: 'Token đã hết hạn. Vui lòng kết nối lại Facebook.',
+  200: 'Không có quyền thực hiện thao tác này.',
+  100: 'Tham số không hợp lệ.',
   1487052: 'Ngân sách thấp hơn mức tối thiểu cho tài khoản này.',
   1487079: 'Mục tiêu tối ưu không khớp với loại chiến dịch.',
   1487163: 'Thiếu Facebook Page.',
@@ -163,7 +163,7 @@ export default async function handler(req, res) {
       }
 
       const errors = allNewPosts.filter(p => p.__error)
-      const posts  = allNewPosts.filter(p => !p.__error)
+      const posts = allNewPosts.filter(p => !p.__error)
       return res.json({ ok: true, posts, errors, diagnostics })
     } catch (err) {
       return res.status(500).json({ ok: false, error: err.message })
@@ -306,7 +306,7 @@ export default async function handler(req, res) {
         adsetReal = await metaGet(adset_id, token, {
           fields: 'targeting,billing_event,optimization_goal,daily_budget,status'
         })
-      } catch {}
+      } catch { }
 
       // Insert history record
       const { error: histError } = await sb.from('autoset_created_ads').insert({
@@ -451,7 +451,7 @@ export default async function handler(req, res) {
           try {
             const delBody = new URLSearchParams({ access_token: token }).toString()
             await fetch(`${META_BASE}/${campaign_id}`, { method: 'DELETE', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: delBody })
-          } catch {}
+          } catch { }
         }
         return res.json({ ok: false, error: stepErr.message })
       }
@@ -462,7 +462,7 @@ export default async function handler(req, res) {
         adsetReal = await metaGet(adset_id, token, {
           fields: 'targeting,billing_event,optimization_goal,daily_budget,status'
         })
-      } catch {}
+      } catch { }
 
       // Save history
       const { error: histError } = await sb.from('autoset_created_ads').insert({
