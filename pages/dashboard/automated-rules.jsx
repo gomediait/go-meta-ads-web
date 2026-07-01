@@ -479,9 +479,13 @@ export default function AutomatedRules() {
                   </span>
                   <span style={{ fontSize: 11, color: 'var(--mut)' }}>Để trống = tất cả</span>
                 </div>
-                {campaigns.length === 0 && (
+                {loadingCamps ? (
                   <div style={{ padding: 12, fontSize: 12, color: 'var(--mut)', textAlign: 'center' }}>
                     Đang tải chiến dịch...
+                  </div>
+                ) : campaigns.length === 0 && (
+                  <div style={{ padding: 12, fontSize: 12, color: 'var(--mut)', textAlign: 'center' }}>
+                    Không có chiến dịch nào.
                   </div>
                 )}
                 {campaigns.length > 0 && filteredTreeCampaigns.length === 0 && (

@@ -35,7 +35,7 @@ async function sendRuleNotification(sb, userId, ruleName, affectedItems) {
         await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ chat_id: notif.tg_chat_id, text: msg, parse_mode: 'HTML' }),
-        }).catch(() => {})
+        }).catch(() => { })
       }
     }
 
@@ -43,9 +43,9 @@ async function sendRuleNotification(sb, userId, ruleName, affectedItems) {
       await fetch(notif.lark_url, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ msg_type: 'text', content: { text: msg.replace(/<[^>]+>/g, '') } }),
-      }).catch(() => {})
+      }).catch(() => { })
     }
-  } catch {}
+  } catch { }
 }
 
 function extractPurchases(actions) {
@@ -85,11 +85,11 @@ function computeMetrics(ins) {
 function evalCondition(val, op, threshold) {
   const t = Number(threshold)
   switch (op) {
-    case 'gt':  return val > t
-    case 'lt':  return val < t
+    case 'gt': return val > t
+    case 'lt': return val < t
     case 'gte': return val >= t
     case 'lte': return val <= t
-    default:    return false
+    default: return false
   }
 }
 
@@ -233,7 +233,7 @@ async function runAutosetRules(sb) {
             user_id: userId, rule_id: rule.id, rule_name: rule.name,
             action: rule.action, affected_count: affected.length, details: affected,
           })
-        } catch {}
+        } catch { }
       }
 
       await sb.from('user_autoset_rules').update({
@@ -273,11 +273,11 @@ export default async function handler(req, res) {
 
   const sb = getSupabase()
 
-  try { 
-    await runAutosetRules(sb) 
+  try {
+    await runAutosetRules(sb)
     return res.json({ ok: true })
-  } catch (e) { 
-    console.error('[cron/rules] autoset error:', e) 
+  } catch (e) {
+    console.error('[cron/rules] autoset error:', e)
     return res.status(500).json({ error: e.message })
   }
 }
