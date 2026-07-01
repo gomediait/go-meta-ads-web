@@ -62,6 +62,8 @@ export default function AutoSet() {
   const [searchingTargets, setSearchingTargets] = useState(false)
 
   const [selectedPageId, setSelectedPageId] = useState('')
+  const [fbPages, setFbPages] = useState([])
+  const [loadingPages, setLoadingPages] = useState(false)
   const [posts, setPosts] = useState([])
   const [loadingPosts, setLoadingPosts] = useState(false)
   const [selectedPost, setSelectedPost] = useState(null)
@@ -98,6 +100,22 @@ export default function AutoSet() {
     },
   })
 
+  useEffect(() => {
+    if (step === 3 && fbConnected && fbPages.length === 0 && !loadingPages) {
+      setLoadingPages(true)
+      fetch('/api/fb/autoset-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'get_my_pages' })
+      })
+        .then(r => r.json())
+        .then(d => {
+          if (d.ok) setFbPages(d.pages || [])
+        })
+        .finally(() => setLoadingPages(false))
+    }
+  }, [step, fbConnected, fbPages.length, loadingPages])
+
   const accountsKey = fbConnected ? '/api/fb/campaigns?date_preset=today&status=ALL' : null
   const { isValidating: accountsValidating } = useSWR(accountsKey, fetcher, {
     revalidateOnFocus: false,
@@ -107,7 +125,7 @@ export default function AutoSet() {
     },
   })
 
-  const loading = (configValidating || accountsValidating) && config.pages.length === 0
+  const loading = (configValidating || accountsValidating) && fbPages.length === 0
 
   async function handleAnalyze() {
     if (!insightText.trim()) return showToast('Vui lòng nhập insight khách hàng', 'error')
@@ -220,8 +238,8 @@ export default function AutoSet() {
 
   function handlePageChange(pageId) {
     setSelectedPageId(pageId)
-    const page = config.pages?.find(p => p.page_id === pageId)
-    if (page) setCampaignName(`Auto - ${page.page_name} - ${insightText.slice(0, 20)}`)
+    const page = fbPages.find(p => p.id === pageId)
+    if (page) setCampaignName(`Auto - ${page.name} - ${insightText.slice(0, 20)}`)
     loadPagePosts(pageId)
   }
 
@@ -512,10 +530,9 @@ export default function AutoSet() {
                   <div className="fr">
                     <label className="lb">Facebook Page</label>
                     <select className="inp" value={selectedPageId} onChange={e => handlePageChange(e.target.value)}>
-                      <option value="">Chọn Page...</option>
-                      {config.pages?.map(p => <option key={p.page_id} value={p.page_id}>{p.page_name}</option>)}
+                      <option value="">{loadingPages ? 'Đang tải Page...' : 'Chọn Page...'}</option>
+                      {fbPages.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                     </select>
-                    {!config.pages?.length && <div className="hint">Chưa cấu hình Page. Thêm ở mục cũ hoặc Settings.</div>}
                   </div>
                 </div>
 
