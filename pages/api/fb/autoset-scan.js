@@ -69,10 +69,10 @@ export default async function handler(req, res) {
       const fbData = await getUserFbData(ctx.ownerId, sb)
       if (!fbData) return res.json({ ok: false, error: 'Chưa kết nối Facebook' })
 
-      const { data: configuredPages } = await sb
-        .from('user_autoset_pages')
-        .select('*')
-        .eq('user_id', ctx.ownerId)
+      let query = sb.from('user_autoset_pages').select('*').eq('user_id', ctx.ownerId)
+      if (body.page_id) query = query.eq('page_id', body.page_id)
+      
+      const { data: configuredPages } = await query
 
       if (!configuredPages || configuredPages.length === 0) {
         return res.json({ ok: true, posts: [], message: 'Chưa cấu hình page nào' })

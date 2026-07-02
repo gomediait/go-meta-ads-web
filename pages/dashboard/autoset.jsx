@@ -216,7 +216,7 @@ export default function AutoSet() {
     setLoadingPosts(true)
     setSelectedPost(null)
     try {
-      const r = await fetch('/api/fb/autoset-scan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'scan' }) })
+      const r = await fetch('/api/fb/autoset-scan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'scan', page_id: pageId }) })
       const d = await r.json()
       if (d.ok) setPosts((d.posts || []).filter(p => p.page_id === pageId || !pageId))
     } catch {}
