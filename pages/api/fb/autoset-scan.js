@@ -69,13 +69,9 @@ export default async function handler(req, res) {
       const fbData = await getUserFbData(ctx.ownerId, sb)
       if (!fbData) return res.json({ ok: false, error: 'Chưa kết nối Facebook' })
 
-      let query = sb.from('user_autoset_pages').select('*').eq('user_id', ctx.ownerId)
-      if (body.page_id) query = query.eq('page_id', body.page_id)
-      
-      const { data: configuredPages } = await query
-
-      if (!configuredPages || configuredPages.length === 0) {
-        return res.json({ ok: true, posts: [], message: 'Chưa cấu hình page nào' })
+      const page_id = body.page_id
+      if (!page_id) {
+        return res.json({ ok: true, posts: [], message: 'Chưa chọn Page' })
       }
 
       const { data: createdAds } = await sb
@@ -84,82 +80,62 @@ export default async function handler(req, res) {
         .eq('user_id', ctx.ownerId)
 
       const createdPostIds = new Set((createdAds || []).map(a => a.post_id))
-
       const allNewPosts = []
-
       const diagnostics = []
 
-      for (const page of configuredPages) {
-        try {
-          // 1. Lấy page access token (dùng metaGet để URL-encode đúng)
-          const pageTokenData = await metaGet(page.page_id, fbData.token, { fields: 'access_token,name' })
+      try {
+        const pageTokenData = await metaGet(page_id, fbData.token, { fields: 'access_token,name' })
 
-          if (pageTokenData.error) {
-            console.error('[autoset-scan] Cannot access page', page.page_id, pageTokenData.error)
-            allNewPosts.push({ __error: true, page_id: page.page_id, page_name: page.page_name, error_msg: `Không truy cập được Page: ${pageTokenData.error.message || JSON.stringify(pageTokenData.error)}` })
-            continue
-          }
-
+        if (pageTokenData.error) {
+          console.error('[autoset-scan] Cannot access page', page_id, pageTokenData.error)
+          allNewPosts.push({ __error: true, page_id: page_id, page_name: 'Unknown', error_msg: `Không truy cập được Page: ${pageTokenData.error.message || JSON.stringify(pageTokenData.error)}` })
+        } else {
           const pageToken = pageTokenData.access_token
+          const pageName = pageTokenData.name || 'Unknown Page'
+          
           if (!pageToken) {
-            console.warn('[autoset-scan] No page token for', page.page_id, '— thiếu quyền pages_show_list hoặc pages_read_engagement')
+            console.warn('[autoset-scan] No page token for', page_id, '— thiếu quyền pages_show_list hoặc pages_read_engagement')
           }
           const tokenToUse = pageToken || fbData.token
 
-          // 2. Lấy bài viết (dùng metaGet thay vì raw fetch)
-          const d = await metaGet(`${page.page_id}/posts`, tokenToUse, {
+          const d = await metaGet(`${page_id}/posts`, tokenToUse, {
             fields: 'id,message,story,full_picture,created_time,permalink_url',
             limit: '30',
           })
 
           if (d.error) {
-            console.error('[autoset-scan] Posts API error for page', page.page_id, d.error)
-            allNewPosts.push({ __error: true, page_id: page.page_id, page_name: page.page_name, error_msg: d.error.message || JSON.stringify(d.error) })
-            continue
-          }
+            console.error('[autoset-scan] Posts API error for page', page_id, d.error)
+            allNewPosts.push({ __error: true, page_id: page_id, page_name: pageName, error_msg: d.error.message || JSON.stringify(d.error) })
+          } else {
+            const fetchedPosts = d.data || []
+            let skippedCreated = 0
 
-          const fetchedPosts = d.data || []
-          let skippedCreated = 0
-          let skippedHashtag = 0
+            for (const post of fetchedPosts) {
+              const is_used = createdPostIds.has(post.id)
+              if (is_used) { skippedCreated++ }
 
-          if (fetchedPosts.length === 0) {
-            console.warn(`[autoset-scan] Page ${page.page_id} (${page.page_name}): 0 posts returned — kiểm tra quyền pages_read_engagement, hoặc dùng ${pageToken ? 'page token' : 'user token (fallback)'}`)
-          }
-
-          for (const post of fetchedPosts) {
-            const is_used = createdPostIds.has(post.id)
-            if (is_used) { skippedCreated++ }
-
-            if (page.hashtag) {
-              const text = (post.message || '') + ' ' + (post.story || '')
-              if (!text.includes(page.hashtag)) { skippedHashtag++; continue }
+              allNewPosts.push({
+                ...post,
+                is_used,
+                page_id: page_id,
+                page_name: pageName,
+              })
             }
 
-            allNewPosts.push({
-              ...post,
-              is_used,
-              page_id: page.page_id,
-              page_name: page.page_name,
-              daily_budget: page.daily_budget,
-              objective: page.objective,
-              ad_account_id: page.ad_account_id,
+            diagnostics.push({
+              page_id: page_id,
+              page_name: pageName,
+              fetched: fetchedPosts.length,
+              skipped_created: skippedCreated,
+              used_page_token: !!pageToken,
             })
+            
+            console.log(`[autoset-scan] Page ${pageName}: ${fetchedPosts.length} fetched, ${skippedCreated} đã có ads, token: ${pageToken ? 'page' : 'user (fallback)'}`)
           }
-
-          diagnostics.push({
-            page_id: page.page_id,
-            page_name: page.page_name,
-            fetched: fetchedPosts.length,
-            skipped_created: skippedCreated,
-            skipped_hashtag: skippedHashtag,
-            used_page_token: !!pageToken,
-          })
-
-          console.log(`[autoset-scan] Page ${page.page_name}: ${fetchedPosts.length} fetched, ${skippedCreated} đã có ads, ${skippedHashtag} không khớp hashtag, token: ${pageToken ? 'page' : 'user (fallback)'}`)
-        } catch (pageErr) {
-          console.error('[autoset-scan] page error:', page.page_id, pageErr)
-          allNewPosts.push({ __error: true, page_id: page.page_id, page_name: page.page_name, error_msg: pageErr.message || 'Lỗi không xác định' })
         }
+      } catch (pageErr) {
+        console.error('[autoset-scan] page error:', page_id, pageErr)
+        allNewPosts.push({ __error: true, page_id: page_id, page_name: 'Unknown', error_msg: pageErr.message || 'Lỗi không xác định' })
       }
 
       const errors = allNewPosts.filter(p => p.__error)
