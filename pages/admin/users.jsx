@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
 import AdminLayout from '../../components/AdminLayout'
-import { Badge, Spinner, ErrorBox, CopyButton, EmptyState } from '../../components/AdminUI'
+import { Badge, Spinner, ErrorBox, CopyButton, EmptyState, AdminPageHeader, AdminTable, AdminCard, AdminButton, AdminInput, AdminSelect } from '../../components/AdminUI'
 import { adminLocalFetch, apiPost, PLAN_OPTIONS, BILLING_OPTIONS } from '../../lib/adminUtils'
+import { Users, Search, RefreshCw, Key, ShieldCheck, Edit, Trash2, Unlink } from 'lucide-react'
 
 const PLAN_LABELS = { trial: 'Dùng thử', personal: 'Personal', business: 'Business', agency: 'Agency', 'ca-nhan': 'Cá nhân', 'doanh-nghiep': 'Doanh nghiệp' }
 const PLAN_COLORS = { trial: '#64748b', personal: '#3b82f6', business: '#8b5cf6', agency: '#ec4899', 'ca-nhan': '#3b82f6', 'doanh-nghiep': '#8b5cf6' }
@@ -687,74 +688,65 @@ function WebUsersTab() {
       {toast && (
         <div style={{
           position: 'fixed', top: 20, right: 20, zIndex: 9999,
-          background: toast.type === 'error' ? '#ef4444' : '#10b981',
+          background: toast.type === 'error' ? 'var(--red)' : 'var(--grn)',
           color: '#fff', borderRadius: 10, padding: '12px 20px',
           fontSize: 13, fontWeight: 600, boxShadow: '0 4px 20px rgba(0,0,0,.25)',
         }}>{toast.msg}</div>
       )}
 
-      <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--txt)', marginBottom: 24 }}>
-        🌐 Quản lý Web Users (SaaS)
-      </h2>
+      <AdminPageHeader title="Quản lý Web Users (SaaS)" icon={Users} />
 
       {/* Stats */}
       {stats && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 14, marginBottom: 24 }}>
           {[
-            { label: 'Tổng users', value: stats.total, color: '#0c2a72', icon: '👤' },
-            { label: 'Dùng thử', value: stats.plan_counts?.trial || 0, color: '#475569', icon: '🔓' },
-            { label: 'Personal', value: stats.plan_counts?.personal || 0, color: '#1e40af', icon: '👤' },
-            { label: 'Business', value: stats.plan_counts?.business || 0, color: '#065f46', icon: '💼' },
-            { label: 'Đăng ký hôm nay', value: stats.today_new || 0, color: '#7c3aed', icon: '✨' },
-          ].map(s => (
-            <div key={s.label} style={{ ...card, padding: '16px 18px', marginBottom: 0 }}>
-              <div style={{ fontSize: 22, marginBottom: 6 }}>{s.icon}</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: s.color }}>{s.value}</div>
-              <div style={{ fontSize: 12, color: 'var(--mut)', marginTop: 2 }}>{s.label}</div>
-            </div>
-          ))}
+            { label: 'Tổng users', value: stats.total, color: 'var(--blue)', icon: Users },
+            { label: 'Dùng thử', value: stats.plan_counts?.trial || 0, color: 'var(--mut)', icon: ShieldCheck },
+            { label: 'Personal', value: stats.plan_counts?.personal || 0, color: 'var(--blue)', icon: Users },
+            { label: 'Business', value: stats.plan_counts?.business || 0, color: 'var(--grn)', icon: Users },
+            { label: 'Đăng ký hôm nay', value: stats.today_new || 0, color: 'var(--primary)', icon: Users },
+          ].map((s, i) => {
+            const IconComp = s.icon
+            return (
+              <AdminCard key={i} style={{ padding: '16px 18px', marginBottom: 0 }}>
+                <div style={{ marginBottom: 6, color: s.color }}><IconComp size={24} /></div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: s.color }}>{s.value}</div>
+                <div style={{ fontSize: 12, color: 'var(--mut)', marginTop: 2 }}>{s.label}</div>
+              </AdminCard>
+            )
+          })}
         </div>
       )}
 
       {/* Filter */}
-      <div style={{ ...card, padding: '14px 20px', marginBottom: 16, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-        <input
-          style={{ ...inp, flex: 1, minWidth: 200 }}
+      <AdminCard style={{ padding: '14px 20px', marginBottom: 16, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+        <AdminInput
+          style={{ width: 250 }}
           placeholder="Tìm theo email..."
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
-        <select style={inp} value={filterPlan} onChange={e => setFilterPlan(e.target.value)}>
+        <AdminSelect style={{ width: 200 }} value={filterPlan} onChange={e => setFilterPlan(e.target.value)}>
           <option value="all">Tất cả gói</option>
           <option value="trial">Dùng thử</option>
           <option value="personal">Personal</option>
           <option value="business">Business</option>
           <option value="agency">Agency</option>
-        </select>
-        <button onClick={load} style={{ ...inp, background: 'var(--blue)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600, padding: '8px 18px' }}>
-          🔄 Làm mới
-        </button>
+        </AdminSelect>
+        <AdminButton onClick={load} icon={RefreshCw}>
+          Làm mới
+        </AdminButton>
         <span style={{ fontSize: 13, color: 'var(--mut)' }}>{users.length} users</span>
-      </div>
+      </AdminCard>
 
       {/* Table */}
-      <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
-        {loading ? <Spinner /> : users.length === 0 ? <EmptyState icon="👤" text="Không có user nào" /> : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
-              <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--bd)' }}>
-                  {['Email', 'Tên', 'Gói', 'Hết hạn', 'Facebook', 'Tài khoản Ads', 'Đăng ký', 'Thao tác'].map(h => (
-                    <th key={h} style={{ padding: '10px 14px', fontSize: 11, fontWeight: 700, color: 'var(--mut)', textAlign: 'left', textTransform: 'uppercase', letterSpacing: '0.4px', whiteSpace: 'nowrap' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((u, i) => {
-                  const pc = PLAN_COLORS[u.plan] || PLAN_COLORS.trial
-                  const rowBg = i % 2 === 0 ? '#fff' : '#fafbfc'
-                  return (
-                    <tr key={u.id} style={{ borderBottom: '1px solid #f1f5f9', background: rowBg }}>
+      <AdminCard noPadding>
+        {loading ? <Spinner /> : users.length === 0 ? <EmptyState icon={<Users size={48} color="var(--bd)" />} text="Không có user nào" /> : (
+          <AdminTable columns={['Email', 'Tên', 'Gói', 'Hết hạn', 'Facebook', 'Tài khoản Ads', 'Đăng ký', 'Thao tác']}>
+            {users.map((u, i) => {
+              const pc = PLAN_COLORS[u.plan] || PLAN_COLORS.trial
+              return (
+                <tr key={u.id}>
                       <td style={{ padding: '10px 14px', fontSize: 13 }}>
                         <div style={{ fontWeight: 600, color: 'var(--txt)' }}>{u.email}</div>
                       </td>
@@ -782,7 +774,9 @@ function WebUsersTab() {
                       </td>
                       <td style={{ padding: '10px 14px' }}>
                         <div style={{ display: 'flex', gap: 6 }}>
-                          <button
+                          <AdminButton
+                            variant="outline"
+                            icon={Edit}
                             onClick={() => {
                               setEditing(u)
                               setPrevPlan(u.plan)
@@ -794,13 +788,11 @@ function WebUsersTab() {
                                 status: u.status || 'active',
                               })
                             }}
-                            style={{ background: 'rgba(0,199,222,0.1)', color: 'var(--blue)', border: '1px solid rgba(0,199,222,0.3)', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
-                          >✏️ Sửa</button>
+                          >Sửa</AdminButton>
                           {u.fb_connected && (
-                            <button
-                              onClick={() => handleResetFb(u)}
-                              style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
-                            >🔗 Reset FB</button>
+                            <AdminButton variant="secondary" icon={Unlink} onClick={() => handleResetFb(u)}>
+                              Reset FB
+                            </AdminButton>
                           )}
                           <button
                             onClick={() => handleDelete(u)}
@@ -811,11 +803,9 @@ function WebUsersTab() {
                     </tr>
                   )
                 })}
-              </tbody>
-            </table>
-          </div>
+          </AdminTable>
         )}
-      </div>
+      </AdminCard>
 
       {/* Edit Modal */}
       {editing && (

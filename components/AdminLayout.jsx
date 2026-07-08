@@ -264,7 +264,7 @@ export default function AdminLayout({ children, title = 'Admin Dashboard' }) {
         .app-content { flex: 1; overflow: auto; min-width: 0; padding: 24px; }
 
         /* GLOBAL FORMS & CARDS */
-        .card {
+        .card, .admin-card {
           background: var(--s1); border-radius: 12px;
           box-shadow: 0 1px 3px rgba(0,0,0,0.05);
           border: 1px solid var(--bd); padding: 20px;
@@ -282,11 +282,41 @@ export default function AdminLayout({ children, title = 'Admin Dashboard' }) {
         .btn {
           display: inline-flex; align-items: center; justify-content: center; gap: 6px;
           padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 600;
-          cursor: pointer; border: none; transition: opacity .2s, transform .1s;
+          cursor: pointer; border: 1px solid transparent; transition: all .2s;
+          font-family: inherit; box-shadow: none !important;
         }
-        .btn:active { transform: scale(0.98); }
+        .btn:active { transform: scale(0.98) !important; }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn:hover { transform: none !important; box-shadow: none !important; }
         .btn-primary { background: var(--blue); color: #fff; }
-        .btn-primary:hover { opacity: .9; }
+        .btn-primary:hover:not(:disabled) { background: #2563eb; }
+        .btn-secondary { background: var(--s3); color: var(--txt); border-color: var(--bd); }
+        .btn-secondary:hover:not(:disabled) { background: var(--bd); }
+        .btn-danger { background: var(--red); color: #fff; }
+        .btn-danger:hover:not(:disabled) { background: #dc2626; }
+        .btn-outline { background: transparent; color: var(--blue); border-color: rgba(59,130,246,0.3); }
+        .btn-outline:hover:not(:disabled) { background: rgba(59,130,246,0.1); }
+        
+        /* TABLES */
+        .admin-table-wrapper {
+          background: var(--s1); border-radius: 12px; border: 1px solid var(--bd);
+          overflow: hidden; width: 100%; overflow-x: auto;
+        }
+        .admin-table {
+          width: 100%; border-collapse: collapse; text-align: left;
+        }
+        .admin-table th {
+          padding: 12px 16px; font-size: 11px; font-weight: 700; color: var(--mut);
+          text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;
+          background: var(--s2); border-bottom: 1px solid var(--bd);
+        }
+        .admin-table td {
+          padding: 12px 16px; font-size: 13px; color: var(--txt);
+          border-bottom: 1px solid var(--bd);
+        }
+        .admin-table tr:last-child td { border-bottom: none; }
+        .admin-table tbody tr { transition: background 0.15s; }
+        .admin-table tbody tr:hover { background: var(--s2); }
       `}</style>
     </>
   )

@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
 import AdminLayout from '../../components/AdminLayout'
-import { Badge, Spinner, ErrorBox, CopyButton, EmptyState } from '../../components/AdminUI'
+import { Badge, Spinner, ErrorBox, CopyButton, EmptyState, AdminPageHeader, AdminCard, AdminButton, AdminInput } from '../../components/AdminUI'
+import { ShieldCheck, FileText, BarChart, Settings, Search, XCircle, Users, DollarSign, Save, RefreshCw, FlaskConical } from 'lucide-react'
 import { adminLocalFetch, apiPost } from '../../lib/adminUtils'
 
 const PC_INDUSTRIES = [
@@ -18,29 +19,30 @@ const PC_INDUSTRIES = [
 
 function PolicyCheckTab() {
   const [subTab, setSubTab] = useState('docs')
-  const cardStyle = { background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 24, marginBottom: 20 }
+
   const subBtnStyle = (active) => ({
+    display: 'flex', alignItems: 'center', gap: 6,
     padding: '8px 18px', borderRadius: 8, border: 'none', fontSize: 13, fontWeight: 600,
-    cursor: 'pointer', background: active ? '#0c2a72' : '#e2e8f0', color: active ? '#fff' : '#475569',
+    cursor: 'pointer', background: active ? 'var(--blue)' : 'var(--s2)', color: active ? '#fff' : 'var(--mut)',
     fontFamily: 'inherit', transition: 'all .15s',
   })
 
   return (
-    <div>
-      <h2 style={{ fontSize: 20, fontWeight: 800, color: '#0c2a72', marginBottom: 20 }}>🛡️ AI Kiểm tra Vi phạm Chính sách Meta</h2>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
-        {[['docs','📄 Tài liệu Chính sách'],['stats','📊 Thống kê'],['config','⚙️ Cấu hình AI']].map(([id, label]) => (
-          <button key={id} style={subBtnStyle(subTab === id)} onClick={() => setSubTab(id)}>{label}</button>
-        ))}
+    <div style={{ maxWidth: 1000, margin: '0 auto', width: '100%' }}>
+      <AdminPageHeader title="AI Kiểm tra Vi phạm Chính sách Meta" icon={ShieldCheck} />
+      <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
+        <button style={subBtnStyle(subTab === 'docs')} onClick={() => setSubTab('docs')}><FileText size={16} /> Tài liệu Chính sách</button>
+        <button style={subBtnStyle(subTab === 'stats')} onClick={() => setSubTab('stats')}><BarChart size={16} /> Thống kê</button>
+        <button style={subBtnStyle(subTab === 'config')} onClick={() => setSubTab('config')}><Settings size={16} /> Cấu hình AI</button>
       </div>
-      {subTab === 'docs'   && <PolicyDocsSubTab cardStyle={cardStyle} />}
-      {subTab === 'stats'  && <PolicyStatsSubTab cardStyle={cardStyle} />}
-      {subTab === 'config' && <PolicyConfigSubTab cardStyle={cardStyle} />}
+      {subTab === 'docs'   && <PolicyDocsSubTab />}
+      {subTab === 'stats'  && <PolicyStatsSubTab />}
+      {subTab === 'config' && <PolicyConfigSubTab />}
     </div>
   )
 }
 
-function PolicyDocsSubTab({ cardStyle }) {
+function PolicyDocsSubTab() {
   const [industry, setIndustry] = useState('general')
   const [content, setContent]   = useState('')
   const [loading, setLoading]   = useState(false)
@@ -87,40 +89,41 @@ function PolicyDocsSubTab({ cardStyle }) {
   }
 
   return (
-    <div style={cardStyle}>
+    <AdminCard>
       <p style={{ fontSize: 13, color: 'var(--mut)', marginBottom: 16, lineHeight: 1.6 }}>
         Tài liệu này được AI đọc khi kiểm tra nội dung quảng cáo. Cập nhật khi Meta thay đổi policy hoặc cần tuỳ chỉnh cho từng ngành.
       </p>
       <div style={{ display: 'flex', gap: 12, marginBottom: 16, alignItems: 'flex-end' }}>
         <div style={{ flex: 1 }}>
           <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--mut)', marginBottom: 5, textTransform: 'uppercase' }}>Ngành</label>
-          <select value={industry} onChange={e => setIndustry(e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 13, fontFamily: 'inherit' }}>
+          <select value={industry} onChange={e => setIndustry(e.target.value)} className="form-input">
             {PC_INDUSTRIES.map(i => <option key={i.value} value={i.value}>{i.label}</option>)}
           </select>
         </div>
         {meta && <span style={{ fontSize: 11, color: 'var(--mut)', whiteSpace: 'nowrap' }}>Cập nhật: {new Date(meta.updated_at).toLocaleDateString('vi-VN')}</span>}
       </div>
-      {loading ? <div style={{ textAlign: 'center', padding: 32, color: 'var(--mut)' }}>⏳ Đang tải...</div> : (
+      {loading ? <Spinner /> : (
         <textarea
           value={content}
           onChange={e => setContent(e.target.value)}
           placeholder="Nhập nội dung tài liệu policy cho ngành này. Nếu để trống, AI sẽ dùng tài liệu mặc định."
-          style={{ width: '100%', minHeight: 420, padding: '12px 14px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 13, fontFamily: 'Consolas, monospace', lineHeight: 1.7, resize: 'vertical', outline: 'none' }}
+          className="form-input"
+          style={{ minHeight: 420, fontFamily: 'Consolas, monospace', lineHeight: 1.7, resize: 'vertical' }}
         />
       )}
       <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-        <button onClick={handleSave} disabled={saving || loading} style={{ padding: '9px 20px', background: '#0c2a72', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-          {saving ? '⏳ Đang lưu...' : '💾 Lưu tài liệu'}
-        </button>
-        <button onClick={handleReset} style={{ padding: '9px 16px', background: '#fee2e2', color: '#b91c1c', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-          🔄 Reset về mặc định
-        </button>
+        <AdminButton icon={Save} onClick={handleSave} disabled={saving || loading}>
+          {saving ? 'Đang lưu...' : 'Lưu tài liệu'}
+        </AdminButton>
+        <AdminButton variant="danger" icon={RefreshCw} onClick={handleReset}>
+          Reset về mặc định
+        </AdminButton>
       </div>
-    </div>
+    </AdminCard>
   )
 }
 
-function PolicyStatsSubTab({ cardStyle }) {
+function PolicyStatsSubTab() {
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [range, setRange] = useState('7d')
@@ -139,29 +142,29 @@ function PolicyStatsSubTab({ cardStyle }) {
 
   useEffect(() => { fetchStats() }, [range])
 
-  const statCard = (icon, label, value, sub) => (
-    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '16px 20px', minWidth: 150 }}>
-      <div style={{ fontSize: 22, marginBottom: 6 }}>{icon}</div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: '#0c2a72' }}>{value}</div>
+  const statCard = (IconComp, label, value, sub, color) => (
+    <AdminCard noPadding style={{ padding: '16px 20px', minWidth: 150 }}>
+      <div style={{ marginBottom: 6, color }}><IconComp size={24} /></div>
+      <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--txt)' }}>{value}</div>
       <div style={{ fontSize: 12, color: 'var(--mut)', marginTop: 3 }}>{label}</div>
       {sub && <div style={{ fontSize: 11, color: 'var(--mut)', marginTop: 2 }}>{sub}</div>}
-    </div>
+    </AdminCard>
   )
 
   return (
-    <div style={cardStyle}>
+    <AdminCard>
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
         {[['1d','Hôm nay'],['7d','7 ngày'],['30d','30 ngày']].map(([v, l]) => (
-          <button key={v} onClick={() => setRange(v)} style={{ padding: '6px 14px', borderRadius: 7, border: '1px solid #e2e8f0', fontSize: 12, fontWeight: 600, cursor: 'pointer', background: range === v ? '#0c2a72' : '#fff', color: range === v ? '#fff' : '#475569', fontFamily: 'inherit' }}>{l}</button>
+          <button key={v} onClick={() => setRange(v)} style={{ padding: '6px 14px', borderRadius: 7, border: '1px solid var(--bd)', fontSize: 12, fontWeight: 600, cursor: 'pointer', background: range === v ? 'var(--blue)' : 'var(--s2)', color: range === v ? '#fff' : 'var(--mut)', fontFamily: 'inherit' }}>{l}</button>
         ))}
       </div>
-      {loading ? <div style={{ textAlign: 'center', padding: 40, color: 'var(--mut)' }}>⏳ Đang tải...</div> : stats ? (
+      {loading ? <Spinner /> : stats ? (
         <>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 24 }}>
-            {statCard('🔍', 'Tổng lượt check', stats.total)}
-            {statCard('❌', 'Vi phạm phát hiện', stats.violations, `${stats.violation_rate}% tổng số`)}
-            {statCard('👤', 'Users unique', stats.unique_users)}
-            {statCard('💰', 'Chi phí ước tính', `$${stats.estimated_cost_usd}`, `≈ ${(stats.estimated_cost_vnd || 0).toLocaleString('vi-VN')}₫`)}
+            {statCard(Search, 'Tổng lượt check', stats.total, '', 'var(--blue)')}
+            {statCard(XCircle, 'Vi phạm phát hiện', stats.violations, `${stats.violation_rate}% tổng số`, 'var(--red)')}
+            {statCard(Users, 'Users unique', stats.unique_users, '', 'var(--primary)')}
+            {statCard(DollarSign, 'Chi phí ước tính', `$${stats.estimated_cost_usd}`, `≈ ${(stats.estimated_cost_vnd || 0).toLocaleString('vi-VN')}₫`, 'var(--grn)')}
           </div>
           {stats.top_users?.length > 0 && (
             <>
@@ -181,14 +184,14 @@ function PolicyStatsSubTab({ cardStyle }) {
               </table>
             </>
           )}
-          {stats.total === 0 && <div style={{ textAlign: 'center', padding: 32, color: 'var(--mut)' }}>Chưa có lượt kiểm tra nào trong kỳ này</div>}
+          {stats.total === 0 && <EmptyState icon={<BarChart size={48} color="var(--bd)" />} text="Chưa có lượt kiểm tra nào trong kỳ này" />}
         </>
       ) : null}
-    </div>
+    </AdminCard>
   )
 }
 
-function PolicyConfigSubTab({ cardStyle }) {
+function PolicyConfigSubTab() {
   const [config, setConfig] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -242,12 +245,11 @@ function PolicyConfigSubTab({ cardStyle }) {
       {children}
     </div>
   )
-  const inputStyle = { width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none' }
 
-  if (loading) return <div style={cardStyle}><div style={{ textAlign: 'center', padding: 32, color: 'var(--mut)' }}>⏳ Đang tải...</div></div>
+  if (loading) return <Spinner />
 
   return (
-    <div style={cardStyle}>
+    <AdminCard>
       {field('AI Model', (
         <select value={config?.model || ''} onChange={e => setConfig(c => ({ ...c, model: e.target.value }))} className="form-input">
           <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (rẻ, nhanh — khuyến nghị)</option>
@@ -263,23 +265,23 @@ function PolicyConfigSubTab({ cardStyle }) {
       {field('Trạng thái tính năng', (
         <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
           <input type="checkbox" checked={config?.enabled !== false} onChange={e => setConfig(c => ({ ...c, enabled: e.target.checked }))} style={{ width: 16, height: 16 }} />
-          <span style={{ fontSize: 13 }}>{config?.enabled !== false ? '✅ Đang hoạt động' : '⛔ Đã tắt'}</span>
+          <span style={{ fontSize: 13, color: 'var(--txt)' }}>{config?.enabled !== false ? 'Đang hoạt động' : 'Đã tắt'}</span>
         </label>
       ))}
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 8 }}>
-        <button onClick={handleSave} disabled={saving} style={{ padding: '9px 20px', background: '#0c2a72', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-          {saving ? '⏳ Đang lưu...' : '💾 Lưu cấu hình'}
-        </button>
-        <button onClick={handleTest} disabled={testing} style={{ padding: '9px 16px', background: '#f0f9ff', border: '1px solid #bae6fd', color: '#0369a1', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-          {testing ? '⏳ Đang test...' : '🧪 Test kết nối'}
-        </button>
-        {testResult && <span style={{ fontSize: 13, color: testResult.ok ? '#16a34a' : '#dc2626', fontWeight: 600 }}>{testResult.msg}</span>}
+        <AdminButton icon={Save} onClick={handleSave} disabled={saving}>
+          {saving ? 'Đang lưu...' : 'Lưu cấu hình'}
+        </AdminButton>
+        <AdminButton icon={FlaskConical} variant="outline" onClick={handleTest} disabled={testing}>
+          {testing ? 'Đang test...' : 'Test kết nối'}
+        </AdminButton>
+        {testResult && <span style={{ fontSize: 13, color: testResult.ok ? 'var(--grn)' : 'var(--red)', fontWeight: 600 }}>{testResult.msg}</span>}
       </div>
-      <div style={{ marginTop: 16, padding: '12px 14px', background: '#f8fafc', borderRadius: 8, fontSize: 12, color: 'var(--mut)', lineHeight: 1.7 }}>
+      <div style={{ marginTop: 16, padding: '12px 14px', background: 'var(--s2)', borderRadius: 8, fontSize: 12, color: 'var(--mut)', lineHeight: 1.7, border: '1px solid var(--bd)' }}>
         💡 <strong>ANTHROPIC_API_KEY</strong> được cấu hình trong Vercel Dashboard → Settings → Environment Variables.<br />
         Chi phí ước tính: <strong>$0.00025/lần check</strong> với Claude Haiku (~6.500đ/1000 lần).
       </div>
-    </div>
+    </AdminCard>
   )
 }
 

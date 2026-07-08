@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
+import { ShieldCheck } from 'lucide-react'
 
 export default function AdminLogin() {
   const router = useRouter()
@@ -109,10 +110,10 @@ export default function AdminLogin() {
               alignItems: 'center',
               justifyContent: 'center',
               margin: '0 auto 16px',
-              fontSize: 28,
+              color: '#fff',
               boxShadow: '0 8px 24px rgba(0,199,222,0.3)',
             }}>
-              🛡️
+              <ShieldCheck size={36} />
             </div>
             <h1 style={{
               color: '#ffffff',

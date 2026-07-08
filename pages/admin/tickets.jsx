@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
 import AdminLayout from '../../components/AdminLayout'
-import { Badge, Spinner, ErrorBox, CopyButton, EmptyState } from '../../components/AdminUI'
+import { Badge, Spinner, ErrorBox, CopyButton, EmptyState, AdminPageHeader, AdminCard, AdminButton, AdminInput } from '../../components/AdminUI'
+import { Ticket as TicketIcon, RefreshCw, Trash2, Send, Paperclip } from 'lucide-react'
 import { adminLocalFetch, apiPost } from '../../lib/adminUtils'
 
 
@@ -96,25 +97,25 @@ function WebTicketsTab() {
 
   return (
     <div>
-      {toast && <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 9999, background: toast.type === 'error' ? '#ef4444' : '#10b981', color: '#fff', borderRadius: 10, padding: '12px 20px', fontSize: 13, fontWeight: 600, boxShadow: '0 4px 20px rgba(0,0,0,.25)' }}>{toast.msg}</div>}
+      {toast && <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 9999, background: toast.type === 'error' ? 'var(--red)' : 'var(--grn)', color: '#fff', borderRadius: 10, padding: '12px 20px', fontSize: 13, fontWeight: 600, boxShadow: '0 4px 20px rgba(0,0,0,.25)' }}>{toast.msg}</div>}
 
-      <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--txt)', marginBottom: 20 }}>🎫 Support Tickets (Web)</h2>
+      <AdminPageHeader title="Support Tickets (Web)" icon={TicketIcon} />
 
       {/* Filter */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
         {FILTERS.map(f => (
           <button key={f.id} onClick={() => setFilter(f.id)}
-            style={{ padding: '7px 14px', borderRadius: 8, border: '1px solid', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', borderColor: filter === f.id ? '#00c7de' : '#e2e8f0', background: filter === f.id ? 'rgba(0,199,222,0.1)' : '#fff', color: filter === f.id ? '#00c7de' : '#64748b' }}>
+            style={{ padding: '7px 14px', borderRadius: 8, border: '1px solid', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', borderColor: filter === f.id ? 'var(--blue)' : 'var(--bd)', background: filter === f.id ? 'rgba(59,130,246,0.1)' : 'var(--s1)', color: filter === f.id ? 'var(--blue)' : 'var(--mut)' }}>
             {f.label}
           </button>
         ))}
-        <button onClick={load} style={{ ...inp, cursor: 'pointer', marginLeft: 'auto', background: '#f8fafc', color: 'var(--mut)', padding: '7px 14px' }}>🔄</button>
+        <AdminButton variant="secondary" onClick={load} icon={RefreshCw} style={{ marginLeft: 'auto' }}>Làm mới</AdminButton>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: selected ? '380px 1fr' : '1fr', gap: 20, alignItems: 'start' }}>
         {/* List */}
-        <div style={card}>
-          {loading ? <Spinner /> : tickets.length === 0 ? <EmptyState icon="🎫" text="Không có ticket nào" /> : (
+        <AdminCard noPadding>
+          {loading ? <Spinner /> : tickets.length === 0 ? <EmptyState icon={<TicketIcon size={48} color="var(--bd)" />} text="Không có ticket nào" /> : (
             <div>
               {tickets.map((t, i) => (
                 <div key={t.id} onClick={() => setSelected(t)} style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', background: selected?.id === t.id ? '#f0fdfc' : i % 2 ? '#fafbfc' : '#fff', transition: 'background .15s' }}>
@@ -130,11 +131,11 @@ function WebTicketsTab() {
               ))}
             </div>
           )}
-        </div>
+        </AdminCard>
 
         {/* Detail */}
         {selected && (
-          <div style={card}>
+          <AdminCard noPadding>
             <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--bd)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
               <div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--txt)', marginBottom: 3 }}>{selected.subject}</div>
@@ -147,7 +148,7 @@ function WebTicketsTab() {
                     {ST[s]?.label}
                   </button>
                 ))}
-                <button onClick={() => handleDelete(selected.id)} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #fca5a5', background: '#fee2e2', color: '#991b1b', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>🗑</button>
+                <AdminButton variant="danger" icon={Trash2} onClick={() => handleDelete(selected.id)} style={{ padding: '4px 10px' }} />
               </div>
             </div>
 
@@ -206,12 +207,11 @@ function WebTicketsTab() {
                   </div>
                 )}
               </div>
-              <button onClick={handleReply} disabled={saving || replyUploading || (!replyText.trim() && replyImages.length === 0)}
-                style={{ padding: '9px 20px', background: 'var(--blue)', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: saving || replyUploading || (!replyText.trim() && replyImages.length === 0) ? 0.5 : 1 }}>
-                {saving ? 'Đang gửi...' : '📨 Gửi + Email khách'}
-              </button>
+              <AdminButton icon={Send} onClick={handleReply} disabled={saving || replyUploading || (!replyText.trim() && replyImages.length === 0)}>
+                {saving ? 'Đang gửi...' : 'Gửi + Email khách'}
+              </AdminButton>
             </div>
-          </div>
+          </AdminCard>
         )}
       </div>
     </div>

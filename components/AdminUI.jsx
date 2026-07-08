@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ArchiveX, AlertTriangle, Check, Copy } from 'lucide-react'
 
 export function Badge({ status }) {
   const map = {
@@ -59,8 +60,12 @@ export function ErrorBox({ msg }) {
       color: '#b91c1c',
       fontSize: 13,
       marginBottom: 16,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
     }}>
-      ⚠️ {msg}
+      <AlertTriangle size={18} />
+      {msg}
     </div>
   )
 }
@@ -68,7 +73,9 @@ export function ErrorBox({ msg }) {
 export function EmptyState({ icon, text }) {
   return (
     <div style={{ textAlign: 'center', padding: '56px 0', color: 'var(--mut)' }}>
-      <div style={{ fontSize: 40, marginBottom: 10 }}>{icon || '📭'}</div>
+      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center' }}>
+        {typeof icon === 'string' ? <div style={{ fontSize: 40 }}>{icon}</div> : (icon || <ArchiveX size={48} style={{ color: 'var(--bd)' }} />)}
+      </div>
       <p style={{ fontSize: 14 }}>{text || 'Không có dữ liệu'}</p>
     </div>
   )
@@ -99,7 +106,70 @@ export function CopyButton({ value }) {
         transition: 'all 0.2s'
       }}
     >
-      {copied ? '✓' : 'Copy'}
+      {copied ? <Check size={14} /> : <Copy size={14} />}
     </button>
   )
 }
+
+export function AdminPageHeader({ title, icon: Icon, description, children }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+      <div>
+        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: 'var(--txt)', display: 'flex', alignItems: 'center', gap: 10 }}>
+          {Icon && <Icon size={24} style={{ color: 'var(--blue)' }} />}
+          {title}
+        </h2>
+        {description && <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--mut)' }}>{description}</p>}
+      </div>
+      {children && <div style={{ display: 'flex', gap: 8 }}>{children}</div>}
+    </div>
+  )
+}
+
+export function AdminCard({ children, style, noPadding = false, ...props }) {
+  return (
+    <div className="admin-card" style={{ padding: noPadding ? 0 : 24, ...style }} {...props}>
+      {children}
+    </div>
+  )
+}
+
+export function AdminTable({ columns, children, style }) {
+  return (
+    <div className="admin-table-wrapper" style={style}>
+      <table className="admin-table">
+        <thead>
+          <tr>
+            {columns.map((col, i) => (
+              <th key={i}>{col}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {children}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+export function AdminButton({ children, variant = 'primary', icon: Icon, ...props }) {
+  const baseClass = 'btn'
+  const variantClass = variant === 'primary' ? 'btn-primary' : variant === 'danger' ? 'btn-danger' : variant === 'outline' ? 'btn-outline' : 'btn-secondary'
+  
+  return (
+    <button className={`${baseClass} ${variantClass}`} {...props}>
+      {Icon && <Icon size={16} />}
+      {children}
+    </button>
+  )
+}
+
+export function AdminInput(props) {
+  return <input className="form-input" {...props} />
+}
+
+export function AdminSelect({ children, ...props }) {
+  return <select className="form-input" style={{ cursor: 'pointer', ...props.style }} {...props}>{children}</select>
+}
+

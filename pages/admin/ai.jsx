@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
 import AdminLayout from '../../components/AdminLayout'
-import { Badge, Spinner, ErrorBox, CopyButton, EmptyState } from '../../components/AdminUI'
+import { Badge, Spinner, ErrorBox, CopyButton, EmptyState, AdminPageHeader, AdminCard, AdminButton, AdminInput, AdminSelect } from '../../components/AdminUI'
 import { adminLocalFetch, apiPost, AI_CATEGORIES } from '../../lib/adminUtils'
+import { Brain, FolderUp, Plus, Save, X, Edit, Trash2, Power, PowerOff, Lightbulb } from 'lucide-react'
 
 
 
@@ -112,76 +113,78 @@ function AiKnowledgeTab() {
   const inp = { width: '100%', padding: '9px 12px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 13, color: 'var(--txt)', background: '#fff', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }
 
   return (
-    <div>
+    <div style={{ maxWidth: 900, margin: '0 auto', width: '100%' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: 'var(--txt)' }}>🧠 AI Knowledge Base</h2>
-          <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--mut)' }}>
-            {activeCount}/{list.length} tài liệu đang bật · {(totalChars/1000).toFixed(1)}K ký tự · AI đọc khi trả lời khách hàng
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <label style={{ padding: '9px 16px', border: '1.5px dashed #00c7de', borderRadius: 8, background: '#f0fdfe', color: '#0c2a72', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
-            {fileLoading ? '⏳ Đang đọc...' : '📂 Upload file'}
-            <input ref={fileRef} type="file" accept=".txt,.md,.pdf,.docx,.csv" onChange={handleFile} style={{ display: 'none' }} disabled={fileLoading} />
-          </label>
-          <button onClick={openNew} style={{ padding: '9px 18px', border: 'none', borderRadius: 8, background: '#0c2a72', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
-            ＋ Thêm thủ công
-          </button>
-        </div>
-      </div>
+      <AdminPageHeader 
+        title="AI Knowledge Base" 
+        icon={Brain}
+        description={`${activeCount}/${list.length} tài liệu đang bật · ${(totalChars/1000).toFixed(1)}K ký tự · AI đọc khi trả lời khách hàng`}
+      >
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 8, background: 'rgba(59,130,246,0.1)', color: 'var(--blue)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+          {fileLoading ? <Spinner /> : <FolderUp size={16} />}
+          {fileLoading ? 'Đang đọc...' : 'Upload file'}
+          <input ref={fileRef} type="file" accept=".txt,.md,.pdf,.docx,.csv" onChange={handleFile} style={{ display: 'none' }} disabled={fileLoading} />
+        </label>
+        <AdminButton onClick={openNew} icon={Plus}>
+          Thêm thủ công
+        </AdminButton>
+      </AdminPageHeader>
 
       {/* Hướng dẫn */}
-      <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '10px 16px', marginBottom: 20, fontSize: 13, color: '#78350f' }}>
-        💡 <b>Mẹo:</b> Thêm FAQ, hướng dẫn sử dụng, chính sách... AI sẽ đọc tất cả tài liệu <b>đang bật</b> để trả lời khách hàng chính xác hơn. Upload .txt hoặc paste nội dung trực tiếp. PDF/DOCX phức tạp nên copy paste thủ công.
+      <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '10px 16px', marginBottom: 20, fontSize: 13, color: '#78350f', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+        <Lightbulb size={18} color="#d97706" style={{ flexShrink: 0, marginTop: 2 }} />
+        <div>
+          <b>Mẹo:</b> Thêm FAQ, hướng dẫn sử dụng, chính sách... AI sẽ đọc tất cả tài liệu <b>đang bật</b> để trả lời khách hàng chính xác hơn. Upload .txt hoặc paste nội dung trực tiếp. PDF/DOCX phức tạp nên copy paste thủ công.
+        </div>
       </div>
 
       <ErrorBox msg={error} />
 
       {/* Form thêm/sửa */}
       {showForm && (
-        <div style={{ background: '#fff', border: '1.5px solid #00c7de', borderRadius: 12, padding: '20px 24px', marginBottom: 20, boxShadow: '0 4px 16px rgba(0,199,222,0.12)' }}>
-          <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: '#0c2a72' }}>
-            {editId ? '✏️ Chỉnh sửa tài liệu' : '➕ Thêm tài liệu mới'}
+        <AdminCard style={{ marginBottom: 20, border: '1px solid var(--blue)', boxShadow: '0 4px 16px rgba(59,130,246,0.1)' }}>
+          <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: 'var(--txt)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            {editId ? <Edit size={18} color="var(--blue)" /> : <Plus size={18} color="var(--blue)" />}
+            {editId ? 'Chỉnh sửa tài liệu' : 'Thêm tài liệu mới'}
           </h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 180px', gap: '10px 16px', marginBottom: 12 }}>
-            <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--mut)', marginBottom: 5 }}>Tiêu đề *</label>
-              <input style={inp} value={formTitle} onChange={e => setFormTitle(e.target.value)} placeholder="VD: Hướng dẫn đặt CPA mục tiêu" />
+            <div className="form-group">
+              <label className="form-label">Tiêu đề *</label>
+              <AdminInput value={formTitle} onChange={e => setFormTitle(e.target.value)} placeholder="VD: Hướng dẫn đặt CPA mục tiêu" />
             </div>
-            <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--mut)', marginBottom: 5 }}>Danh mục</label>
-              <select style={{ ...inp, cursor: 'pointer' }} value={formCategory} onChange={e => setFormCategory(e.target.value)}>
+            <div className="form-group">
+              <label className="form-label">Danh mục</label>
+              <AdminSelect value={formCategory} onChange={e => setFormCategory(e.target.value)}>
                 {AI_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-              </select>
+              </AdminSelect>
             </div>
           </div>
-          <div style={{ marginBottom: 14 }}>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--mut)', marginBottom: 5 }}>
+          <div className="form-group">
+            <label className="form-label">
               Nội dung * <span style={{ color: 'var(--mut)', fontWeight: 400 }}>({formContent.length.toLocaleString()} ký tự)</span>
             </label>
             <textarea
-              style={{ ...inp, minHeight: 200, resize: 'vertical', lineHeight: 1.6 }}
+              className="form-input"
+              style={{ minHeight: 200, resize: 'vertical', lineHeight: 1.6 }}
               value={formContent}
               onChange={e => setFormContent(e.target.value)}
               placeholder="Nhập hoặc paste nội dung tài liệu..."
             />
           </div>
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-            <button onClick={() => setShowForm(false)} style={{ padding: '8px 18px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#f8faff', color: 'var(--mut)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Hủy</button>
-            <button onClick={handleSave} disabled={saving} style={{ padding: '8px 20px', border: 'none', borderRadius: 8, background: saving ? '#94a3b8' : '#10b981', color: '#fff', fontSize: 13, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
-              {saving ? '⏳ Đang lưu...' : '💾 Lưu tài liệu'}
-            </button>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
+            <AdminButton variant="secondary" onClick={() => setShowForm(false)}>Hủy</AdminButton>
+            <AdminButton icon={Save} onClick={handleSave} disabled={saving}>
+              {saving ? 'Đang lưu...' : 'Lưu tài liệu'}
+            </AdminButton>
           </div>
-        </div>
+        </AdminCard>
       )}
 
       {/* Danh sách */}
       {loading ? <Spinner /> : (
         <div>
           {list.length === 0 ? (
-            <EmptyState icon="🧠" text="Chưa có tài liệu nào. Thêm để AI học!" />
+            <EmptyState icon={<Brain size={48} color="var(--bd)" />} text="Chưa có tài liệu nào. Thêm để AI học!" />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {list.map(item => (
@@ -199,11 +202,11 @@ function AiKnowledgeTab() {
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                    <button onClick={() => toggleActive(item)} title={item.is_active ? 'Tắt' : 'Bật'} style={{ padding: '5px 10px', border: `1px solid ${item.is_active ? '#10b981' : '#e2e8f0'}`, borderRadius: 6, background: item.is_active ? '#f0fdf4' : '#f8faff', color: item.is_active ? '#10b981' : '#94a3b8', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                      {item.is_active ? '✅ Bật' : '⭕ Tắt'}
-                    </button>
-                    <button onClick={() => openEdit(item)} style={{ padding: '5px 10px', border: '1px solid #e2e8f0', borderRadius: 6, background: '#fff', color: '#0c2a72', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>✏️</button>
-                    <button onClick={() => deleteItem(item.id)} style={{ padding: '5px 10px', border: '1px solid #fecaca', borderRadius: 6, background: '#fef2f2', color: '#ef4444', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>🗑</button>
+                    <AdminButton variant="outline" icon={item.is_active ? Power : PowerOff} onClick={() => toggleActive(item)} title={item.is_active ? 'Tắt' : 'Bật'} style={{ padding: '4px 10px', color: item.is_active ? 'var(--grn)' : 'var(--mut)', borderColor: item.is_active ? 'var(--grn)' : 'var(--bd)' }}>
+                      {item.is_active ? 'Bật' : 'Tắt'}
+                    </AdminButton>
+                    <AdminButton variant="secondary" icon={Edit} onClick={() => openEdit(item)} style={{ padding: '4px 10px' }} />
+                    <AdminButton variant="danger" icon={Trash2} onClick={() => deleteItem(item.id)} style={{ padding: '4px 10px' }} />
                   </div>
                 </div>
               ))}
