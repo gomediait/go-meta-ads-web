@@ -8,5 +8,6 @@ out/
 .codegraph/
 .kiro/
 AI/
+.impeccable/
 copy_skills.js
 supabasev3.md

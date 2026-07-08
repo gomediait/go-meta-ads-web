@@ -102,11 +102,14 @@ export default async function handler(req, res) {
   const anthropicKey = process.env.ANTHROPIC_API_KEY
   if (!anthropicKey) return res.json({ ok: false, error: 'Chưa cấu hình API Key AI. Vui lòng liên hệ admin.' })
 
+  const { data: dbDoc } = await sb.from('site_settings').select('value').eq('key', `policy_doc_${industry}`).single()
+  const currentPolicyDoc = dbDoc?.value || DEFAULT_POLICY_DOC
+
   const systemPrompt = `Bạn là chuyên gia kiểm duyệt quảng cáo Meta (Facebook/Instagram).
 Nhiệm vụ: Phân tích nội dung quảng cáo và phát hiện vi phạm Meta Advertising Policies.
 Ngành: ${industry}.
 
-${DEFAULT_POLICY_DOC}
+${currentPolicyDoc}
 
 Trả lời CHÍNH XÁC theo format JSON sau, KHÔNG thêm bất kỳ text nào khác ngoài JSON:
 {

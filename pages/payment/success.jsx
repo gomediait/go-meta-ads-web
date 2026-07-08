@@ -13,7 +13,7 @@ export default function PaymentSuccess() {
 
   return (
     <>
-      <Head><title>Thanh toán thành công — Go Meta Ads Pro</title></Head>
+      <Head><title>Go Meta Ads Pro</title></Head>
       <div style={{
         minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
         background: 'linear-gradient(135deg, #0c2a72 0%, #1a3a8f 60%, #0f1117 100%)',

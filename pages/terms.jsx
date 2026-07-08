@@ -80,7 +80,7 @@ export default function Terms() {
   return (
     <>
       <Head>
-        <title>{isEN ? 'Terms of Service — Go Meta Ads Pro' : 'Điều khoản sử dụng — Go Meta Ads Pro'}</title>
+        <title>Go Meta Ads Pro</title>
         <meta name="description" content={isEN
           ? 'Terms of Service for Go Meta Ads Pro Chrome Extension.'
           : 'Điều khoản sử dụng của tiện ích Go Meta Ads Pro.'

@@ -102,7 +102,7 @@ export default function Register() {
 
   return (
     <>
-      <Head><title>{tr.pageTitle || 'Đăng ký — Go Meta Ads Pro'}</title></Head>
+      <Head><title>Go Meta Ads Pro</title></Head>
       <div className="auth-page">
         <div className="auth-card">
           <button className="lang-toggle" onClick={() => setLang(lang === 'vi' ? 'en' : 'vi')}>

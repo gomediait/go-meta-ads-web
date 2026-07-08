@@ -30,7 +30,7 @@ export default function Login() {
 
   return (
     <>
-      <Head><title>{tr.pageTitle || 'Đăng nhập — Go Meta Ads Pro'}</title></Head>
+      <Head><title>Go Meta Ads Pro</title></Head>
       <div className="auth-page">
         <div className="auth-card">
           <button className="lang-toggle" onClick={() => setLang(lang === 'vi' ? 'en' : 'vi')}>

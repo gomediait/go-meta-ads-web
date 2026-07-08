@@ -80,7 +80,7 @@ export default function DashboardLayout({ children, title = 'Dashboard' }) {
   return (
     <>
       <Head>
-        <title>{title} — Go Meta Ads Pro</title>
+        <title>Go Meta Ads Pro</title>
         <meta name="robots" content="noindex" />
       </Head>
 

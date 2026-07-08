@@ -6,27 +6,29 @@ import Reveal from '../components/Reveal'
 import { useLang } from '../lib/LangContext'
 
 const SECTIONS_VI = [
-  { id: 'cai-dat',    label: 'Cài đặt & Đăng nhập',   num: 1 },
+  { id: 'cai-dat',    label: 'Đăng ký & Đăng nhập',     num: 1 },
   { id: 'chien-dich', label: 'Tab Chiến dịch',          num: 2 },
   { id: 'lai-lo',     label: 'Tab Tính Lãi Lỗ',         num: 3 },
-  { id: 'bao-cao',    label: 'Tab Báo cáo',             num: 4 },
-  { id: 'auto-care',  label: 'Tab Auto Care',            num: 5 },
-  { id: 'tu-dong-qc', label: 'Tab Tự động Set QC',      num: 6 },
-  { id: 'thong-bao',  label: 'Tab Thông báo',            num: 7 },
-  { id: 'nhan-vien',  label: 'Tab Nhân viên',            num: 8 },
-  { id: 'khac-phuc',  label: 'Khắc phục sự cố',         num: 9 },
+  { id: 'policy',     label: 'Tab Kiểm tra Chính sách', num: 4 },
+  { id: 'tu-dong-qc', label: 'Tab Tự động Set QC',      num: 5 },
+  { id: 'auto-care',  label: 'Tab Auto Care',           num: 6 },
+  { id: 'bao-cao',    label: 'Tab Báo cáo',             num: 7 },
+  { id: 'thong-bao',  label: 'Tab Thông báo',           num: 8 },
+  { id: 'nhan-vien',  label: 'Tab Nhân viên',           num: 9 },
+  { id: 'affiliate',  label: 'Tab Affiliate & Mua Gói', num: 10 },
 ]
 
 const SECTIONS_EN = [
-  { id: 'cai-dat',    label: 'Setup & Sign In',         num: 1 },
+  { id: 'cai-dat',    label: 'Register & Sign In',      num: 1 },
   { id: 'chien-dich', label: 'Campaigns Tab',           num: 2 },
   { id: 'lai-lo',     label: 'P&L Calculator Tab',      num: 3 },
-  { id: 'bao-cao',    label: 'Reports Tab',             num: 4 },
-  { id: 'auto-care',  label: 'Auto Care Tab',           num: 5 },
-  { id: 'tu-dong-qc', label: 'Auto Set Ads Tab',        num: 6 },
-  { id: 'thong-bao',  label: 'Notifications Tab',       num: 7 },
-  { id: 'nhan-vien',  label: 'Staff Tab',               num: 8 },
-  { id: 'khac-phuc',  label: 'Troubleshooting',         num: 9 },
+  { id: 'policy',     label: 'Policy Check Tab',        num: 4 },
+  { id: 'tu-dong-qc', label: 'Auto Set Ads Tab',        num: 5 },
+  { id: 'auto-care',  label: 'Auto Care Tab',           num: 6 },
+  { id: 'bao-cao',    label: 'Reports Tab',             num: 7 },
+  { id: 'thong-bao',  label: 'Notifications Tab',       num: 8 },
+  { id: 'nhan-vien',  label: 'Staff Tab',               num: 9 },
+  { id: 'affiliate',  label: 'Affiliate & Plans Tab',   num: 10 },
 ]
 
 /* ─── SUB-COMPONENTS ─────────────────────────────────────────────────────── */
@@ -198,17 +200,19 @@ export default function HuongDan() {
 
   /* Scroll-spy */
   useEffect(() => {
-    const navH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 68
     const onScroll = () => {
       for (const s of [...SECTIONS].reverse()) {
         const el = document.getElementById(s.id)
-        if (el && window.scrollY >= el.offsetTop - navH - 20) {
+        // Dùng getBoundingClientRect() sẽ chính xác hơn offsetTop vì offsetTop phụ thuộc vào offsetParent
+        if (el && el.getBoundingClientRect().top <= 150) {
           setActive(s.id)
           break
         }
       }
     }
     window.addEventListener('scroll', onScroll, { passive: true })
+    // Gọi thử 1 lần lúc mount để set đúng tab hiện tại nếu đang load trang ở giữa chừng
+    onScroll()
     return () => window.removeEventListener('scroll', onScroll)
   }, [SECTIONS])
 
@@ -228,9 +232,7 @@ export default function HuongDan() {
   return (
     <>
       <Head>
-        <title>{isEN
-          ? 'User Guide — Go Meta Ads Pro'
-          : 'Hướng dẫn sử dụng — Go Meta Ads Pro'}</title>
+        <title>Go Meta Ads Pro</title>
         <meta name="description" content={isEN
           ? 'Detailed guide on how to install and use the Go Meta Ads Pro Chrome Extension for efficient Facebook Ads management.'
           : 'Hướng dẫn chi tiết cách cài đặt và sử dụng Go Meta Ads Pro Chrome Extension để quản lý Facebook Ads hiệu quả.'
@@ -386,33 +388,29 @@ export default function HuongDan() {
 
             {/* 1 — Cài đặt & Đăng nhập */}
             <Reveal>
-              <SectionCard id="cai-dat" title={isEN ? '1. Setup & Sign In' : '1. Cài đặt & Đăng nhập'}>
+              <SectionCard id="cai-dat" title={isEN ? '1. Register & Sign In' : '1. Đăng ký & Đăng nhập'}>
                 <p style={{ color: '#64748b', lineHeight: 1.75, marginTop: 0, marginBottom: 18, fontSize: 15 }}>
                   {isEN
-                    ? 'Installing Go Meta Ads Pro takes about 2 minutes — no Google account needed, no complex configuration.'
-                    : 'Cài đặt Go Meta Ads Pro chỉ mất khoảng 2 phút — không cần tài khoản Google, không cần cấu hình phức tạp.'}
+                    ? 'Go Meta Ads Pro is a web-based dashboard. You can access it from anywhere without installing any complex extensions.'
+                    : 'Go Meta Ads Pro là nền tảng quản lý trên Web. Bạn có thể truy cập từ bất kỳ đâu mà không cần cài đặt extension phức tạp.'}
                 </p>
                 <Step num={1} text={isEN
-                  ? 'Download the ZIP file from the Download page — click the download button and save it to your computer.'
-                  : 'Tải file ZIP từ trang Tải xuống — nhấn nút tải về và lưu vào máy tính.'} />
+                  ? 'Go to the Registration page — enter your full name, email, and phone number.'
+                  : 'Vào trang Đăng ký — nhập họ tên, email và số điện thoại của bạn.'} />
                 <Step num={2} text={isEN
-                  ? 'Extract the ZIP file. Open Chrome → go to chrome://extensions → enable Developer mode (toggle in the top-right corner).'
-                  : 'Giải nén file ZIP. Mở Chrome → vào chrome://extensions → bật Developer mode (công tắc góc phải trên).'} />
+                  ? 'Click "Get OTP" — check your email for the 6-digit verification code.'
+                  : 'Nhấn "Nhận mã OTP" — kiểm tra email để lấy 6 số xác thực.'} />
                 <Step num={3} text={isEN
-                  ? 'Click "Load unpacked" → select the camp_monitor folder you just extracted.'
-                  : 'Nhấn "Load unpacked" → chọn thư mục camp_monitor vừa giải nén.'} />
+                  ? 'Enter the OTP code and a secure password to complete your account registration.'
+                  : 'Nhập mã OTP và mật khẩu bảo mật để hoàn tất tạo tài khoản.'} />
                 <Step num={4} text={isEN
-                  ? 'Click the Go Meta Ads Pro icon in the Chrome toolbar → enter the admin key received after purchasing a plan.'
-                  : 'Click icon Go Meta Ads Pro trên thanh công cụ Chrome → nhập key admin nhận được sau khi mua gói.'} />
+                  ? 'Go to the Login page — sign in with your registered email and password to access the Dashboard.'
+                  : 'Vào trang Đăng nhập — điền email và mật khẩu để truy cập vào Dashboard.'} />
                 <Tip>
                   {isEN ? (
-                    <>Forgot your key? Go to the{' '}
-                      <a href="/quan-ly" style={{ color: '#fe5f01', fontWeight: 700, textDecoration: 'none' }}>Account Lookup</a>
-                      {' '}page to find your key using your registered phone number or email.</>
+                    <>Forgot your password? Click on the "Forgot Password" link on the Login page to reset it via email.</>
                   ) : (
-                    <>Quên key? Vào trang{' '}
-                      <a href="/quan-ly" style={{ color: '#fe5f01', fontWeight: 700, textDecoration: 'none' }}>Tra cứu</a>
-                      {' '}để tìm lại key theo SĐT hoặc Email đã đăng ký.</>
+                    <>Quên mật khẩu? Click vào nút "Quên mật khẩu" ở trang Đăng nhập để thiết lập lại qua email.</>
                   )}
                 </Tip>
               </SectionCard>
@@ -473,6 +471,13 @@ export default function HuongDan() {
                   'Sort theo cột: click vào tiêu đề cột để sắp xếp tăng/giảm',
                   'Bulk action: tick nhiều adset → bật/tắt/đổi ngân sách hàng loạt',
                 ]} />
+                
+                <SubHeading>{isEN ? 'AI Campaign Assistant' : 'Trợ lý AI Chiến dịch'}</SubHeading>
+                <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.7, margin: 0 }}>
+                  {isEN
+                    ? 'Click the Sparkles icon (✨) next to any campaign to chat directly with AI. The AI can analyze performance and suggest targeting improvements.'
+                    : 'Click icon (✨) cạnh mỗi chiến dịch để chat trực tiếp với AI. AI sẽ phân tích hiệu quả và gợi ý tệp đối tượng (Targeting) tối ưu nhất.'}
+                </p>
               </SectionCard>
             </Reveal>
 
@@ -518,21 +523,55 @@ export default function HuongDan() {
                 <SubHeading>{isEN ? 'Managing multiple products' : 'Quản lý nhiều sản phẩm'}</SubHeading>
                 <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.7, margin: 0 }}>
                   {isEN
-                    ? <>Click the <strong>"+Add Product"</strong> tab to add a new product. Limit: 3 products (Personal plan), 10 products (Business plan and above).</>
-                    : <>Nhấn tab <strong>"+Thêm SP"</strong> để thêm sản phẩm mới. Giới hạn: 3 SP (gói Personal), 10 SP (gói Business trở lên).</>}
+                    ? <>Click the <strong>"+Add Product"</strong> tab to add a new product. Limit: 3 products (Personal), 10 products (Business), Unlimited (Agency).</>
+                    : <>Nhấn tab <strong>"+Thêm SP"</strong> để thêm sản phẩm mới. Giới hạn: 3 SP (Personal), 10 SP (Business), Không giới hạn (Agency).</>}
                 </p>
 
-                <Tip>
-                  {isEN
-                    ? <>Click <strong>"📢 Send to all staff"</strong> to sync the target CPA down to all staff accounts in the team with just 1 click.</>
-                    : <>Nhấn <strong>"📢 Gửi đến toàn bộ nhân viên"</strong> để đồng bộ CPA mục tiêu xuống toàn bộ tài khoản nhân viên trong team chỉ với 1 click.</>}
-                </Tip>
               </SectionCard>
             </Reveal>
 
-            {/* 4 — Tab Báo cáo */}
+            {/* 4 — Tab Kiểm tra Chính sách (MỚI) */}
             <Reveal delay={40}>
-              <SectionCard id="bao-cao" title={isEN ? '4. Reports Tab' : '4. Tab Báo cáo'} badge="Business+">
+              <SectionCard id="policy" title={isEN ? '4. Policy Check Tab' : '4. Tab Kiểm tra Chính sách'} badge="Business+">
+                <p style={{ color: '#64748b', lineHeight: 1.75, marginTop: 0, marginBottom: 0, fontSize: 15 }}>
+                  {isEN
+                    ? 'AI analyzes ad content — detects policy violation risks before you run campaigns.'
+                    : 'AI phân tích nội dung quảng cáo — phát hiện rủi ro vi phạm chính sách Meta trước khi chạy.'}
+                </p>
+
+                <SubHeading>{isEN ? 'How to use' : 'Cách sử dụng'}</SubHeading>
+                <Step num={1} text={isEN
+                  ? 'Enter Headline and Primary Text of your ad.'
+                  : 'Nhập Tiêu đề (Headline) và Nội dung chính (Primary Text) của bài quảng cáo.'} />
+                <Step num={2} text={isEN
+                  ? 'Select your Industry for more accurate context analysis.'
+                  : 'Chọn Ngành nghề để AI phân tích theo ngữ cảnh chính xác hơn.'} />
+                <Step num={3} text={isEN
+                  ? 'Click "Check violation" and wait 3-8 seconds for results.'
+                  : 'Nhấn "Kiểm tra vi phạm" và đợi 3-8 giây để nhận kết quả.'} />
+
+                <SubHeading>{isEN ? 'Warning Levels' : 'Các mức độ cảnh báo'}</SubHeading>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+                  <Tag color="#10b981">{isEN ? 'Safe (Green)' : 'An toàn (Xanh)'}</Tag>
+                  <Tag color="#f59e0b">{isEN ? 'Warning (Yellow)' : 'Cảnh báo (Vàng)'}</Tag>
+                  <Tag color="#ef4444">{isEN ? 'Violation (Red)' : 'Vi phạm (Đỏ)'}</Tag>
+                </div>
+                <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.7, margin: 0 }}>
+                  {isEN
+                    ? 'The AI will highlight risky keywords and explain which Facebook policy is violated.'
+                    : 'AI sẽ bôi đậm các từ ngữ có nguy cơ và giải thích rõ lỗi vi phạm theo chính sách của Facebook.'}
+                </p>
+                <Note>
+                  {isEN
+                    ? 'Usage limits: 20 times/day (Business), Unlimited (Agency). Feature not available for Personal plan.'
+                    : 'Giới hạn: 20 lần/ngày (Business), Không giới hạn (Agency). Gói Personal không khả dụng.'}
+                </Note>
+              </SectionCard>
+            </Reveal>
+
+            {/* 7 — Tab Báo cáo */}
+            <Reveal delay={40}>
+              <SectionCard id="bao-cao" title={isEN ? '7. Reports Tab' : '7. Tab Báo cáo'} badge="Business+">
                 <p style={{ color: '#64748b', lineHeight: 1.75, marginTop: 0, marginBottom: 0, fontSize: 15 }}>
                   {isEN
                     ? 'View consolidated reports, analyze trends, and send automated reports to your team.'
@@ -550,9 +589,15 @@ export default function HuongDan() {
                   'Phân tích — So sánh nhiều kỳ, phát hiện xu hướng tăng giảm',
                 ]} />
 
+                <SubHeading>{isEN ? 'AI Analytics Assistant' : 'Trợ lý AI Phân tích'}</SubHeading>
+                <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.7, margin: 0 }}>
+                  {isEN
+                    ? 'Use the Chatbot integrated into the Reports tab to ask AI to read charts, identify anomalies, and summarize performance data automatically.'
+                    : 'Sử dụng Chatbot tích hợp trong tab Báo cáo để nhờ AI đọc biểu đồ, phát hiện điểm bất thường và tóm tắt số liệu kinh doanh tự động.'}
+                </p>
+
                 <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 18 }}>
-                  <InfoBox icon="📊" title={isEN ? 'Export Excel / PDF' : 'Xuất Excel / PDF'} sub={isEN ? 'Business plan and above' : 'Gói Business trở lên'} />
-                  <InfoBox icon="✈️" title={isEN ? 'Auto send reports' : 'Gửi báo cáo tự động'} sub={isEN ? 'Telegram / Lark — Agency plan' : 'Telegram / Lark — Gói Agency'} accent />
+                  <InfoBox icon="✈️" title={isEN ? 'Auto send reports' : 'Gửi báo cáo tự động'} sub={isEN ? 'Telegram / Lark — Personal plan+' : 'Telegram / Lark — Gói Personal trở lên'} accent />
                 </div>
 
                 <Note>
@@ -563,9 +608,9 @@ export default function HuongDan() {
               </SectionCard>
             </Reveal>
 
-            {/* 5 — Tab Auto Care */}
+            {/* 6 — Tab Auto Care */}
             <Reveal delay={40}>
-              <SectionCard id="auto-care" title="5. Tab Auto Care">
+              <SectionCard id="auto-care" title="6. Tab Auto Care">
                 <p style={{ color: '#64748b', lineHeight: 1.75, marginTop: 0, marginBottom: 0, fontSize: 15 }}>
                   {isEN
                     ? 'Automate enabling/disabling adsets by schedule and by performance conditions — no need to monitor all day.'
@@ -603,9 +648,9 @@ export default function HuongDan() {
               </SectionCard>
             </Reveal>
 
-            {/* 6 — Tab Tự động Set QC */}
+            {/* 5 — Tab Tự động Set QC */}
             <Reveal delay={40}>
-              <SectionCard id="tu-dong-qc" title={isEN ? '6. Auto Set Ads Tab' : '6. Tab Tự động Set QC'}>
+              <SectionCard id="tu-dong-qc" title={isEN ? '5. Auto Set Ads Tab' : '5. Tab Tự động Set QC'}>
                 <p style={{ color: '#64748b', lineHeight: 1.75, marginTop: 0, marginBottom: 18, fontSize: 15 }}>
                   {isEN
                     ? 'Automatically create ads from Facebook posts — save up to 90% of manual ad setup time.'
@@ -625,15 +670,15 @@ export default function HuongDan() {
                   : 'Nhấn "🚀 Set quảng cáo" → hệ thống tự tạo Campaign + Adset + Ad hoàn chỉnh trên Facebook.'} />
                 <Note>
                   {isEN
-                    ? 'Supports both objectives: Web Conversion and Messenger. Can set ads for multiple posts at once.'
-                    : 'Hỗ trợ cả 2 mục tiêu: Web Conversion và Messenger. Có thể set hàng loạt nhiều bài viết cùng lúc.'}
+                    ? 'Supports 3 objectives: Awareness, Traffic, and Engagement. Easily set up ads for any post on your Fanpage with just 1 click.'
+                    : 'Hỗ trợ 3 mục tiêu: Nhận biết, Truy cập, Tương tác. Set tự động chiến dịch cho bất kỳ bài viết nào trên Fanpage chỉ bằng 1 click.'}
                 </Note>
               </SectionCard>
             </Reveal>
 
-            {/* 7 — Tab Thông báo */}
+            {/* 8 — Tab Thông báo */}
             <Reveal delay={40}>
-              <SectionCard id="thong-bao" title={isEN ? '7. Notifications Tab' : '7. Tab Thông báo'}>
+              <SectionCard id="thong-bao" title={isEN ? '8. Notifications Tab' : '8. Tab Thông báo'}>
                 <p style={{ color: '#64748b', lineHeight: 1.75, marginTop: 0, marginBottom: 0, fontSize: 15 }}>
                   {isEN
                     ? 'Receive instant notifications via Telegram or Lark when important events occur.'
@@ -645,8 +690,8 @@ export default function HuongDan() {
                   ? 'Find @Go_Meta_Ads_Pro_V1_bot on Telegram and press /start.'
                   : 'Tìm @Go_Meta_Ads_Pro_V1_bot trên Telegram và nhấn /start.'} />
                 <Step num={2} text={isEN
-                  ? 'The bot returns your Chat ID — copy it and paste into the Chat ID field in the extension.'
-                  : 'Bot trả về Chat ID của bạn — copy lại và dán vào ô Chat ID trong extension.'} />
+                  ? 'The bot returns your Chat ID — copy it and paste into the Chat ID field in the dashboard.'
+                  : 'Bot trả về Chat ID của bạn — copy lại và dán vào ô Chat ID trong dashboard.'} />
                 <Step num={3} text={isEN
                   ? 'Click "Test connection" to verify the test notification was received successfully.'
                   : 'Nhấn "Test kết nối" để kiểm tra thông báo thử nghiệm thành công.'} />
@@ -654,37 +699,40 @@ export default function HuongDan() {
                 <SubHeading>{isEN ? 'Connect Lark' : 'Kết nối Lark'}</SubHeading>
                 <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.7, margin: 0 }}>
                   {isEN
-                    ? 'Create a Lark Bot in your workspace → get the webhook URL → paste it in the Lark Webhook field in the extension → click Test.'
-                    : 'Tạo Lark Bot trong workspace → lấy webhook URL → dán vào ô Lark Webhook trong extension → nhấn Test.'}
+                    ? 'Create a Lark Bot in your workspace → get the webhook URL → paste it in the Lark Webhook field in the dashboard → click Test.'
+                    : 'Tạo Lark Bot trong workspace → lấy webhook URL → dán vào ô Lark Webhook trong dashboard → nhấn Test.'}
                 </p>
 
                 <SubHeading>{isEN ? 'Notification types' : 'Các loại thông báo'}</SubHeading>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
-                  <Tag>{isEN ? 'System audit' : 'Audit hệ thống'}</Tag>
-                  <Tag>{isEN ? 'Critical alerts' : 'Cảnh báo nghiêm trọng'}</Tag>
                   <Tag>{isEN ? 'Periodic reports' : 'Báo cáo định kỳ'}</Tag>
-                  <Tag>Auto Care action</Tag>
-                  <Tag>{isEN ? 'Adset pause / resume' : 'Adset pause / resume'}</Tag>
+                  <Tag>{isEN ? 'Status change alerts' : 'Cảnh báo thay đổi trạng thái'}</Tag>
+                  <Tag>{isEN ? 'Critical alerts' : 'Cảnh báo khẩn cấp'}</Tag>
                 </div>
               </SectionCard>
             </Reveal>
 
-            {/* 8 — Tab Nhân viên */}
+            {/* 9 — Tab Nhân viên */}
             <Reveal delay={40}>
-              <SectionCard id="nhan-vien" title={isEN ? '8. Staff Tab' : '8. Tab Nhân viên'} badge={isEN ? 'Admin Only' : 'Chỉ Admin'}>
+              <SectionCard id="nhan-vien" title={isEN ? '9. Staff Tab' : '9. Tab Nhân viên'}>
                 <p style={{ color: '#64748b', lineHeight: 1.75, marginTop: 0, marginBottom: 0, fontSize: 15 }}>
                   {isEN
-                    ? 'Manage staff keys, set access permissions and monitor activity. Only Admin accounts can see this tab.'
-                    : 'Quản lý key nhân viên, phân quyền truy cập và theo dõi hoạt động. Chỉ tài khoản Admin mới thấy tab này.'}
+                    ? 'Manage staff accounts, set access permissions and monitor activity.'
+                    : 'Quản lý tài khoản nhân viên, phân quyền truy cập và theo dõi hoạt động.'}
                 </p>
 
-                <SubHeading>{isEN ? 'Add staff key' : 'Thêm key nhân viên'}</SubHeading>
+                <SubHeading>{isEN ? 'Add staff account' : 'Thêm nhân viên'}</SubHeading>
+                <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.7, margin: '0 0 10px 0' }}>
+                  {isEN
+                    ? <>Limits: 1 staff (Personal plan), 7 staff (Business plan), Unlimited (Agency plan).</>
+                    : <>Giới hạn: 1 NV (gói Personal), 7 NV (gói Business), Không giới hạn (gói Agency).</>}
+                </p>
                 <BulletList items={isEN ? [
-                  'Enter name, email, expiry date → the system automatically creates a unique staff key',
-                  'Send the key to staff so they can sign in on their own computer',
+                  'Enter name, email, expiry date → the system automatically creates a login account for staff',
+                  'Send the login details to staff so they can sign in on their own device',
                 ] : [
-                  'Nhập tên, email, ngày hết hạn → hệ thống tự tạo key NV duy nhất',
-                  'Gửi key cho nhân viên để đăng nhập vào extension trên máy của họ',
+                  'Nhập tên, email, ngày hết hạn → hệ thống tự tạo tài khoản đăng nhập cho NV',
+                  'Gửi thông tin đăng nhập cho nhân viên để truy cập trên máy của họ',
                 ]} />
 
                 <SubHeading>{isEN ? 'Tab permissions' : 'Phân quyền xem tab'}</SubHeading>
@@ -700,70 +748,47 @@ export default function HuongDan() {
                     : 'Tick / bỏ tick từng tab để kiểm soát nhân viên nào được phép xem tính năng nào.'}
                 </p>
 
-                <SubHeading>{isEN ? 'Staff key lifecycle management' : 'Quản lý vòng đời key NV'}</SubHeading>
+                <SubHeading>{isEN ? 'Staff lifecycle management' : 'Quản lý vòng đời NV'}</SubHeading>
                 <BulletList items={isEN ? [
                   'Renew — extend expiry date by month or year',
-                  'Disable — temporarily lock key when staff takes leave or leaves the company',
+                  'Disable — temporarily lock account when staff takes leave or leaves the company',
                   'Delete — permanently revoke access',
                 ] : [
                   'Gia hạn — kéo dài ngày hết hạn theo tháng hoặc năm',
-                  'Vô hiệu hóa — tạm khóa key khi nhân viên nghỉ phép hoặc rời công ty',
+                  'Vô hiệu hóa — tạm khóa tài khoản khi nhân viên nghỉ phép hoặc rời công ty',
                   'Xóa hoàn toàn — thu hồi quyền truy cập vĩnh viễn',
                 ]} />
               </SectionCard>
             </Reveal>
 
-            {/* 9 — Khắc phục sự cố */}
+            {/* 10 — Tab Affiliate & Mua Gói (MỚI) */}
             <Reveal delay={40}>
-              <SectionCard id="khac-phuc" title={isEN ? '9. Troubleshooting' : '9. Khắc phục sự cố'}>
-                {isEN ? (
-                  <>
-                    <FaqItem
-                      q="Campaign data not showing?"
-                      a="Open Facebook Ads Manager in a Chrome tab in the same browser, reload the Ads Manager page, then click Reload in the extension."
-                    />
-                    <FaqItem
-                      q="Forgot your login key?"
-                      a="Go to the Account Lookup page — find your key by phone number and email registered when purchasing. The key will be displayed immediately after verification."
-                    />
-                    <FaqItem
-                      q="Switching computers or reinstalling Chrome?"
-                      a="The key is locked to the old device. Go to Account Management → Reset Device (max 1 time/month) to unlock and use on the new computer."
-                    />
-                    <FaqItem
-                      q="There is a new version — how do I update?"
-                      a="Download the new ZIP from the Download page → extract and overwrite the old folder → go to chrome://extensions → click the extension Reload button."
-                    />
-                  </>
-                ) : (
-                  <>
-                    <FaqItem
-                      q="Không thấy data chiến dịch?"
-                      a="Mở Facebook Ads Manager trong tab Chrome cùng trình duyệt, reload lại trang Ads Manager, sau đó nhấn Reload ở extension."
-                    />
-                    <FaqItem
-                      q="Quên key đăng nhập?"
-                      a="Vào trang Tra cứu — tìm key bằng SĐT và Email đã đăng ký khi mua gói. Key sẽ được hiển thị ngay sau khi xác minh."
-                    />
-                    <FaqItem
-                      q="Đổi máy tính hoặc cài lại Chrome?"
-                      a="Key bị khóa thiết bị cũ. Vào trang Quản lý → Reset thiết bị (tối đa 1 lần/tháng) để mở khóa và dùng trên máy mới."
-                    />
-                    <FaqItem
-                      q="Có phiên bản mới, cập nhật thế nào?"
-                      a="Tải file ZIP mới từ trang Tải xuống → giải nén đè lên thư mục cũ → vào chrome://extensions → nhấn nút Reload extension."
-                    />
-                  </>
-                )}
+              <SectionCard id="affiliate" title={isEN ? '10. Affiliate & Plans Tab' : '10. Tab Affiliate & Mua Gói'}>
+                <p style={{ color: '#64748b', lineHeight: 1.75, marginTop: 0, marginBottom: 0, fontSize: 15 }}>
+                  {isEN
+                    ? 'Upgrade your account and earn commissions by referring friends.'
+                    : 'Nâng cấp tài khoản và kiếm hoa hồng bằng cách giới thiệu bạn bè.'}
+                </p>
 
-                <div style={{ marginTop: 24, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                  <a href="/quan-ly" className="btn btn-navy btn-sm">
-                    {isEN ? 'Lookup & Reset Device →' : 'Tra cứu & Reset thiết bị →'}
-                  </a>
-                  <a href="mailto:admin@gonetwork.vn" className="btn btn-outline-navy btn-sm">
-                    {isEN ? 'Contact support' : 'Liên hệ hỗ trợ'}
-                  </a>
-                </div>
+                <SubHeading>{isEN ? 'Purchase / Upgrade Plan' : 'Mua gói / Nâng cấp'}</SubHeading>
+                <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.7, margin: 0 }}>
+                  {isEN
+                    ? 'Go to the Buy Plan page, select a suitable plan (Personal, Business, or Agency). The system supports automatic QR code payment via PayOS. Your account will be upgraded instantly after successful payment.'
+                    : 'Vào trang Mua Gói, chọn gói phù hợp (Personal, Business hoặc Agency). Hệ thống hỗ trợ thanh toán quét mã QR tự động qua PayOS. Tài khoản sẽ tự động kích hoạt ngay sau khi thanh toán thành công.'}
+                </p>
+
+                <SubHeading>{isEN ? 'Affiliate Program' : 'Chương trình Affiliate'}</SubHeading>
+                <BulletList items={isEN ? [
+                  'Requirement: Must have a Personal plan or higher.',
+                  'Commissions: 10-15% for new registrations (depending on your plan), and 3% for renewals.',
+                  'How to earn: Copy your Referral link and share it. When users sign up and purchase a plan, you receive commission.',
+                  'Payout: Provide your bank details in the Affiliate tab to receive monthly payouts.',
+                ] : [
+                  'Điều kiện: Yêu cầu có gói Personal trở lên.',
+                  'Hoa hồng: 10-15% cho lượt đăng ký mới (tùy gói của bạn), và 3% cho lượt gia hạn.',
+                  'Cách làm: Copy link giới thiệu (Ref link) và chia sẻ. Khi người dùng đăng ký và mua gói, bạn sẽ nhận được hoa hồng.',
+                  'Nhận tiền: Điền thông tin ngân hàng trong tab Affiliate để nhận thanh toán định kỳ.',
+                ]} />
               </SectionCard>
             </Reveal>
 

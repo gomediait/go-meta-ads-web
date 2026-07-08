@@ -108,7 +108,7 @@ export default async function handler(req, res) {
 
     const { data: user, error } = await db.from('users').insert({
       email: emailLower,
-      password_hash: hashPassword(password),
+      password_hash: await hashPassword(password),
       name: name.trim(),
       phone: phone.trim(),
       plan: 'trial',
@@ -150,7 +150,7 @@ export default async function handler(req, res) {
       .select('id,email,name,plan,status,expire_at,avatar,phone,password_hash')
       .eq('email', email.toLowerCase().trim()).single()
 
-    if (!user || !verifyPassword(password, user.password_hash || ''))
+    if (!user || !(await verifyPassword(password, user.password_hash || '')))
       return res.status(401).json({ error: 'Email hoặc mật khẩu không đúng' })
     if (user.status !== 'active')
       return res.status(403).json({ error: 'Tài khoản đã bị khoá' })

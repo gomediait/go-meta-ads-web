@@ -1,6 +1,7 @@
+import jwt from 'jsonwebtoken'
 import { getSupabase } from '../../../lib/supabase'
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'GoMedia@3038485##$$G'
+
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store')
@@ -16,8 +17,14 @@ export default async function handler(req, res) {
 
   // Admin POST — upsert settings
   if (req.method === 'POST') {
-    if (req.headers['x-admin-token'] !== ADMIN_PASSWORD)
-      return res.status(401).json({ ok: false, error: 'Unauthorized' })
+    const token = req.cookies.admin_token
+  if (!token) return res.status(401).json({ ok: false, error: 'Unauthorized' })
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_for_development')
+    if (!decoded.admin) throw new Error('Not admin')
+  } catch(e) {
+    return res.status(401).json({ ok: false, error: 'Unauthorized' })
+  }
 
     const { settings } = req.body || {}
     if (!settings || typeof settings !== 'object')

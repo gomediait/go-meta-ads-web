@@ -88,7 +88,7 @@ export default function Privacy() {
   return (
     <>
       <Head>
-        <title>{isEN ? 'Privacy Policy — Go Meta Ads Pro' : 'Chính sách bảo mật — Go Meta Ads Pro'}</title>
+        <title>Go Meta Ads Pro</title>
         <meta name="description" content={isEN
           ? 'Privacy Policy for Go Meta Ads Pro Chrome Extension.'
           : 'Chính sách bảo mật của tiện ích Go Meta Ads Pro.'

@@ -516,7 +516,7 @@ export default function QuanLy() {
   return (
     <>
       <Head>
-        <title>{isEN ? 'Account Management — Go Meta Ads Pro' : 'Quản lý tài khoản — Go Meta Ads Pro'}</title>
+        <title>Go Meta Ads Pro</title>
         <meta name="description" content={isEN
           ? 'Look up your key, reset device, and manage your Go Meta Ads Pro account.'
           : 'Tra cứu key, reset thiết bị và quản lý tài khoản Go Meta Ads Pro.'

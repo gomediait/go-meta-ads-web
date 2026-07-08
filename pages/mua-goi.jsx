@@ -9,42 +9,42 @@ import { useRouter } from 'next/router'
 
 const PLANS_DATA = {
   thang: [
-    { id: 'ca-nhan',      plan: 'personal', name: 'Cá nhân',     nameEN: 'Personal', price: 180000,  days: 30,   features: ['Auto Care, Set QC, Thông báo', '5 lần kiểm tra vi phạm/ngày', 'Tối đa 3 tài khoản Ads', 'Hỗ trợ kỹ thuật 24/7'],            featuresEN: ['Auto Care, Set QC, Notifications', '5 policy checks/day', 'Max 3 Ad Accounts', '24/7 tech support'], recommended: false },
-    { id: 'doanh-nghiep', plan: 'business', name: 'Doanh nghiệp', nameEN: 'Business', price: 390000,  days: 30,   features: ['Tất cả tính năng Personal', '10 lần kiểm tra vi phạm/ngày', 'Tối đa 5 nhân viên', 'Tối đa 5 tài khoản Ads'],              featuresEN: ['All Personal features', '10 policy checks/day', 'Max 5 team members', 'Max 5 Ad Accounts'], recommended: true  },
-    { id: 'agency',       plan: 'agency',   name: 'Agency',       nameEN: 'Agency',   price: 890000,  days: 30,   features: ['Tất cả tính năng Business', '30 lần kiểm tra vi phạm/ngày', 'Nhân viên không giới hạn', 'Tài khoản Ads không giới hạn'], featuresEN: ['All Business features', '30 policy checks/day', 'Unlimited team members', 'Unlimited Ad Accounts'], recommended: false },
+    { id: 'ca-nhan',      plan: 'personal', name: 'Cá nhân',     nameEN: 'Personal', price: 180000,  days: 30,   features: ['1 Admin + 1 Nhân viên', 'Không giới hạn tài khoản ads', '5 lần kiểm tra vi phạm/ngày', 'Hỗ trợ kỹ thuật 24/7'],            featuresEN: ['1 Admin + 1 Staff', 'Unlimited Ad Accounts', '5 policy checks/day', '24/7 tech support'], recommended: false },
+    { id: 'doanh-nghiep', plan: 'business', name: 'Doanh nghiệp', nameEN: 'Business', price: 390000,  days: 30,   features: ['2 Admin + 5 Nhân viên', 'Không giới hạn tài khoản ads', '10 lần kiểm tra vi phạm/ngày', 'Tất cả tính năng Personal'],              featuresEN: ['2 Admins + 5 Staff', 'Unlimited Ad Accounts', '10 policy checks/day', 'All Personal features'], recommended: true  },
+    { id: 'agency',       plan: 'agency',   name: 'Agency',       nameEN: 'Agency',   price: 890000,  days: 30,   features: ['6 Admin + Không giới hạn NV', 'Không giới hạn tài khoản ads', '30 lần kiểm tra vi phạm/ngày', 'Tất cả tính năng Business'], featuresEN: ['6 Admins + Unlimited Staff', 'Unlimited Ad Accounts', '30 policy checks/day', 'All Business features'], recommended: false },
   ],
   nam1: [
     { id: 'ca-nhan',      plan: 'personal', name: 'Cá nhân',     nameEN: 'Personal', price: 1728000, days: 365,  saving: '-20%', recommended: false,
-      features: ['Auto Care, Set QC, Thông báo', '5 lần kiểm tra vi phạm/ngày', 'Tối đa 3 tài khoản Ads', 'Hỗ trợ kỹ thuật 24/7'],
-      featuresEN: ['Auto Care, Set QC, Notifications', '5 policy checks/day', 'Max 3 Ad Accounts', '24/7 tech support'] },
+      features: ['1 Admin + 1 Nhân viên', 'Không giới hạn tài khoản ads', '5 lần kiểm tra vi phạm/ngày', 'Hỗ trợ kỹ thuật 24/7'],
+      featuresEN: ['1 Admin + 1 Staff', 'Unlimited Ad Accounts', '5 policy checks/day', '24/7 tech support'] },
     { id: 'doanh-nghiep', plan: 'business', name: 'Doanh nghiệp', nameEN: 'Business', price: 3744000, days: 365,  saving: '-20%', recommended: true,
-      features: ['Tất cả tính năng Personal', '10 lần kiểm tra vi phạm/ngày', 'Tối đa 5 nhân viên', 'Tối đa 5 tài khoản Ads'],
-      featuresEN: ['All Personal features', '10 policy checks/day', 'Max 5 team members', 'Max 5 Ad Accounts'] },
+      features: ['2 Admin + 5 Nhân viên', 'Không giới hạn tài khoản ads', '10 lần kiểm tra vi phạm/ngày', 'Tất cả tính năng Personal'],
+      featuresEN: ['2 Admins + 5 Staff', 'Unlimited Ad Accounts', '10 policy checks/day', 'All Personal features'] },
     { id: 'agency',       plan: 'agency',   name: 'Agency',       nameEN: 'Agency',   price: 8544000, days: 365,  saving: '-20%', recommended: false,
-      features: ['Tất cả tính năng Business', '30 lần kiểm tra vi phạm/ngày', 'Nhân viên không giới hạn', 'Tài khoản Ads không giới hạn'],
-      featuresEN: ['All Business features', '30 policy checks/day', 'Unlimited team members', 'Unlimited Ad Accounts'] },
+      features: ['6 Admin + Không giới hạn NV', 'Không giới hạn tài khoản ads', '30 lần kiểm tra vi phạm/ngày', 'Tất cả tính năng Business'],
+      featuresEN: ['6 Admins + Unlimited Staff', 'Unlimited Ad Accounts', '30 policy checks/day', 'All Business features'] },
   ],
   nam3: [
     { id: 'ca-nhan',      plan: 'personal', name: 'Cá nhân',     nameEN: 'Personal', price: 4536000,  days: 1095, saving: '-30%', recommended: false,
-      features: ['Auto Care, Set QC, Thông báo', '5 lần kiểm tra vi phạm/ngày', 'Tối đa 3 tài khoản Ads', 'Hỗ trợ kỹ thuật 24/7'],
-      featuresEN: ['Auto Care, Set QC, Notifications', '5 policy checks/day', 'Max 3 Ad Accounts', '24/7 tech support'] },
+      features: ['1 Admin + 1 Nhân viên', 'Không giới hạn tài khoản ads', '5 lần kiểm tra vi phạm/ngày', 'Hỗ trợ kỹ thuật 24/7'],
+      featuresEN: ['1 Admin + 1 Staff', 'Unlimited Ad Accounts', '5 policy checks/day', '24/7 tech support'] },
     { id: 'doanh-nghiep', plan: 'business', name: 'Doanh nghiệp', nameEN: 'Business', price: 9828000,  days: 1095, saving: '-30%', recommended: true,
-      features: ['Tất cả tính năng Personal', '10 lần kiểm tra vi phạm/ngày', 'Tối đa 5 nhân viên', 'Tối đa 5 tài khoản Ads'],
-      featuresEN: ['All Personal features', '10 policy checks/day', 'Max 5 team members', 'Max 5 Ad Accounts'] },
+      features: ['2 Admin + 5 Nhân viên', 'Không giới hạn tài khoản ads', '10 lần kiểm tra vi phạm/ngày', 'Tất cả tính năng Personal'],
+      featuresEN: ['2 Admins + 5 Staff', 'Unlimited Ad Accounts', '10 policy checks/day', 'All Personal features'] },
     { id: 'agency',       plan: 'agency',   name: 'Agency',       nameEN: 'Agency',   price: 22428000, days: 1095, saving: '-30%', recommended: false,
-      features: ['Tất cả tính năng Business', '30 lần kiểm tra vi phạm/ngày', 'Nhân viên không giới hạn', 'Tài khoản Ads không giới hạn'],
-      featuresEN: ['All Business features', '30 policy checks/day', 'Unlimited team members', 'Unlimited Ad Accounts'] },
+      features: ['6 Admin + Không giới hạn NV', 'Không giới hạn tài khoản ads', '30 lần kiểm tra vi phạm/ngày', 'Tất cả tính năng Business'],
+      featuresEN: ['6 Admins + Unlimited Staff', 'Unlimited Ad Accounts', '30 policy checks/day', 'All Business features'] },
   ],
   nam5: [
     { id: 'ca-nhan',      plan: 'personal', name: 'Cá nhân',     nameEN: 'Personal', price: 6480000,  days: 1825, saving: '-40%', recommended: false,
-      features: ['Auto Care, Set QC, Thông báo', '5 lần kiểm tra vi phạm/ngày', 'Tối đa 3 tài khoản Ads', 'Hỗ trợ kỹ thuật 24/7'],
-      featuresEN: ['Auto Care, Set QC, Notifications', '5 policy checks/day', 'Max 3 Ad Accounts', '24/7 tech support'] },
+      features: ['1 Admin + 1 Nhân viên', 'Không giới hạn tài khoản ads', '5 lần kiểm tra vi phạm/ngày', 'Hỗ trợ kỹ thuật 24/7'],
+      featuresEN: ['1 Admin + 1 Staff', 'Unlimited Ad Accounts', '5 policy checks/day', '24/7 tech support'] },
     { id: 'doanh-nghiep', plan: 'business', name: 'Doanh nghiệp', nameEN: 'Business', price: 14040000, days: 1825, saving: '-40%', recommended: true,
-      features: ['Tất cả tính năng Personal', '10 lần kiểm tra vi phạm/ngày', 'Tối đa 5 nhân viên', 'Tối đa 5 tài khoản Ads'],
-      featuresEN: ['All Personal features', '10 policy checks/day', 'Max 5 team members', 'Max 5 Ad Accounts'] },
+      features: ['2 Admin + 5 Nhân viên', 'Không giới hạn tài khoản ads', '10 lần kiểm tra vi phạm/ngày', 'Tất cả tính năng Personal'],
+      featuresEN: ['2 Admins + 5 Staff', 'Unlimited Ad Accounts', '10 policy checks/day', 'All Personal features'] },
     { id: 'agency',       plan: 'agency',   name: 'Agency',       nameEN: 'Agency',   price: 32040000, days: 1825, saving: '-40%', recommended: false,
-      features: ['Tất cả tính năng Business', '30 lần kiểm tra vi phạm/ngày', 'Nhân viên không giới hạn', 'Tài khoản Ads không giới hạn'],
-      featuresEN: ['All Business features', '30 policy checks/day', 'Unlimited team members', 'Unlimited Ad Accounts'] },
+      features: ['6 Admin + Không giới hạn NV', 'Không giới hạn tài khoản ads', '30 lần kiểm tra vi phạm/ngày', 'Tất cả tính năng Business'],
+      featuresEN: ['6 Admins + Unlimited Staff', 'Unlimited Ad Accounts', '30 policy checks/day', 'All Business features'] },
   ],
 }
 
@@ -121,7 +121,7 @@ export default function MuaGoi() {
   return (
     <>
       <Head>
-        <title>{isEN ? 'Pricing — Go Meta Ads Pro' : 'Mua gói — Go Meta Ads Pro'}</title>
+        <title>Go Meta Ads Pro</title>
       </Head>
       <Navbar />
 

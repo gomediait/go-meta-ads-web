@@ -1,5 +1,6 @@
 import { getUserFromReq } from '../../lib/auth'
 import { getSupabase } from '../../lib/supabase'
+import { isPlanAllowed, getMaxTeamMembers } from '../../lib/planLimits'
 
 export default async function handler(req, res) {
   const user = getUserFromReq(req)
@@ -9,8 +10,8 @@ export default async function handler(req, res) {
 
   const { data: dbUser } = await sb.from('users').select('plan').eq('id', user.id).single()
   if (!dbUser) return res.status(401).json({ error: 'Không tìm thấy tài khoản' })
-  if (!['business', 'agency'].includes(dbUser.plan)) {
-    return res.status(403).json({ error: 'Tính năng này yêu cầu gói Business trở lên' })
+  if (!isPlanAllowed(dbUser.plan, 'team')) {
+    return res.status(403).json({ error: 'Tính năng này không hỗ trợ cho gói của bạn' })
   }
 
   if (req.method === 'GET') {
@@ -40,6 +41,12 @@ export default async function handler(req, res) {
 
       const { data: existing } = await sb.from('team_members').select('id').eq('owner_id', user.id).eq('user_id', target.id).single()
       if (existing) return res.status(409).json({ error: 'Thành viên này đã có trong nhóm' })
+
+      const { count } = await sb.from('team_members').select('*', { count: 'exact', head: true }).eq('owner_id', user.id)
+      const maxMembers = getMaxTeamMembers(dbUser.plan)
+      if (count >= maxMembers) {
+        return res.status(403).json({ error: `Gói của bạn chỉ cho phép tối đa ${maxMembers} nhân viên` })
+      }
 
       const { error: insErr } = await sb.from('team_members').insert({
         owner_id: user.id, user_id: target.id, email: target.email, name: target.name, role: role || 'viewer'

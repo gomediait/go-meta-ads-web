@@ -1,32 +1,50 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
-import { checkAdminAuth, adminLogin } from '../../lib/adminAuth'
 
 export default function AdminLogin() {
   const router = useRouter()
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [checking, setChecking] = useState(true)
 
   useEffect(() => {
-    if (checkAdminAuth()) {
-      router.replace('/admin/dashboard')
-    } else {
-      setChecking(false)
-    }
+    // Tự động gọi API /api/admin/me để kiểm tra phiên đăng nhập
+    fetch('/api/admin/me')
+      .then(res => res.json())
+      .then(data => {
+        if (data.ok) {
+          router.replace('/admin/dashboard')
+        } else {
+          setChecking(false)
+        }
+      })
+      .catch(() => setChecking(false))
   }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setLoading(true)
-    const ok = adminLogin(password)
-    if (ok) {
-      router.push('/admin/dashboard')
-    } else {
-      setError('Sai mật khẩu. Vui lòng thử lại.')
+    
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      })
+      const data = await res.json()
+      
+      if (data.ok) {
+        router.push('/admin/dashboard')
+      } else {
+        setError(data.error || 'Đăng nhập thất bại')
+        setLoading(false)
+      }
+    } catch (err) {
+      setError('Lỗi kết nối đến máy chủ')
       setLoading(false)
     }
   }
@@ -40,7 +58,7 @@ export default function AdminLogin() {
         alignItems: 'center',
         justifyContent: 'center',
       }}>
-        <div style={{ color: '#00c7de', fontSize: 18 }}>Đang kiểm tra...</div>
+        <div style={{ color: 'var(--blue)', fontSize: 18 }}>Đang kiểm tra...</div>
       </div>
     )
   }
@@ -48,7 +66,7 @@ export default function AdminLogin() {
   return (
     <>
       <Head>
-        <title>Admin Login — Go Meta Ads Pro</title>
+        <title>Go Meta Ads Pro</title>
         <meta name="robots" content="noindex,nofollow" />
       </Head>
       <div style={{
@@ -98,104 +116,131 @@ export default function AdminLogin() {
             </div>
             <h1 style={{
               color: '#ffffff',
-              fontSize: 22,
-              fontWeight: 700,
-              margin: '0 0 6px',
-              letterSpacing: '-0.3px',
+              fontSize: 24,
+              fontWeight: 600,
+              margin: '0 0 8px',
+              letterSpacing: '-0.02em',
             }}>
               Admin Dashboard
             </h1>
-            <p style={{ color: '#64748b', fontSize: 14, margin: 0 }}>
-              Go Meta Ads Pro
+            <p style={{ color: '#8b9bb4', fontSize: 15, margin: 0 }}>
+              Đăng nhập để quản lý hệ thống
             </p>
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit}>
-            <div style={{ marginBottom: 20 }}>
-              <label style={{
-                display: 'block',
-                color: '#94a3b8',
-                fontSize: 13,
-                fontWeight: 600,
-                marginBottom: 8,
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-              }}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div>
+              <label style={{ display: 'block', color: '#a0aec0', fontSize: 13, fontWeight: 500, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Email
+              </label>
+              <input
+                type="email"
+                placeholder="admin@gomedia.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '14px 16px',
+                  background: 'rgba(0,0,0,0.2)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: 10,
+                  fontSize: 15,
+                  color: '#fff',
+                  outline: 'none',
+                  transition: 'all 0.2s ease',
+                  boxSizing: 'border-box'
+                }}
+                autoFocus
+                required
+              />
+            </div>
+            
+            <div>
+              <label style={{ display: 'block', color: '#a0aec0', fontSize: 13, fontWeight: 500, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Mật khẩu
               </label>
               <input
                 type="password"
+                placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Nhập mật khẩu admin..."
-                autoFocus
-                required
                 style={{
                   width: '100%',
-                  padding: '12px 16px',
-                  background: 'rgba(255,255,255,0.05)',
-                  border: `1px solid ${error ? '#ef4444' : 'rgba(0,199,222,0.25)'}`,
+                  padding: '14px 16px',
+                  background: 'rgba(0,0,0,0.2)',
+                  border: '1px solid rgba(255,255,255,0.1)',
                   borderRadius: 10,
-                  color: '#ffffff',
                   fontSize: 15,
+                  color: '#fff',
                   outline: 'none',
-                  transition: 'border-color 0.2s',
-                  boxSizing: 'border-box',
-                  fontFamily: 'inherit',
+                  transition: 'all 0.2s ease',
+                  boxSizing: 'border-box'
                 }}
-                onFocus={(e) => { e.target.style.borderColor = '#00c7de' }}
-                onBlur={(e) => { e.target.style.borderColor = error ? '#ef4444' : 'rgba(0,199,222,0.25)' }}
+                required
               />
             </div>
 
             {error && (
               <div style={{
-                background: 'rgba(239,68,68,0.1)',
-                border: '1px solid rgba(239,68,68,0.3)',
+                background: 'rgba(255, 68, 68, 0.1)',
+                border: '1px solid rgba(255, 68, 68, 0.2)',
+                color: '#ff4444',
+                padding: '12px 16px',
                 borderRadius: 8,
-                padding: '10px 14px',
-                color: '#f87171',
-                fontSize: 13,
-                marginBottom: 16,
+                fontSize: 14,
                 display: 'flex',
                 alignItems: 'center',
                 gap: 8,
               }}>
-                ⚠️ {error}
+                <span style={{ fontSize: 16 }}>⚠️</span>
+                {error}
               </div>
             )}
 
             <button
               type="submit"
-              disabled={loading || !password}
+              disabled={loading || !email || !password}
               style={{
                 width: '100%',
-                padding: '13px 20px',
-                background: loading || !password
-                  ? 'rgba(0,199,222,0.4)'
-                  : 'linear-gradient(135deg, #00c7de, #0099aa)',
+                padding: '14px',
+                background: loading || (!email || !password) ? '#007a8a' : '#00c7de',
+                color: '#fff',
                 border: 'none',
                 borderRadius: 10,
-                color: '#ffffff',
-                fontSize: 15,
-                fontWeight: 700,
-                cursor: loading || !password ? 'not-allowed' : 'pointer',
-                transition: 'all 0.2s',
-                fontFamily: 'inherit',
-                letterSpacing: '0.3px',
-                boxShadow: loading || !password ? 'none' : '0 4px 16px rgba(0,199,222,0.3)',
+                fontSize: 16,
+                fontWeight: 600,
+                cursor: loading || (!email || !password) ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s ease',
+                marginTop: 8,
+                opacity: loading || (!email || !password) ? 0.7 : 1,
+                boxShadow: loading || (!email || !password) ? 'none' : '0 4px 14px rgba(0,199,222,0.4)',
               }}
             >
-              {loading ? '⏳ Đang đăng nhập...' : '🚀 Đăng nhập'}
+              {loading ? 'Đang xác thực...' : 'Đăng nhập'}
             </button>
           </form>
 
-          <p style={{ textAlign: 'center', color: '#475569', fontSize: 12, marginTop: 24, marginBottom: 0 }}>
-            Trang quản trị dành riêng cho admin
-          </p>
+          {/* Footer */}
+          <div style={{
+            marginTop: 32,
+            textAlign: 'center',
+            color: 'var(--mut)',
+            fontSize: 13,
+            borderTop: '1px solid rgba(255,255,255,0.05)',
+            paddingTop: 24,
+          }}>
+            &copy; {new Date().getFullYear()} Go Meta Ads Pro.<br/>
+            Bảo mật nhiều lớp (JWT).
+          </div>
         </div>
       </div>
+
+      <style jsx global>{`
+        input:focus {
+          border-color: #00c7de !important;
+          box-shadow: 0 0 0 3px rgba(0, 199, 222, 0.15) !important;
+        }
+      `}</style>
     </>
   )
 }

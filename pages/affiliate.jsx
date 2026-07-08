@@ -155,7 +155,7 @@ export default function AffiliatePage() {
   return (
     <>
       <Head>
-        <title>{isEN ? 'Affiliate — Go Meta Ads Pro | Earn Commission' : 'Affiliate — Go Meta Ads Pro | Kiếm hoa hồng giới thiệu'}</title>
+        <title>Go Meta Ads Pro</title>
         <meta name="description" content={isEN
           ? 'Join the Go Meta Ads Pro affiliate program — earn up to 15% commission each time you refer a customer.'
           : 'Tham gia chương trình affiliate Go Meta Ads Pro — nhận hoa hồng đến 15% mỗi lần giới thiệu khách mua gói.'
