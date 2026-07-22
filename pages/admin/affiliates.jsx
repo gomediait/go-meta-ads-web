@@ -3,10 +3,10 @@ import { useRouter } from 'next/router'
 import AdminLayout from '../../components/AdminLayout'
 import { Badge, Spinner, ErrorBox, CopyButton, EmptyState, AdminPageHeader, AdminTable, AdminCard, AdminButton } from '../../components/AdminUI'
 import { Handshake, Check, X } from 'lucide-react'
-import { adminLocalFetch, apiPost } from '../../lib/adminUtils'
+import { apiPost } from '../../lib/adminUtils'
 
 async function webAdminPost(action, body = {}) {
-  return await adminLocalFetch('/api/admin/affiliates', { action, ...body })
+  return await apiPost('/api/admin/affiliates', { action, ...body })
 }
 
 function WebAffiliatesTab() {

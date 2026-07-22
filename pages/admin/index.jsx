@@ -11,6 +11,10 @@ export default function AdminLogin() {
   const [loading, setLoading] = useState(false)
   const [checking, setChecking] = useState(true)
 
+  // Bước 2FA (chỉ hiện khi tài khoản admin đã bật 2FA)
+  const [preToken, setPreToken] = useState(null)
+  const [code, setCode] = useState('')
+
   useEffect(() => {
     // Tự động gọi API /api/admin/me để kiểm tra phiên đăng nhập
     fetch('/api/admin/me')
@@ -29,7 +33,7 @@ export default function AdminLogin() {
     e.preventDefault()
     setError('')
     setLoading(true)
-    
+
     try {
       const res = await fetch('/api/admin/login', {
         method: 'POST',
@@ -37,11 +41,39 @@ export default function AdminLogin() {
         body: JSON.stringify({ email, password })
       })
       const data = await res.json()
-      
-      if (data.ok) {
+
+      if (data.ok && data.requires2fa) {
+        setPreToken(data.pre_token)
+        setLoading(false)
+      } else if (data.ok) {
         router.push('/admin/dashboard')
       } else {
         setError(data.error || 'Đăng nhập thất bại')
+        setLoading(false)
+      }
+    } catch (err) {
+      setError('Lỗi kết nối đến máy chủ')
+      setLoading(false)
+    }
+  }
+
+  const handleVerify2FA = async (e) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+
+    try {
+      const res = await fetch('/api/admin/verify-2fa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pre_token: preToken, code })
+      })
+      const data = await res.json()
+
+      if (data.ok) {
+        router.push('/admin/dashboard')
+      } else {
+        setError(data.error || 'Mã xác thực không đúng')
         setLoading(false)
       }
     } catch (err) {
@@ -125,10 +157,11 @@ export default function AdminLogin() {
               Admin Dashboard
             </h1>
             <p style={{ color: '#8b9bb4', fontSize: 15, margin: 0 }}>
-              Đăng nhập để quản lý hệ thống
+              {preToken ? 'Nhập mã xác thực 2 lớp' : 'Đăng nhập để quản lý hệ thống'}
             </p>
           </div>
 
+          {!preToken ? (
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             <div>
               <label style={{ display: 'block', color: '#a0aec0', fontSize: 13, fontWeight: 500, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -155,7 +188,7 @@ export default function AdminLogin() {
                 required
               />
             </div>
-            
+
             <div>
               <label style={{ display: 'block', color: '#a0aec0', fontSize: 13, fontWeight: 500, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Mật khẩu
@@ -220,6 +253,85 @@ export default function AdminLogin() {
               {loading ? 'Đang xác thực...' : 'Đăng nhập'}
             </button>
           </form>
+          ) : (
+          <form onSubmit={handleVerify2FA} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div>
+              <label style={{ display: 'block', color: '#a0aec0', fontSize: 13, fontWeight: 500, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Mã xác thực (6 số)
+              </label>
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder="000000"
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                style={{
+                  width: '100%',
+                  padding: '14px 16px',
+                  background: 'rgba(0,0,0,0.2)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: 10,
+                  fontSize: 20,
+                  letterSpacing: 6,
+                  textAlign: 'center',
+                  color: '#fff',
+                  outline: 'none',
+                  transition: 'all 0.2s ease',
+                  boxSizing: 'border-box'
+                }}
+                autoFocus
+                required
+              />
+            </div>
+
+            {error && (
+              <div style={{
+                background: 'rgba(255, 68, 68, 0.1)',
+                border: '1px solid rgba(255, 68, 68, 0.2)',
+                color: '#ff4444',
+                padding: '12px 16px',
+                borderRadius: 8,
+                fontSize: 14,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+              }}>
+                <span style={{ fontSize: 16 }}>⚠️</span>
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading || code.length !== 6}
+              style={{
+                width: '100%',
+                padding: '14px',
+                background: loading || code.length !== 6 ? '#007a8a' : '#00c7de',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 10,
+                fontSize: 16,
+                fontWeight: 600,
+                cursor: loading || code.length !== 6 ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s ease',
+                marginTop: 8,
+                opacity: loading || code.length !== 6 ? 0.7 : 1,
+                boxShadow: loading || code.length !== 6 ? 'none' : '0 4px 14px rgba(0,199,222,0.4)',
+              }}
+            >
+              {loading ? 'Đang xác thực...' : 'Xác nhận'}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { setPreToken(null); setCode(''); setError('') }}
+              style={{ background: 'none', border: 'none', color: '#8b9bb4', fontSize: 13, cursor: 'pointer', textAlign: 'center' }}
+            >
+              ← Quay lại đăng nhập
+            </button>
+          </form>
+          )}
 
           {/* Footer */}
           <div style={{

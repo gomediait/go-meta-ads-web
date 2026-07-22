@@ -1,6 +1,6 @@
-import jwt from 'jsonwebtoken'
 import nodemailer from 'nodemailer'
 import { getSupabase } from '../../../lib/supabase'
+import { requireAdminAuth } from '../../../lib/auth'
 
 
 const LARK_WEBHOOK = 'https://open.larksuite.com/open-apis/bot/v2/hook/23c53186-2208-4c29-9985-4a6bd836c88a'
@@ -56,16 +56,8 @@ async function sendEmail(sb, to, subject, html) {
   }
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ ok: false })
-  const token = req.cookies.admin_token
-  if (!token) return res.status(401).json({ ok: false, error: 'Unauthorized' })
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_for_development')
-    if (!decoded.admin) throw new Error('Not admin')
-  } catch(e) {
-    return res.status(401).json({ ok: false, error: 'Unauthorized' })
-  }
 
   const sb = getSupabase()
   const { action, ...body } = req.body || {}
@@ -169,3 +161,5 @@ export default async function handler(req, res) {
 
   return res.status(400).json({ ok: false, error: 'Action không hợp lệ' })
 }
+
+export default requireAdminAuth(handler)

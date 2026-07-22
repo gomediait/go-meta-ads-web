@@ -53,7 +53,7 @@ function PolicyDocsSubTab() {
   async function fetchDocs() {
     setLoading(true)
     try {
-      const r = await apiPost('/api/ai-chat', { action: 'pc_get_doc' })
+      const r = await apiPost('/api/admin/policy',{ action: 'pc_get_doc' })
       setAllDocs(r.docs || [])
       const doc = (r.docs || []).find(d => d.industry === industry)
       if (doc) { setContent(doc.content); setMeta(doc) }
@@ -73,7 +73,7 @@ function PolicyDocsSubTab() {
     if (!content.trim()) { alert('Nội dung không được để trống'); return }
     setSaving(true)
     try {
-      await apiPost('/api/ai-chat', { action: 'pc_save_doc', industry, content })
+      await apiPost('/api/admin/policy',{ action: 'pc_save_doc', industry, content })
       await fetchDocs()
       alert('✅ Đã lưu tài liệu chính sách')
     } catch (e) { alert('Lỗi lưu: ' + e.message) } finally { setSaving(false) }
@@ -82,7 +82,7 @@ function PolicyDocsSubTab() {
   async function handleReset() {
     if (!confirm(`Reset tài liệu ngành "${industry}" về mặc định?`)) return
     try {
-      await apiPost('/api/ai-chat', { action: 'pc_reset_doc', industry })
+      await apiPost('/api/admin/policy',{ action: 'pc_reset_doc', industry })
       await fetchDocs()
       alert('✅ Đã reset về mặc định')
     } catch (e) { alert('Lỗi: ' + e.message) }
@@ -135,7 +135,7 @@ function PolicyStatsSubTab() {
       const days = range === '1d' ? 1 : range === '30d' ? 30 : 7
       const from = new Date(now - days * 86400000).toISOString().slice(0, 10)
       const to   = now.toISOString().slice(0, 10)
-      const r = await apiPost('/api/ai-chat', { action: 'pc_stats', from, to })
+      const r = await apiPost('/api/admin/policy',{ action: 'pc_stats', from, to })
       setStats(r)
     } catch (e) { alert('Lỗi tải stats: ' + e.message) } finally { setLoading(false) }
   }
@@ -201,7 +201,7 @@ function PolicyConfigSubTab() {
   async function fetchConfig() {
     setLoading(true)
     try {
-      const r = await apiPost('/api/ai-chat', { action: 'pc_config_get' })
+      const r = await apiPost('/api/admin/policy',{ action: 'pc_config_get' })
       setConfig(r.config || {})
     } catch (e) { alert('Lỗi tải config: ' + e.message) } finally { setLoading(false) }
   }
@@ -211,7 +211,7 @@ function PolicyConfigSubTab() {
   async function handleSave() {
     setSaving(true)
     try {
-      await apiPost('/api/ai-chat', {
+      await apiPost('/api/admin/policy',{
         action: 'pc_config_save',
         model: config.model,
         rate_limit_business: parseInt(config.rateLimitBusiness),
@@ -226,7 +226,7 @@ function PolicyConfigSubTab() {
     setTesting(true)
     setTestResult(null)
     try {
-      const r = await apiPost('/api/ai-chat', {
+      const r = await apiPost('/api/admin/policy',{
         action: 'policy_check',
         key: 'TEST',
         content: { headline: 'Test kết nối AI', body: 'Sản phẩm chất lượng tốt' },

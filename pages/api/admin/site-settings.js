@@ -1,7 +1,6 @@
-import jwt from 'jsonwebtoken'
 import { getSupabase } from '../../../lib/supabase'
-
-
+import { getAdminFromReq } from '../../../lib/auth'
+import { logAudit } from '../../../lib/auditLog'
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store')
@@ -17,14 +16,8 @@ export default async function handler(req, res) {
 
   // Admin POST — upsert settings
   if (req.method === 'POST') {
-    const token = req.cookies.admin_token
-  if (!token) return res.status(401).json({ ok: false, error: 'Unauthorized' })
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_for_development')
-    if (!decoded.admin) throw new Error('Not admin')
-  } catch(e) {
-    return res.status(401).json({ ok: false, error: 'Unauthorized' })
-  }
+    const admin = getAdminFromReq(req)
+    if (!admin) return res.status(401).json({ ok: false, error: 'Unauthorized' })
 
     const { settings } = req.body || {}
     if (!settings || typeof settings !== 'object')
@@ -39,6 +32,7 @@ export default async function handler(req, res) {
     const { error } = await db.from('site_settings').upsert(rows, { onConflict: 'key' })
     if (error) return res.status(500).json({ ok: false, error: error.message })
 
+    await logAudit({ req, actorType: 'admin', actorId: admin.id, actorEmail: admin.email, action: 'site_settings_save', meta: { keys: Object.keys(settings) } })
     return res.json({ ok: true })
   }
 

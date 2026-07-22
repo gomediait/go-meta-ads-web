@@ -13,6 +13,7 @@ function SMTPTab() {
     from_email: '',
     from_name: 'Go Meta Ads Pro',
   })
+  const [hasPassword, setHasPassword] = useState(false)
   const [showPwd, setShowPwd] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -23,16 +24,17 @@ function SMTPTab() {
     async function fetchSmtp() {
       setLoading(true)
       try {
-        const res = await apiPost('/api/ticket', { action: 'smtp_get' })
+        const res = await apiPost('/api/admin/smtp', { action: 'smtp_get' })
         if (res?.smtp) {
           setForm({
             host: res.smtp.host || '',
             port: res.smtp.port || 587,
             username: res.smtp.username || '',
-            password: res.smtp.password || '',
+            password: '',
             from_email: res.smtp.from_email || '',
             from_name: res.smtp.from_name || 'Go Meta Ads Pro',
           })
+          setHasPassword(!!res.smtp.has_password)
         }
       } catch {} finally {
         setLoading(false)
@@ -52,14 +54,14 @@ function SMTPTab() {
   }
 
   async function handleSave() {
-    if (!form.host || !form.username || !form.password) {
+    if (!form.host || !form.username || (!form.password && !hasPassword)) {
       showToast('Vui lòng điền đầy đủ thông tin', 'error')
       return
     }
     setSaving(true)
     try {
-      const res = await apiPost('/api/ticket', { action: 'smtp_save', ...form })
-      if (res?.ok) showToast('Đã lưu cấu hình thành công')
+      const res = await apiPost('/api/admin/smtp', { action: 'smtp_save', ...form })
+      if (res?.ok) { showToast('Đã lưu cấu hình thành công'); if (form.password) setHasPassword(true) }
       else showToast(res?.error || 'Lưu thất bại', 'error')
     } catch (e) {
       showToast('Lỗi hệ thống', 'error')
@@ -71,7 +73,7 @@ function SMTPTab() {
   async function handleTest() {
     setTesting(true)
     try {
-      const res = await apiPost('/api/ticket', { action: 'smtp_test' })
+      const res = await apiPost('/api/admin/smtp', { action: 'smtp_test' })
       if (res?.ok) showToast('Gửi mail test thành công!')
       else showToast(res?.error || 'Gửi mail thất bại', 'error')
     } catch (e) {
@@ -112,7 +114,7 @@ function SMTPTab() {
           <div className="form-group" style={{ marginBottom: 16 }}>
             <label className="form-label">Mật khẩu (Password / App Password)</label>
             <div style={{ position: 'relative' }}>
-              <AdminInput type={showPwd ? "text" : "password"} name="password" value={form.password} onChange={handleChange} placeholder="••••••••" style={{ paddingRight: 40 }} />
+              <AdminInput type={showPwd ? "text" : "password"} name="password" value={form.password} onChange={handleChange} placeholder={hasPassword ? 'Để trống nếu giữ mật khẩu cũ' : '••••••••'} style={{ paddingRight: 40 }} />
               <button onClick={() => setShowPwd(!showPwd)} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--mut)', padding: 4 }}>
                 {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>

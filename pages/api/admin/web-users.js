@@ -1,20 +1,10 @@
-import jwt from 'jsonwebtoken'
 import { getSupabase } from '../../../lib/supabase'
+import { requireAdminAuth } from '../../../lib/auth'
+import { logAudit } from '../../../lib/auditLog'
 
 
-
-
-
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ ok: false })
-  const token = req.cookies.admin_token
-  if (!token) return res.status(401).json({ ok: false, error: 'Unauthorized' })
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_for_development')
-    if (!decoded.admin) throw new Error('Not admin')
-  } catch(e) {
-    return res.status(401).json({ ok: false, error: 'Unauthorized' })
-  }
 
   const sb = getSupabase()
   const { action, ...body } = req.body || {}
@@ -123,6 +113,7 @@ export default async function handler(req, res) {
 
     const { error } = await sb.from('users').update(update).eq('id', user_id)
     if (error) return res.status(500).json({ ok: false, error: error.message })
+    await logAudit({ req, actorType: 'admin', actorId: req.admin.id, actorEmail: req.admin.email, action: 'web_user_update', target: user_id, meta: update })
     return res.json({ ok: true })
   }
 
@@ -133,6 +124,7 @@ export default async function handler(req, res) {
 
     await sb.from('fb_connections').delete().eq('user_id', user_id)
     await sb.from('fb_ad_accounts').delete().eq('user_id', user_id)
+    await logAudit({ req, actorType: 'admin', actorId: req.admin.id, actorEmail: req.admin.email, action: 'web_user_reset_fb', target: user_id })
     return res.json({ ok: true })
   }
 
@@ -143,8 +135,11 @@ export default async function handler(req, res) {
 
     const { error } = await sb.from('users').delete().eq('id', user_id)
     if (error) return res.status(500).json({ ok: false, error: error.message })
+    await logAudit({ req, actorType: 'admin', actorId: req.admin.id, actorEmail: req.admin.email, action: 'web_user_delete', target: user_id })
     return res.json({ ok: true })
   }
 
   return res.status(400).json({ ok: false, error: 'Action không hợp lệ' })
 }
+
+export default requireAdminAuth(handler)

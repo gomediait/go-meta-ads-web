@@ -4,7 +4,7 @@ import { AdminPageHeader, AdminButton, AdminCard } from '../../components/AdminU
 import { LayoutDashboard, RefreshCw } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 
-import { adminLocalFetch } from '../../lib/adminUtils'
+import { apiPost } from '../../lib/adminUtils'
 
 function Badge({ status }) {
   const map = {
@@ -62,7 +62,7 @@ export default function AdminDashboard() {
   async function loadData() {
     setLoading(true)
     try {
-      const res = await adminLocalFetch('/api/admin/dashboard-stats')
+      const res = await apiPost('/api/admin/dashboard-stats', {})
       if (res.ok) {
         setStats(res.stats)
         setWebRecent(res.recent.users)

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Link from 'next/link'
+import { Languages, Rocket, Loader2, CheckCircle2 } from 'lucide-react'
 import { useAuth } from '../lib/AuthContext'
 import { useLang } from '../lib/LangContext'
 
@@ -106,7 +107,8 @@ export default function Register() {
       <div className="auth-page">
         <div className="auth-card">
           <button className="lang-toggle" onClick={() => setLang(lang === 'vi' ? 'en' : 'vi')}>
-            {lang === 'vi' ? '🇬🇧 EN' : '🇻🇳 VI'}
+            <Languages size={13} />
+            {lang === 'vi' ? 'EN' : 'VI'}
           </button>
           <div className="auth-logo">
             <img src="/logo.png" alt="logo" onError={e => e.target.style.display='none'} />
@@ -151,7 +153,7 @@ export default function Register() {
             )}
 
             {otpVerified && (
-              <div className="verified-badge">{tr.verified || '✅ Email đã được xác minh'}</div>
+              <div className="verified-badge"><CheckCircle2 size={15} /> {tr.verified || 'Email đã được xác minh'}</div>
             )}
 
             {/* Step 2: Account info */}
@@ -186,7 +188,9 @@ export default function Register() {
             {error && <div className="err-msg">{error}</div>}
 
             <button type="submit" className="submit-btn" disabled={loading || !otpVerified}>
-              {loading ? (tr.submitting || '⏳ Đang tạo tài khoản...') : (tr.submit || '🚀 Bắt đầu dùng thử miễn phí')}
+              {loading
+                ? <><Loader2 size={16} className="spin" /> {tr.submitting || 'Đang tạo tài khoản...'}</>
+                : <><Rocket size={16} /> {tr.submit || 'Bắt đầu dùng thử miễn phí'}</>}
             </button>
 
             <p className="terms-note">
@@ -195,7 +199,8 @@ export default function Register() {
           </form>
 
           <div className="auth-footer">
-            {tr.hasAccount || 'Đã có tài khoản?'} <Link href="/login">{tr.loginLink || 'Đăng nhập'}</Link>
+            <span>{tr.hasAccount || 'Đã có tài khoản?'}</span>
+            <Link href="/login" className="login-cta">{tr.loginLink || 'Đăng nhập'}</Link>
           </div>
         </div>
       </div>
@@ -213,6 +218,7 @@ export default function Register() {
         }
         .lang-toggle {
           position: absolute; top: 14px; right: 14px;
+          display: inline-flex; align-items: center; gap: 5px;
           background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18);
           border-radius: 7px; padding: 4px 10px; font-size: 11px; font-weight: 700;
           color: #e8eaf0; cursor: pointer; transition: background .15s;
@@ -254,6 +260,7 @@ export default function Register() {
         .otp-err { font-size: 12px; color: #ff8fa3; margin-top: 5px; }
 
         .verified-badge {
+          display: flex; align-items: center; gap: 6px;
           background: rgba(0,196,140,.1); border: 1px solid rgba(0,196,140,.3);
           border-radius: 8px; padding: 8px 12px; font-size: 13px; color: #00c48c;
           font-weight: 600; margin-bottom: 6px;
@@ -265,17 +272,29 @@ export default function Register() {
           width: 100%; background: #fe5f01; border: none; border-radius: 10px;
           padding: 13px; font-size: 15px; font-weight: 700; color: #fff;
           cursor: pointer; transition: opacity .15s; margin-top: 6px; font-family: inherit;
+          display: flex; align-items: center; justify-content: center; gap: 8px;
         }
         .submit-btn:hover:not(:disabled) { opacity: .88; }
         .submit-btn:disabled { opacity: .5; cursor: not-allowed; }
+        .submit-btn :global(.spin) { animation: spin .8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
         .terms-note { font-size: 11px; color: #6b7a99; margin-top: 10px; text-align: center; line-height: 1.6; }
         .terms-note a { color: #3b82f6; text-decoration: none; }
         .terms-note a:hover { text-decoration: underline; }
 
-        .auth-footer { text-align: center; margin-top: 20px; font-size: 13px; color: #6b7a99; }
-        .auth-footer a { color: #fe5f01; text-decoration: none; font-weight: 600; }
-        .auth-footer a:hover { text-decoration: underline; }
+        .auth-footer {
+          display: flex; flex-direction: column; align-items: center; gap: 10px;
+          text-align: center; margin-top: 20px; font-size: 13px; color: #6b7a99;
+        }
+        :global(.login-cta) {
+          display: inline-flex; align-items: center;
+          padding: 5px 14px; border-radius: 999px; border: 1px solid rgba(254,95,1,.4);
+          color: #fe5f01; font-weight: 600; font-size: 12px; text-decoration: none;
+          background: transparent;
+          transition: background .15s, border-color .15s, color .15s;
+        }
+        :global(.login-cta:hover) { background: rgba(254,95,1,.12); border-color: #fe5f01; color: #ff7a2e; }
       `}</style>
     </>
   )

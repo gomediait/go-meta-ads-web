@@ -15,7 +15,8 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  MousePointerClick
+  MousePointerClick,
+  KeyRound
 } from 'lucide-react'
 
 const ADMIN_NAV = [
@@ -28,6 +29,8 @@ const ADMIN_NAV = [
   { href: '/admin/ai',        icon: Brain,           label: 'AI Knowledge' },
   { href: '/admin/smtp',      icon: Mail,            label: 'Email / SMTP' },
   { href: '/admin/pixels',    icon: MousePointerClick, label: 'Tracking Pixels' },
+  { divider: true },
+  { href: '/admin/security',  icon: KeyRound,        label: 'Bảo mật' },
 ]
 
 export default function AdminLayout({ children, title = 'Admin Dashboard' }) {

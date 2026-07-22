@@ -1,18 +1,8 @@
-import jwt from 'jsonwebtoken'
 import { getSupabase } from '../../../lib/supabase'
+import { requireAdminAuth } from '../../../lib/auth'
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ ok: false })
-  
-  const token = req.cookies.admin_token || req.headers['x-admin-token']
-  if (!token) return res.status(401).json({ ok: false, error: 'Unauthorized' })
-  
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_for_development')
-    if (!decoded.admin) throw new Error('Not admin')
-  } catch(e) {
-    return res.status(401).json({ ok: false, error: 'Unauthorized' })
-  }
 
   const sb = getSupabase()
 
@@ -111,3 +101,5 @@ export default async function handler(req, res) {
     res.status(500).json({ ok: false, error: error.message })
   }
 }
+
+export default requireAdminAuth(handler)

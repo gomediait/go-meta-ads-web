@@ -2,6 +2,7 @@ import { getSupabase } from '../../lib/supabase'
 import { hashPassword, verifyPassword, signToken, setSessionCookie, clearSessionCookie, getUserFromReq } from '../../lib/auth'
 import { isAllowedEmail } from '../../lib/planLimits'
 import { sendEmail } from '../../lib/sendEmail'
+import { checkLock, recordFailure, clearAttempts } from '../../lib/rateLimit'
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -146,14 +147,24 @@ export default async function handler(req, res) {
     if (!email || !password)
       return res.status(400).json({ error: 'Vui lòng nhập email và mật khẩu' })
 
+    const emailLower = email.toLowerCase().trim()
+    const lockId = `user-login:${emailLower}`
+    const lock = await checkLock(lockId)
+    if (lock.locked)
+      return res.status(429).json({ error: `Đăng nhập sai quá nhiều lần. Vui lòng thử lại sau ${Math.ceil(lock.secondsLeft / 60)} phút.` })
+
     const { data: user } = await db.from('users')
       .select('id,email,name,plan,status,expire_at,avatar,phone,password_hash')
-      .eq('email', email.toLowerCase().trim()).single()
+      .eq('email', emailLower).single()
 
-    if (!user || !(await verifyPassword(password, user.password_hash || '')))
+    if (!user || !(await verifyPassword(password, user.password_hash || ''))) {
+      await recordFailure(lockId)
       return res.status(401).json({ error: 'Email hoặc mật khẩu không đúng' })
+    }
     if (user.status !== 'active')
       return res.status(403).json({ error: 'Tài khoản đã bị khoá' })
+
+    await clearAttempts(lockId)
 
     // Generate new session_id — invalidates any other active session
     const sid = crypto.randomUUID()

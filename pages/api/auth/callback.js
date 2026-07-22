@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken'
 import { getSupabase } from '../../../lib/supabase'
+import { encryptToken } from '../../../lib/tokenCrypto'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gmap-secret-change-in-prod'
 
@@ -83,7 +84,7 @@ export default async function handler(req, res) {
     fb_user_id: profile.id,
     fb_name: profile.name,
     fb_email: profile.email || null,
-    access_token: longToken,
+    access_token: encryptToken(longToken),
     token_expires_at: tokenExpiresAt,
     scopes: 'ads_read,ads_management,read_insights,public_profile,email',
     connected_at: new Date().toISOString(),

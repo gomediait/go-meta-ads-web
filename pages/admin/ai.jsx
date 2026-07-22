@@ -27,7 +27,7 @@ function AiKnowledgeTab() {
   async function fetchList() {
     setLoading(true)
     try {
-      const res = await apiPost('/api/ticket', { action: 'ai_list' })
+      const res = await apiPost('/api/admin/ai-knowledge', { action: 'ai_list' })
       setList(res?.data || [])
     } catch(e) { setError(e.message) } finally { setLoading(false) }
   }
@@ -45,19 +45,19 @@ function AiKnowledgeTab() {
     if (!formTitle.trim() || !formContent.trim()) { alert('Cần có tiêu đề và nội dung'); return }
     setSaving(true)
     try {
-      await apiPost('/api/ticket', { action: 'ai_save', id: editId||undefined, title: formTitle.trim(), content: formContent.trim(), category: formCategory })
+      await apiPost('/api/admin/ai-knowledge', { action: 'ai_save', id: editId||undefined, title: formTitle.trim(), content: formContent.trim(), category: formCategory })
       setShowForm(false); fetchList()
     } catch(e) { alert('Lỗi: ' + e.message) } finally { setSaving(false) }
   }
 
   async function toggleActive(item) {
-    await apiPost('/api/ticket', { action: 'ai_toggle', id: item.id, is_active: !item.is_active })
+    await apiPost('/api/admin/ai-knowledge', { action: 'ai_toggle', id: item.id, is_active: !item.is_active })
     setList(l => l.map(x => x.id === item.id ? { ...x, is_active: !item.is_active } : x))
   }
 
   async function deleteItem(id) {
     if (!confirm('Xóa tài liệu này?')) return
-    await apiPost('/api/ticket', { action: 'ai_delete', id })
+    await apiPost('/api/admin/ai-knowledge', { action: 'ai_delete', id })
     setList(l => l.filter(x => x.id !== id))
   }
 

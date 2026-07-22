@@ -52,6 +52,13 @@ SMTP_PASS=
 
 META_APP_ID=
 META_APP_SECRET=
+
+# Mã hoá access_token Facebook lưu trong DB (bắt buộc — chuỗi hex 64 ký tự / 32 byte).
+# Tạo bằng: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+TOKEN_ENCRYPTION_KEY=
+
+# Key upload ảnh upanhnhanh.com (bắt buộc — không hardcode trong code)
+UPANH_API_KEY=
 ```
 
 ## Chạy local

@@ -1,6 +1,7 @@
 import { getUserFromReq } from '../../lib/auth'
 import { getSupabase } from '../../lib/supabase'
 import { isPlanAllowed, getMaxTeamMembers } from '../../lib/planLimits'
+import { logAudit } from '../../lib/auditLog'
 
 export default async function handler(req, res) {
   const user = getUserFromReq(req)
@@ -52,12 +53,14 @@ export default async function handler(req, res) {
         owner_id: user.id, user_id: target.id, email: target.email, name: target.name, role: role || 'viewer'
       })
       if (insErr) return res.status(500).json({ error: insErr.message })
+      await logAudit({ req, actorType: 'user', actorId: user.id, actorEmail: user.email, action: 'team_member_add', target: target.email, meta: { role: role || 'viewer' } })
       return res.json({ ok: true, message: `Đã thêm ${target.name || email}` })
     }
 
     if (action === 'remove') {
       if (!member_id) return res.status(400).json({ error: 'Thiếu member_id' })
       await sb.from('team_members').delete().eq('id', member_id).eq('owner_id', user.id)
+      await logAudit({ req, actorType: 'user', actorId: user.id, actorEmail: user.email, action: 'team_member_remove', target: member_id })
       return res.json({ ok: true })
     }
 
@@ -65,6 +68,7 @@ export default async function handler(req, res) {
       const { new_role } = req.body
       if (!member_id || !new_role) return res.status(400).json({ error: 'Thiếu member_id hoặc new_role' })
       await sb.from('team_members').update({ role: new_role }).eq('id', member_id).eq('owner_id', user.id)
+      await logAudit({ req, actorType: 'user', actorId: user.id, actorEmail: user.email, action: 'team_role_change', target: member_id, meta: { new_role } })
       return res.json({ ok: true })
     }
   }

@@ -105,7 +105,6 @@ export default function MuaGoi() {
           billing_tab: billingTab,
           buyer_name: buyerName || user.name || '',
           buyer_phone: buyerPhone || user.phone || '',
-          amount: planObj.price,
         }),
       })
       const d = await r.json()
