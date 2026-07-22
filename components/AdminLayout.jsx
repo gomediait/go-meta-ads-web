@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import Head from 'next/head'
+import { useAdminAuth } from '../lib/AdminAuthContext'
 import {
   LayoutDashboard,
   Users,
@@ -35,32 +36,15 @@ const ADMIN_NAV = [
 
 export default function AdminLayout({ children, title = 'Admin Dashboard' }) {
   const router = useRouter()
+  const { admin, loading, logout } = useAdminAuth()
   const [collapsed, setCollapsed] = useState(false)
   const [theme, setTheme] = useState('light')
-  const [authChecking, setAuthChecking] = useState(true)
 
-  // Auth check & Theme init
+  // Theme init — chạy 1 lần, không phụ thuộc auth
   useEffect(() => {
-    // Theme
     const saved = localStorage.getItem('gmap_theme') || 'light'
     setTheme(saved)
     document.documentElement.setAttribute('data-theme', saved)
-
-    // Auth
-    async function checkAuth() {
-      try {
-        const res = await fetch('/api/admin/me')
-        const data = await res.json()
-        if (!data.ok) {
-          router.replace('/admin')
-          return
-        }
-        setAuthChecking(false)
-      } catch (e) {
-        router.replace('/admin')
-      }
-    }
-    checkAuth()
   }, [])
 
   function toggleTheme() {
@@ -70,20 +54,16 @@ export default function AdminLayout({ children, title = 'Admin Dashboard' }) {
     document.documentElement.setAttribute('data-theme', next)
   }
 
-  async function handleLogout() {
-    try {
-      await fetch('/api/admin/logout', { method: 'POST' })
-    } catch(e) {}
-    router.replace('/admin')
-  }
-
-  if (authChecking) {
+  // Chỉ chặn màn hình ở lần load đầu tiên của cả phiên (chưa biết admin hay chưa),
+  // không lặp lại mỗi khi chuyển trang vì AdminAuthProvider đã check 1 lần ở _app.
+  if (loading) {
     return (
       <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', background: '#f0f4ff' }}>
         <p style={{ color: '#0c2a72', fontWeight: 600 }}>Đang kiểm tra quyền Admin...</p>
       </div>
     )
   }
+  if (!admin) return null
 
   return (
     <>
@@ -115,7 +95,7 @@ export default function AdminLayout({ children, title = 'Admin Dashboard' }) {
             <button className="icon-btn" onClick={toggleTheme} title="Giao diện (Sáng/Tối)">
               {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
             </button>
-            <button className="icon-btn logout-btn" onClick={handleLogout} title="Đăng xuất">
+            <button className="icon-btn logout-btn" onClick={logout} title="Đăng xuất">
               <LogOut size={16} />
             </button>
           </div>

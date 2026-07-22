@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import { ShieldCheck } from 'lucide-react'
+import { useAdminAuth } from '../../lib/AdminAuthContext'
 
 export default function AdminLogin() {
   const router = useRouter()
+  const { refresh } = useAdminAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -46,6 +48,7 @@ export default function AdminLogin() {
         setPreToken(data.pre_token)
         setLoading(false)
       } else if (data.ok) {
+        await refresh()
         router.push('/admin/dashboard')
       } else {
         setError(data.error || 'Đăng nhập thất bại')
@@ -71,6 +74,7 @@ export default function AdminLogin() {
       const data = await res.json()
 
       if (data.ok) {
+        await refresh()
         router.push('/admin/dashboard')
       } else {
         setError(data.error || 'Mã xác thực không đúng')

@@ -1,6 +1,7 @@
 import '../styles/globals.css'
 import { LangProvider } from '../lib/LangContext'
 import { AuthProvider } from '../lib/AuthContext'
+import { AdminAuthProvider } from '../lib/AdminAuthContext'
 import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
 import dynamic from 'next/dynamic'
@@ -108,17 +109,23 @@ export default function App({ Component, pageProps }) {
     }
   }, [])
 
+  const content = (
+    <>
+      <PixelInjector />
+      {/* Ẩn widgets marketing trong admin và dashboard */}
+      {!isAdmin && !isDashboard && <LiveCounter />}
+      {!isAdmin && !isDashboard && <LoadingScreen />}
+      {!isDashboard && <GlobalEffects />}
+      <Component {...pageProps} />
+      {!isAdmin && !isDashboard && <FomoPopup />}
+      {!isAdmin && !isDashboard && <FloatingSupport />}
+    </>
+  )
+
   return (
     <LangProvider>
       <AuthProvider>
-        <PixelInjector />
-        {/* Ẩn widgets marketing trong admin và dashboard */}
-        {!isAdmin && !isDashboard && <LiveCounter />}
-        {!isAdmin && !isDashboard && <LoadingScreen />}
-        {!isDashboard && <GlobalEffects />}
-        <Component {...pageProps} />
-        {!isAdmin && !isDashboard && <FomoPopup />}
-        {!isAdmin && !isDashboard && <FloatingSupport />}
+        {isAdmin ? <AdminAuthProvider>{content}</AdminAuthProvider> : content}
       </AuthProvider>
     </LangProvider>
   )
