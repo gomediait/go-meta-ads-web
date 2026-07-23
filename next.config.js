@@ -5,6 +5,14 @@
 // nhưng không chặn triệt để XSS dạng inject inline-script. Muốn siết chặt hơn cần refactor sang CSP nonce (việc lớn hơn).
 // 'unsafe-eval' chỉ cần ở dev (React Fast Refresh/webpack HMR dùng eval() để patch module runtime) —
 // production build không cần eval nên không nới lỏng CSP ở đó.
+const { checkEnv } = require('./lib/envCheck')
+
+// Chỉ enforce trên Vercel (production/preview) — không chặn `next dev`/build local
+// khi lập trình viên chưa set đủ secret cho tính năng họ chưa đụng tới.
+if (process.env.VERCEL_ENV === 'production' || process.env.VERCEL_ENV === 'preview') {
+  checkEnv()
+}
+
 const isDev = process.env.NODE_ENV !== 'production'
 
 const CSP = [
